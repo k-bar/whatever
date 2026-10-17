@@ -49,7 +49,7 @@ export const PL = {
   'Messages': 'Wiadomości',
   '3 new': '3 nowe',
   'Favourite spots': 'Ulubione miejsca',
-  "APIs I'm plugged in to": 'Podłączone źródła',
+  'Data sources': 'Źródła danych',
   '5 sources': '5 źródeł',
   'Menu': 'Menu',
   'Ask the assistant…': 'Zapytaj asystenta…',

@@ -460,8 +460,8 @@ h2 { font-size: var(--titleSize); }
 .landuse-key .lk-list { list-style: none; margin: 0; padding: 0 0 4px; overflow: hidden; }
 .landuse-key .lk-list button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 5px 10px; border: 0; border-radius: 10px; background: none; color: var(--fg); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
 .landuse-key .lk-list button:hover { background: var(--surface-2); }
-.landuse-key .lk-list button.off { color: var(--fg-3); text-decoration: line-through; }
-.landuse-key .lk-list button.off .lk-sw { opacity: .3; }
+.landuse-key .lk-list button { transition: opacity .2s; }
+.landuse-key .lk-list button.off { opacity: .35; } /* hidden on the map: swatch and name dim out */
 .landuse-key .lk-sw { width: 20px; height: 14px; border-radius: 4px; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
 /* the centred toolbar reaches the right edge on narrower screens: sit above it */
 @media (max-width: 1279px) { .landuse-key { bottom: calc(88px + var(--safe-b)); } }
@@ -995,3 +995,13 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .pp-edit .pill-cat { height: 32px; font-size: 12.5px; }
 .pp-error { color: var(--accent); font-weight: 600; font-size: 13px; }
 .pp-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ---------- Data sources panel footer: live API status (left) + land-use key (right) ---------- */
+.sp-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; flex: none; padding: 10px 12px 12px; border-top: 1px solid var(--line); }
+.data-status { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 999px; background: var(--surface-2); font-size: 11.5px; font-weight: 600; color: var(--fg-2); white-space: nowrap; }
+.data-status i { width: 7px; height: 7px; border-radius: 50%; background: #f2a900; }
+.data-status.api i { background: #10b981; }
+.landuse-key.embedded { position: static; width: 212px; margin-left: auto; padding: 2px; border-radius: 16px; background: var(--surface-2); }
+.landuse-key.embedded .lk-head { padding: 7px 10px; }
+.landuse-key.embedded .lk-list button:hover { background: color-mix(in srgb, var(--fg) 6%, transparent); }
+

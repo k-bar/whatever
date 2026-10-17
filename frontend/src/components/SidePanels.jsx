@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { fetchJoinRequests, fetchSources } from '../data/api'
+import { dataStatus, fetchJoinRequests, fetchSources } from '../data/api'
 import { categoryColor } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 import { CloseButton } from './CloseButton'
@@ -9,6 +9,8 @@ import { Burger, Expand, Shrink, Star } from './Icons'
 import { MENU_ITEMS } from './SearchBar'
 import { StartPointPicker } from './StartPointPicker'
 import { ProfilePage } from './ProfilePage'
+import { LanduseLegend } from './LanduseLegend'
+import { useConfig } from '../config/store'
 import { locale, useLang } from '../i18n'
 
 const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
@@ -65,11 +67,12 @@ export function SlideOver({ section, onSection, onClose, full, onFull, onHome, m
 }
 
 /** One section's title + scrolling content inside the slide-over. */
-function Shell({ title, sub, children }) {
+function Shell({ title, sub, children, footer }) {
   return (
     <>
       <div className="sp-head"><div><h2>{title}</h2>{sub && <div className="mb-sub">{sub}</div>}</div></div>
       <div className="sp-scroll">{children}</div>
+      {footer && <div className="sp-foot">{footer}</div>}
     </>
   )
 }
@@ -124,13 +127,26 @@ export function FavouritesPanel({ features, favourites, onPick }) {
   )
 }
 
-export function SourcesPanel() {
+/** Live / offline status of the API and how many pins are loaded (was the bottom-left map badge). */
+function DataStatus({ pins }) {
   const { t } = useLang()
+  return (
+    <div className={`data-status ${dataStatus.source}`}>
+      <i />{t(dataStatus.source === 'api' ? 'live API' : dataStatus.source === 'offline' ? 'API offline' : 'loading…')} · {pins.toLocaleString(locale())} {t('pins')}
+    </div>
+  )
+}
+
+/** Data sources: where every pin comes from; its footer holds the live status and the map key. */
+export function SourcesPanel({ pins = 0, getMap, mobile }) {
+  const { t } = useLang()
+  const { values } = useConfig()
   const [sources, setSources] = useState([])
   useEffect(() => { fetchSources().then(setSources) }, [])
   const max = Math.max(1, ...sources.map((s) => s.item_count))
   return (
-    <Shell title={t("APIs I'm plugged in to")} sub={t('Where every pin comes from')}>
+    <Shell title={t('Data sources')} sub={t('Where every pin comes from')}
+      footer={<>{values.apiBadge && <DataStatus pins={pins} />}<LanduseLegend embedded getMap={getMap} mobile={mobile} /></>}>
       {sources.map((s) => (
         <div className="sp-row" key={s.slug} style={{ display: 'block' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
