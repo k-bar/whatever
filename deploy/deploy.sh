@@ -29,18 +29,7 @@ systemctl daemon-reload
 systemctl enable -q warszawa-api.service
 systemctl restart warszawa-api.service
 systemctl enable -q --now warszawa-ingest.timer
-
-# Kamil's Open Data ingestor (src/), once it's merged
-if [ -f src/main.py ] && [ -f requirements.txt ]; then
-  log "ingestor: installing src/ requirements"
-  uv venv -q --allow-existing .venv-ingestor
-  uv pip install -q --python .venv-ingestor -r requirements.txt
-  chmod -R a+rX /opt/uv/python
-  systemctl enable -q warszawa-ingestor.service
-  systemctl restart warszawa-ingestor.service
-else
-  systemctl disable -q --now warszawa-ingestor.service 2>/dev/null || true
-fi
+systemctl enable -q --now warszawa-conditions.timer
 
 # --- health check: the new code must answer with the new sha ----------------------------------
 for i in $(seq 1 30); do

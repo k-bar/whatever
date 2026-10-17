@@ -1,0 +1,158 @@
+[
+  {
+    "geometry": {
+      "coordinates": [
+        [
+          21.0148748892902,
+          52.2086170695684
+        ]
+      ],
+      "type": "Point"
+    },
+    "properties": {
+      "defibrillator_id": "622",
+      "device_access_description": "Poniedziałek: godz. 8:00-18:00; Wtorek-Piątek: godz. 8:00-16:00",
+      "device_availability": "Ograniczona",
+      "device_location": "Wewnątrz budynku",
+      "device_manufacturer": "Medtronic",
+      "device_public_access": "Publiczny",
+      "device_specifications": "Nie",
+      "location_building": "25/27",
+      "location_city": "Warszawa",
+      "location_description": "Przy wejściu na półpiętrze.",
+      "location_object_name": "Urząd Dzielnicy Mokotów m.st. Warszawy",
+      "location_postcode": "02-517",
+      "location_street": "Rakowiecka"
+    }
+  },
+  {
+    "geometry": {
+      "coordinates": [
+        [
+          21.0081388070459,
+          52.1737101485397
+        ]
+      ],
+      "type": "Point"
+    },
+    "properties": {
+      "defibrillator_id": "661",
+      "device_access_description": "poniedziałek-piątek w godzinach 6.00-22.00, sobota-niedziela w godzinach 8.00-20.00",
+      "device_availability": "Ograniczona",
+      "device_location": "Wewnątrz budynku",
+      "device_manufacturer": "HeartSine samaritan PAD Defibrillator",
+      "device_public_access": "Publiczny",
+      "device_specifications": "Tak",
+      "location_building": "2A",
+      "location_city": "Warszawa",
+      "location_description": "OSiR Mokotów",
+      "location_object_name": "Kompleks Sportowy",
+      "location_postcode": "02-698",
+      "location_street": "Niegocińska"
+    }
+  },
+  {
+    "geometry": {
+      "coordinates": [
+        [
+          21.0078522561602,
+          52.2551276320303
+        ]
+      ],
+      "type": "Point"
+    },
+    "properties": {
+      "defibrillator_id": "623",
+      "device_access_description": "Poniedziałek - piątek, godziny 6:00 - 21:00",
+      "device_availability": "Ograniczona",
+      "device_location": "Wewnątrz budynku",
+      "device_manufacturer": "PHILIPS",
+      "device_public_access": "Publiczny",
+      "device_specifications": "Nie",
+      "location_building": "9",
+      "location_city": "Warszawa",
+      "location_description": "AED wewnątrz szkoły na holu głównym.",
+      "location_object_name": "Zespół Szkół Architektoniczno-Budowlanych i Licealnych im. Stanisława Noakowskiego",
+      "location_postcode": "00-219",
+      "location_street": "Przyrynek"
+    }
+  },
+  {
+    "geometry": {
+      "coordinates": [
+        [
+          20.9864603364814,
+          52.2216772347502
+        ]
+      ],
+      "type": "Point"
+    },
+    "properties": {
+      "defibrillator_id": "662",
+      "device_access_description": "Poniedziałki 8.00-18.00, wtorki - piątki 8.00-16.00.",
+      "device_availability": "Ograniczona",
+      "device_location": "Wewnątrz budynku",
+      "device_manufacturer": "Medtronic",
+      "device_public_access": "Publiczny",
+      "device_specifications": "Brak informacji",
+      "location_building": "17A",
+      "location_city": "Warszawa",
+      "location_description": "Sala obsługi WOM",
+      "location_object_name": "Urząd Dzielnicy Ochota m.st. Warszawy",
+      "location_postcode": "02-021",
+      "location_street": "Grójecka"
+    }
+  },
+  {
+    "geometry": {
+      "coordinates": [
+        [
+          21.1617495395711,
+          52.2589389131916
+        ]
+      ],
+      "type": "Point"
+    },
+    "properties": {
+      "defibrillator_id": "628",
+      "device_access_description": "Poniedziałek-Wtorek 8:00-19:00, Środa 8:00-20:00, Czwartek-Piątek 8:00-19:00",
+      "device_availability": "Ograniczona",
+      "device_location": "Wewnątrz budynku",
+      "device_manufacturer": "LIFEPAK Defibrillator",
+      "device_public_access": "Publiczny",
+      "device_specifications": "Tak",
+      "location_building": "28",
+      "location_city": "Warszawa",
+      "location_description": "Defibrylator znajduje się na parterze obok stanowiska ochrony budynku",
+      "location_object_name": "Urząd Dzielnicy Rembertów m.st. Warszawy",
+      "location_postcode": "04-401",
+      "location_street": "al. gen. A. Chruściela „Montera”"
+    }
+  },
+  {
+    "geometry": {
+      "coordinates": [
+        [
+          20.8936221980006,
+          52.200694707635
+        ]
+      ],
+      "type": "Point"
+    },
+    "properties": {
+      "defibrillator_id": "663",
+      "device_access_description": "W poniedziałki od 8.00 do 18.00; od wtorku do piątku od 8.00 do 16.00.",
+      "device_availability": "Ograniczona",
+      "device_location": "Wewnątrz budynku",
+      "device_manufacturer": "IPAD",
+      "device_public_access": "Publiczny",
+      "device_specifications": "Brak informacji",
+      "location_building": "1",
+      "location_city": "Warszawa",
+      "location_description": "parter - główny hol budynku",
+      "location_object_name": "Urząd Dzielnicy Ursus m.st. Warszawy",
+      "location_postcode": "02-495",
+      "location_street": "pl. Czerwca 1976 r."
+    }
+  }
+]

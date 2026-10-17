@@ -22,7 +22,13 @@ CATEGORIES = {
     "business": "Business",
     "health": "Health",
     "other": "Other",
+    "toilets": "Public toilets",
+    "aed": "Defibrillators (AED)",
 }
+
+# Practical map layers, not social categories: kept apart from the keyword guessing below,
+# and hidden from /places unless asked for by category.
+AMENITIES = {"toilets", "aed"}
 
 # Source label (lowercased) -> our slug. Labels seen in dane.um.warszawa.pl data.
 LABEL_MAP = {
@@ -48,6 +54,8 @@ LABEL_MAP = {
     "aktywności parkowe i miejskie": "sports",
     "sauna": "health",
     "boisko": "sports",
+    "toaleta": "toilets",
+    "defibrylator": "aed",
 }
 
 # Title keywords refine broad labels like "Kultura".
@@ -71,6 +79,8 @@ def map_categories(labels: list[str], title: str = "") -> list[str]:
         slug = LABEL_MAP.get(label.strip().lower())
         if slug and slug not in out:
             out.append(slug)
+    if AMENITIES & set(out):
+        return out  # "Toaleta – Muzeum ..." is a toilet, not an exhibition
     for pattern, slug in KEYWORDS:
         if pattern.search(title) and slug not in out:
             out.append(slug)

@@ -1,0 +1,50 @@
+[
+  {
+    "lokalizacja": "Stacja Bielany",
+    "lat": 52.29241,
+    "lon": 20.97288,
+    "czas": "2026-10-17 19:30:00",
+    "temp_pow": 8.8,
+    "temp_naw": 9.6,
+    "wilg_pow": 92.2,
+    "pred_wiatru": 0.5,
+    "kier_wiatru": 244,
+    "int_opadu": 1
+  },
+  {
+    "lokalizacja": "Stacja Czecha",
+    "lat": 52.2243019,
+    "lon": 21.2067467,
+    "czas": "2026-10-17 19:30:00",
+    "temp_pow": 5.8,
+    "temp_naw": 7.5,
+    "wilg_pow": 98.2,
+    "pred_wiatru": 0,
+    "kier_wiatru": 31,
+    "int_opadu": 4.5
+  },
+  {
+    "lokalizacja": "Stacja Drewny",
+    "lat": 52.12747,
+    "lon": 21.09678,
+    "czas": "2026-10-17 19:30:00",
+    "temp_pow": 6,
+    "temp_naw": 7.9,
+    "wilg_pow": 99.9,
+    "pred_wiatru": 0.4,
+    "kier_wiatru": 243,
+    "int_opadu": 5.5
+  },
+  {
+    "lokalizacja": "Stacja Izbicka",
+    "lat": 52.17932,
+    "lon": 21.23288,
+    "czas": "2026-10-17 19:30:00",
+    "temp_pow": 6.3,
+    "temp_naw": 7.4,
+    "wilg_pow": 99.9,
+    "pred_wiatru": 0,
+    "kier_wiatru": 68,
+    "int_opadu": 8.5
+  }
+]

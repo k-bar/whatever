@@ -1,0 +1,223 @@
+[
+  {
+    "address": {
+      "city": "Warszawa",
+      "commune": "Warszawa",
+      "district": "Praga-Południe",
+      "street": "Grochowska 244",
+      "zip_code": "04-368"
+    },
+    "data": [
+      {
+        "ijp": {
+          "name": "Bardzo dobry"
+        },
+        "param_code": "PM10",
+        "param_name": "pył zawieszony PM10",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 12.585
+      },
+      {
+        "ijp": {
+          "name": "Bardzo dobry"
+        },
+        "param_code": "PM25",
+        "param_name": "pył zawieszony PM2.5",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 11.4933
+      },
+      {
+        "ijp": {
+          "name": "Bardzo dobry"
+        },
+        "param_code": "NO2",
+        "param_name": "dwutlenek azotu",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 22.7108
+      },
+      {
+        "ijp": {
+          "name": "Bardzo dobry"
+        },
+        "param_code": "CO",
+        "param_name": "tlenek węgla",
+        "time": "2026-10-17 19:00:00",
+        "unit": "mg/m3",
+        "value": 0.319171
+      }
+    ],
+    "data_source": "Urząd m.st. Warszawy",
+    "ijp": {
+      "name": "Bardzo dobry",
+      "recommendations": "Jakość powietrza jest bardzo dobra, zanieczyszczenie powietrza nie stanowi zagrożenia dla zdrowia, warunki bardzo sprzyjające do wszelkich aktywności na wolnym powietrzu, bez ograniczeń."
+    },
+    "lat": 52.245703,
+    "lon": 21.080555,
+    "name": "Warszawa-Grochowska",
+    "owner": "Urząd m.st. Warszawy",
+    "station": "ul. Grochowska",
+    "station_type": "Stacja monitoringu"
+  },
+  {
+    "address": {
+      "city": "Warszawa",
+      "commune": "Warszawa",
+      "district": "Śródmieście",
+      "street": "al.\"Solidarności\"",
+      "zip_code": "00-144"
+    },
+    "data": [
+      {
+        "ijp": {
+          "name": "Bardzo dobry"
+        },
+        "param_code": "PM10",
+        "param_name": "pył zawieszony PM10",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 12.9258
+      },
+      {
+        "ijp": {
+          "name": "Bardzo dobry"
+        },
+        "param_code": "PM25",
+        "param_name": "pył zawieszony PM2.5",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 9.98972
+      },
+      {
+        "ijp": {
+          "name": "Dobry"
+        },
+        "param_code": "NO2",
+        "param_name": "dwutlenek azotu",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 53.8536
+      }
+    ],
+    "data_source": "Urząd m.st. Warszawy",
+    "ijp": {
+      "name": "Dobry",
+      "recommendations": "Jakość powietrza jest zadowalająca, zanieczyszczenie powietrza powoduje brak lub niskie ryzyko zagrożenia dla zdrowia. Można przebywać na wolnym powietrzu i wykonywać dowolną aktywność, bez ograniczeń."
+    },
+    "lat": 52.243775,
+    "lon": 20.999843,
+    "name": "Warszawa-Solidarności",
+    "owner": "Urząd m.st. Warszawy",
+    "station": "al. Solidarności",
+    "station_type": "Stacja monitoringu"
+  },
+  {
+    "address": {
+      "city": "Warszawa",
+      "commune": "Warszawa",
+      "district": "Warszawa",
+      "street": "Al. Niepodległości 227/233",
+      "zip_code": null
+    },
+    "data": [
+      {
+        "param_code": "C6H6",
+        "param_name": "benzen",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 1.6
+      },
+      {
+        "param_code": "CO",
+        "param_name": "tlenek węgla",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 420
+      },
+      {
+        "param_code": "NO2",
+        "param_name": "dwutlenek azotu",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 37.8
+      },
+      {
+        "param_code": "PM10",
+        "param_name": "pył zawieszony PM10",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 17.7
+      },
+      {
+        "param_code": "PM2.5",
+        "param_name": "pył zawieszony PM2.5",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 13
+      }
+    ],
+    "data_source": "Główny Inspektorat Ochrony Środowiska",
+    "ijp": {
+      "name": "Bardzo dobry",
+      "recommendations": "Jakość powietrza jest bardzo dobra, zanieczyszczenie powietrza nie stanowi zagrożenia dla zdrowia, warunki bardzo sprzyjające do wszelkich aktywności na wolnym powietrzu, bez ograniczeń."
+    },
+    "lat": "52.219298",
+    "lon": "21.004724",
+    "name": "Warszawa, Al. Niepodległości",
+    "owner": "Główny Inspektorat Ochrony Środowiska",
+    "station": "Al. Niepodległości 227/233",
+    "station_type": "Stacja monitoringu"
+  },
+  {
+    "address": {
+      "city": "Warszawa",
+      "commune": "Warszawa",
+      "district": "Warszawa",
+      "street": "ul. Wokalna 1",
+      "zip_code": null
+    },
+    "data": [
+      {
+        "param_code": "NO2",
+        "param_name": "dwutlenek azotu",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 20
+      },
+      {
+        "param_code": "O3",
+        "param_name": "ozon",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 0.7
+      },
+      {
+        "param_code": "PM10",
+        "param_name": "pył zawieszony PM10",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 14.7
+      },
+      {
+        "param_code": "PM2.5",
+        "param_name": "pył zawieszony PM2.5",
+        "time": "2026-10-17 19:00:00",
+        "unit": "µg/m3",
+        "value": 11
+      }
+    ],
+    "data_source": "Główny Inspektorat Ochrony Środowiska",
+    "ijp": {
+      "name": "Bardzo dobry",
+      "recommendations": "Jakość powietrza jest bardzo dobra, zanieczyszczenie powietrza nie stanowi zagrożenia dla zdrowia, warunki bardzo sprzyjające do wszelkich aktywności na wolnym powietrzu, bez ograniczeń."
+    },
+    "lat": "52.160772",
+    "lon": "21.033819",
+    "name": "Warszawa, ul. Wokalna",
+    "owner": "Główny Inspektorat Ochrony Środowiska",
+    "station": "ul. Wokalna 1",
+    "station_type": "Stacja monitoringu"
+  }
+]

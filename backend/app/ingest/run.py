@@ -168,6 +168,11 @@ def main(argv: list[str] | None = None) -> int:
                 err = traceback.format_exc()
                 print(f"{slug}: FAILED\n{err}", file=sys.stderr)
                 record_error(db, spec, err)
+    if not args.source:
+        from app.ingest.conditions import run_feeds  # imports this module
+        from app.ingest.routes import ROUTES
+
+        failed += run_feeds([ROUTES])
     return 1 if failed else 0
 
 

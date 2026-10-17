@@ -4,6 +4,17 @@ Collected from Philip's stubs (frontend/src/data/api.js is the caller). Until ea
 the UI falls back to client-side logic (no mock data). Implement them as routers
 under `app/routers/`, tables via models + Alembic.
 
+## Available now (new map layers)
+
+- `GET /places?category=toilets` / `?category=aed`: public toilets (695) and defibrillators (710) as Point
+  features, same shape as other places (`opening_hours` for toilets). Plain `/places` leaves them out.
+- `GET /conditions` → `{"weather": FeatureCollection, "air": FeatureCollection}`, latest reading per station,
+  refreshed every 10 min. Weather props: `temp_air`, `temp_road`, `humidity`, `wind_speed`, `wind_dir`,
+  `precipitation`, `measured_at`. Air props: `index` (Polish AQ index, e.g. "Dobry"), `recommendation`,
+  `params` (`{"PM10": {"value", "unit", "index", "time"}, ...}`), `measured_at`.
+- `GET /routes` → FeatureCollection of LineStrings (tourist routes): `title`, `length_km`, `description`,
+  `points` (`[{"id", "name", "lat", "lng"}]`).
+
 ## `backend/mapboxes/__init__.py` (removed)
 
 ```
