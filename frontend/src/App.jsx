@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
 import { dataStatus, fetchBusyAreas, fetchFeatures, fetchMapbox, locateByIp, routeTo, runSearch } from './data/api'
 import { useFavourites } from './hooks/useFavourites'
+import { useStartPoint } from './hooks/useStartPoint'
 import { useIsMobile } from './hooks/useMedia'
 import { curate } from './mapboxes/curate'
 import { BottomSheet } from './components/BottomSheet'
@@ -35,6 +36,8 @@ export default function App() {
   const [toast, setToast] = useState(null)
   const [busyAreas, setBusyAreas] = useState(null)
   const [me, setMe] = useState(null)
+  const start = useStartPoint() // picked in Profile; beats the IP guess
+  const firstPosition = useRef(true)
   const [route, setRoute] = useState(null)
   const meRef = useRef(null)
   useEffect(() => { meRef.current = me }, [me])
@@ -43,12 +46,27 @@ export default function App() {
 
   useEffect(() => {
     fetchFeatures().then(setFeatures); fetchBusyAreas().then(setBusyAreas)
-    // "You are here": IP position on load, re-polled every 5 minutes (the IP changes when the user moves networks)
-    locateByIp().then((loc) => { setMe(loc.lngLat); say(`You are here · ${loc.label}`) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  // Position: the starting point picked in Profile, otherwise an IP guess re-polled every 5 minutes
+  // (the IP changes when the user moves networks)
+  useEffect(() => {
+    const first = firstPosition.current
+    firstPosition.current = false
+    if (start) {
+      setMe(start.lngLat)
+      if (!first) {
+        const m = mapRef.current?.getMap()
+        m?.flyTo({ center: start.lngLat, zoom: Math.max(m.getZoom(), 14), duration: 1100, essential: true })
+        say(`Starting point · ${start.label}`)
+      }
+      return
+    }
+    locateByIp().then((loc) => { setMe(loc.lngLat); say(first ? 'Approximate location from your IP · set yours in Profile' : 'Using your approximate IP location') })
     const poll = setInterval(() => locateByIp().then((loc) => setMe(loc.lngLat)), 5 * 60 * 1000)
     return () => clearInterval(poll)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [start])
   const featureList = features?.features || []
 
   const say = useCallback((t) => { setToast(t); setTimeout(() => setToast(null), 1800) }, [])

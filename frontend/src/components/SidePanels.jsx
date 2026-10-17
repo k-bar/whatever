@@ -5,6 +5,7 @@ import { fetchSources } from '../data/api'
 import { categoryColor, categoryLabel } from '../data/categories'
 import { CloseButton } from './CloseButton'
 import { Star } from './Icons'
+import { StartPointPicker } from './StartPointPicker'
 
 const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
 
@@ -39,6 +40,8 @@ export function ProfilePanel({ onClose }) {
         <div className="sp-row" key={i}><span className="av" style={{ background: AV[i] }}>{n[0]}</span><span><div className="t">{n}</div><div className="s">{t}</div></span>
           <span className="right" style={{ display: 'flex', gap: 6 }}><button className="btn small primary">Accept</button><button className="btn small">Pass</button></span></div>
       ))}
+      <div className="blk-title" style={{ padding: '0 10px', marginTop: 18 }}>Set my location to</div>
+      <StartPointPicker />
     </Shell>
   )
 }

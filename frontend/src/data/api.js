@@ -145,6 +145,57 @@ export async function locateByIp() {
   return { lngLat: WARSAW_CENTER, label: 'Centrum (IP lookup failed)', exact: false, source: null }
 }
 
+/* ---------- starting point (Profile → Set my location to) ---------- */
+
+const START_KEY = 'warszawa-live.start.v1'
+
+/** The starting point the user picked. When set it replaces the IP guess everywhere. */
+export function loadStartPoint() {
+  try { const s = JSON.parse(localStorage.getItem(START_KEY)); return Array.isArray(s?.lngLat) ? s : null } catch { return null }
+}
+export function saveStartPoint(point) {
+  try { point ? localStorage.setItem(START_KEY, JSON.stringify(point)) : localStorage.removeItem(START_KEY) } catch { /* private mode */ }
+}
+
+const PHOTON = 'https://photon.komoot.io'
+const photonPoint = (f) => {
+  const p = f.properties
+  const name = p.osm_value === 'postcode' ? p.name
+    : p.housenumber ? `${p.street || p.name} ${p.housenumber}` : (p.name || p.street)
+  const area = [p.osm_value !== 'postcode' && p.postcode, p.district || p.locality, p.city].filter(Boolean).join(', ')
+  return { lngLat: f.geometry.coordinates, label: name || area || 'Warsaw', sub: area }
+}
+
+/** Address / postcode search for the starting point: Photon (OSM geocoder, keyless, CORS), Warsaw area only. */
+export async function searchAddress(q, { signal } = {}) {
+  const [w, s, e, n] = WARSAW_BBOX
+  // lang=default: local (Polish) names; extra results leave room after dropping transit stops
+  const r = await fetch(`${PHOTON}/api/?q=${encodeURIComponent(q)}&bbox=${w},${s - 0.01},${e + 0.01},${n}&limit=12&lang=default`, { signal })
+  const isStop = (p) => p.osm_key === 'public_transport' || ['bus_stop', 'tram_stop', 'platform', 'stop_position'].includes(p.osm_value)
+  const wantsNumber = /\d/.test(q) && !/^\s*\d{2}-?\d{3}\s*$/.test(q) // "Marszałkowska 10", not a postcode
+  const seen = new Set()
+  return ((await r.json()).features || [])
+    .filter((f) => !isStop(f.properties))
+    .sort((a, b) => (wantsNumber ? !!b.properties.housenumber - !!a.properties.housenumber : 0))
+    .map(photonPoint)
+    .filter((p) => !seen.has(p.label + p.sub) && seen.add(p.label + p.sub))
+    .slice(0, 7)
+}
+
+/** Precise position from the device (asks for permission), labelled with the nearest address. */
+export async function locateByDevice() {
+  const pos = await new Promise((ok, fail) => navigator.geolocation
+    ? navigator.geolocation.getCurrentPosition(ok, fail, { enableHighAccuracy: true, timeout: 10000 })
+    : fail(new Error('no geolocation')))
+  const lngLat = [pos.coords.longitude, pos.coords.latitude]
+  try {
+    const r = await fetch(`${PHOTON}/reverse?lon=${lngLat[0]}&lat=${lngLat[1]}&lang=default`, { signal: AbortSignal.timeout(4000) })
+    const f = (await r.json()).features?.[0]
+    if (f) return { ...photonPoint(f), lngLat }
+  } catch { /* label falls back below */ }
+  return { lngLat, label: 'My device location', sub: '' }
+}
+
 const WALK_KMH = 4.8, BIKE_KMH = 15
 
 /** Street route from → to. Public OSRM demo; walking/cycling times derived from the distance. */

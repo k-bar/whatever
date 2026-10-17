@@ -409,12 +409,13 @@ h2 { font-size: var(--titleSize); }
 .typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
 @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
 
-.me-marker { position: relative; width: 22px; height: 22px; pointer-events: none; }
-.me-marker .core { position: absolute; inset: 5px; border-radius: 50%; background: #4fb3ff; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.me-marker { position: relative; width: 44px; height: 44px; pointer-events: none; }
 .me-marker .ring { position: absolute; inset: 0; border-radius: 50%; background: rgba(79,179,255,.35); animation: me-pulse 2.6s ease-out infinite; }
 .me-marker .ring.r2 { animation-delay: 1.3s; }
 @keyframes me-pulse { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(4.2); opacity: 0; } }
-.me-marker .me-label { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); white-space: nowrap; padding: 4px 10px; border-radius: 999px; background: var(--surface-solid); color: #1f7fd0; font-size: 11.5px; font-weight: 700; box-shadow: var(--shadow); }
+/* the pin's tip sits exactly on the position (marker centre); a soft shadow where it touches the map */
+.me-marker .ground { position: absolute; left: 50%; top: 50%; width: 16px; height: 6px; margin: -3px 0 0 -8px; border-radius: 50%; background: rgba(20,60,100,.28); filter: blur(1px); }
+.me-marker .pin { position: absolute; left: 50%; bottom: 50%; width: 33px; height: 44px; transform: translateX(-50%); filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
 
 .journey { display: flex; align-items: center; gap: 14px; padding: 10px 12px; border-radius: calc(var(--radius) - 8px); background: color-mix(in srgb, #4fb3ff 12%, transparent); font-weight: 700; font-size: 13.5px; }
 .journey .j { display: inline-flex; align-items: center; gap: 6px; }
@@ -446,3 +447,25 @@ h2 { font-size: var(--titleSize); }
 @media (max-width: 767px) {
   .landuse-key { right: 12px; bottom: calc(76px + var(--safe-b)); width: 196px; }
 }
+
+/* ---------- starting point picker (Profile → Set my location to) ---------- */
+.start-picker { display: flex; flex-direction: column; gap: 8px; padding: 0 10px 14px; }
+.start-picker .sp-current { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: calc(var(--radius) - 8px); background: color-mix(in srgb, #4fb3ff 12%, transparent); }
+.start-picker .sp-current > span { flex: 1; min-width: 0; }
+.start-picker .sp-current .t { font-weight: 700; }
+.start-picker .sp-current .s { color: var(--fg-2); font-size: 12.5px; }
+.start-picker .pin-glyph { flex: none; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
+.start-input { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border-radius: 999px; background: var(--surface-2); color: var(--fg-3); }
+.start-input:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, #4fb3ff 60%, transparent); }
+.start-input input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--fg); font: inherit; font-size: 14px; }
+.start-input input::placeholder { color: var(--fg-3); }
+.start-input .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: start-spin .7s linear infinite; }
+@keyframes start-spin { to { transform: rotate(360deg); } }
+.start-hits { display: flex; flex-direction: column; border-radius: calc(var(--radius) - 8px); overflow: hidden; border: 1px solid var(--surface-2); }
+.start-hit { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 9px 12px; border: 0; background: none; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+.start-hit + .start-hit { border-top: 1px solid var(--surface-2); }
+.start-hit:hover { background: var(--surface-2); }
+.start-hit .t { font-weight: 600; font-size: 13.5px; }
+.start-hit .s { color: var(--fg-2); font-size: 12px; }
+.start-note { color: var(--fg-2); font-size: 12.5px; padding: 0 4px; }
+.start-gps { align-self: flex-start; display: inline-flex; gap: 6px; }

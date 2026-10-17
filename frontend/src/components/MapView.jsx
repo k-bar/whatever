@@ -201,13 +201,15 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   useEffect(() => { const m = map.current; if (!m?.getLayer('wl-busyareas-fill')) return; for (const id of AREA_LAYERS) m.setLayoutProperty(id, 'visibility', values.busyAreas ? 'visible' : 'none') }, [values.busyAreas])
   useEffect(() => { const m = map.current; if (m?.getLayer('wl-route')) styleRoute(m, values) }, [values.routeStyle, values.accent])
 
-  // "me": pulsing light-blue dot (HTML marker so CSS can animate it)
+  // "me": light-blue pin with pulsing rings where it touches the map (HTML marker so CSS can animate it)
   useEffect(() => {
     const m = map.current
     if (!m) return
     if (!me || !values.showMe) { meMarker.current?.remove(); meMarker.current = null; return }
     if (!meMarker.current) {
-      const el = document.createElement('div'); el.className = 'me-marker'; el.innerHTML = '<span class="ring"></span><span class="ring r2"></span><span class="core"></span><span class="me-label">You are here</span>'
+      const el = document.createElement('div'); el.className = 'me-marker'
+      el.innerHTML = '<span class="ring"></span><span class="ring r2"></span><span class="ground"></span>'
+        + '<svg class="pin" viewBox="0 0 30 40"><path d="M15 38.5C15 38.5 3 24.6 3 15a12 12 0 0 1 24 0c0 9.6-12 23.5-12 23.5Z" fill="#4fb3ff" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><circle cx="15" cy="15" r="5" fill="#fff"/></svg>'
       meMarker.current = new maplibregl.Marker({ element: el }).setLngLat(me).addTo(m)
     } else meMarker.current.setLngLat(me)
   }, [me, values.showMe])
