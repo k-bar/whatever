@@ -13,7 +13,7 @@ __pycache__/
 .ruff_cache/
 backend/scripts/_cache/
 
-# local data snapshots (rebuild with backend/db/fetch_data.py, load with backend/scripts/import_sqlite.py)
+# local SQLite snapshots from the backend/db/ scrapers (see backend/db/db.md)
 *.db
 backend/db/zdjecia/
 
@@ -26,3 +26,6 @@ backend/db/zdjecia/
 # CDK
 infra/cdk.out/
 infra/*outputs.json
+
+# personal editor / agent config
+.claude/

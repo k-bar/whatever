@@ -37,7 +37,7 @@ const withAssets = (f) => (f.properties.image_url?.startsWith('/') ? { ...f, pro
 export async function fetchFeatures() {
   try {
     const [events, places, mine] = await Promise.all([
-      // ?lang: titles and descriptions in the UI language (translated by Claude on the server, originals kept)
+      // ?lang: titles and descriptions in the UI language (translated on the server, originals kept)
       get(`/events?bbox=${WARSAW_BBOX.join(',')}&limit=2000&lang=${getLang()}`, { timeout: 15000 }),
       get(`/places?bbox=${WARSAW_BBOX.join(',')}&lang=${getLang()}`, { timeout: 15000 }),
       fetchPrivateUserEvents(),
