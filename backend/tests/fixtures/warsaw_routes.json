@@ -1,0 +1,414 @@
+{
+  "result": [
+    {
+      "length": "18.00",
+      "traces": [
+        [
+          52.2674686,
+          20.9840425
+        ],
+        [
+          52.267415,
+          20.984104
+        ],
+        [
+          52.267341,
+          20.984141
+        ],
+        [
+          52.267256,
+          20.984191
+        ],
+        [
+          52.267373,
+          20.984676
+        ],
+        [
+          52.267408,
+          20.984812
+        ],
+        [
+          52.267437,
+          20.984923
+        ],
+        [
+          52.267458,
+          20.984909
+        ],
+        [
+          52.266234,
+          20.98691
+        ],
+        [
+          52.265965,
+          20.987148
+        ],
+        [
+          52.265908,
+          20.98719
+        ],
+        [
+          52.265873,
+          20.987217
+        ],
+        [
+          52.265835,
+          20.98727
+        ],
+        [
+          52.265843,
+          20.987309
+        ],
+        [
+          52.265855,
+          20.987365
+        ],
+        [
+          52.266028,
+          20.988055
+        ],
+        [
+          52.266118,
+          20.988422
+        ],
+        [
+          52.266161,
+          20.988596
+        ],
+        [
+          52.266139,
+          20.988615
+        ],
+        [
+          52.266184,
+          20.988752
+        ],
+        [
+          52.266224,
+          20.988853
+        ],
+        [
+          52.265625,
+          20.989398
+        ],
+        [
+          52.265351,
+          20.989669
+        ],
+        [
+          52.265332,
+          20.989688
+        ],
+        [
+          52.265388,
+          20.989848
+        ],
+        [
+          52.265383,
+          20.989853
+        ],
+        [
+          52.265357,
+          20.989879
+        ],
+        [
+          52.26534,
+          20.989896
+        ],
+        [
+          52.265021,
+          20.990201
+        ],
+        [
+          52.264958,
+          20.990258
+        ],
+        [
+          52.264911,
+          20.990293
+        ],
+        [
+          52.264734,
+          20.99038
+        ],
+        [
+          52.264445,
+          20.990646
+        ],
+        [
+          52.264317,
+          20.990769
+        ],
+        [
+          52.263749,
+          20.991279
+        ],
+        [
+          52.263688,
+          20.991337
+        ],
+        [
+          52.263383,
+          20.991625
+        ],
+        [
+          52.263268,
+          20.991741
+        ],
+        [
+          52.26321,
+          20.991793
+        ],
+        [
+          52.263091,
+          20.991908
+        ]
+      ],
+      "description": "W stylu socrealistycznym po II wojnie światowej w Polsce budowano pomniki, gmachy instytucji publicznych, a nawet całe kwartały ulic. W Warszawie przykładami tego stylu są: Pałac Kultury i Nauki oraz zabudowa osiedla mieszkaniowego MDM. Chcesz poczuć klimat dawnych lat? Odwiedź Muzeum Neonów i Muzeum Życia w PRL.",
+      "tourist_points": [
+        {
+          "id_point": 1254,
+          "city": "Warszawa",
+          "latlng": {
+            "lat": "52.2674686",
+            "lng": "20.9840425"
+          },
+          "name": "Kościół św. Stanisława Kostki / Muzeum Jerzego Popiełuszki"
+        },
+        {
+          "id_point": 1230,
+          "city": "Warszawa",
+          "latlng": {
+            "lat": "52.2463641",
+            "lng": "21.0171875"
+          },
+          "name": "Rynek Mariensztacki"
+        },
+        {
+          "id_point": 1302,
+          "city": "Warszawa",
+          "latlng": {
+            "lat": "52.231893377614",
+            "lng": "21.006778478186"
+          },
+          "name": "Muzeum Neonów"
+        },
+        {
+          "id_point": 1384,
+          "city": "Warszawa",
+          "latlng": {
+            "lat": "52.2341469",
+            "lng": "21.0186934"
+          },
+          "name": "Bar mleczny Familijny"
+        }
+      ],
+      "title": "Śladami PRL"
+    },
+    {
+      "length": "2.83",
+      "traces": [
+        [
+          52.2317949,
+          21.0208465
+        ],
+        [
+          52.231948,
+          21.020786
+        ],
+        [
+          52.231962,
+          21.02097
+        ],
+        [
+          52.231996,
+          21.021337
+        ],
+        [
+          52.231763,
+          21.021411
+        ],
+        [
+          52.231699,
+          21.021456
+        ],
+        [
+          52.231737,
+          21.02161
+        ],
+        [
+          52.231659,
+          21.021647
+        ],
+        [
+          52.231613,
+          21.021669
+        ],
+        [
+          52.231585,
+          21.021508
+        ],
+        [
+          52.2315563,
+          21.0215246
+        ],
+        [
+          52.231585,
+          21.021508
+        ],
+        [
+          52.231613,
+          21.021669
+        ],
+        [
+          52.231638,
+          21.02181
+        ],
+        [
+          52.231443,
+          21.021904
+        ],
+        [
+          52.231487,
+          21.022144
+        ],
+        [
+          52.231361,
+          21.022206
+        ],
+        [
+          52.2313566,
+          21.0221843
+        ],
+        [
+          52.231361,
+          21.022206
+        ],
+        [
+          52.23122,
+          21.022274
+        ],
+        [
+          52.231177,
+          21.022043
+        ],
+        [
+          52.230821,
+          21.022214
+        ],
+        [
+          52.230679,
+          21.022268
+        ],
+        [
+          52.230549,
+          21.022331
+        ],
+        [
+          52.230514,
+          21.022011
+        ],
+        [
+          52.230502,
+          21.021895
+        ],
+        [
+          52.229946,
+          21.022283
+        ],
+        [
+          52.229913,
+          21.022183
+        ],
+        [
+          52.229874,
+          21.022059
+        ],
+        [
+          52.229834,
+          21.022048
+        ],
+        [
+          52.229634,
+          21.022034
+        ],
+        [
+          52.229612,
+          21.02207
+        ],
+        [
+          52.229152,
+          21.021786
+        ],
+        [
+          52.22908,
+          21.02174
+        ],
+        [
+          52.229013,
+          21.021696
+        ],
+        [
+          52.228925,
+          21.021851
+        ],
+        [
+          52.228791,
+          21.022049
+        ],
+        [
+          52.228829,
+          21.022125
+        ],
+        [
+          52.228543,
+          21.022334
+        ],
+        [
+          52.2286046,
+          21.0226392
+        ]
+      ],
+      "description": "Ulica Nowy Świat i Aleje Ujazdowskie to kolejny odcinek Traktu Królewskiego, który zaprowadzi Cię do najwspanialszych warszawskich parków. Swój spacer zacznij na Rondzie de Gaulle’a, gdzie stoi słynna sztuczna palma – zaskakujący i malowniczy element naszego miasta. Po minięciu placu Trzech Krzyży dotrzesz do Parku Ujazdowskiego i Ogrodu Botanicznego, będzie to przedsmak zieleni i architektury, które zaskoczą Cię w słynnym Parku Łazienkowskim, znajdującym się na końcu tego etapu zwiedzania Traktu Królewskiego.",
+      "tourist_points": [
+        {
+          "id_point": 1147,
+          "city": "Warszawa",
+          "latlng": {
+            "lat": "52.2317949",
+            "lng": "21.0208465"
+          },
+          "name": "Palma na rondzie de Gaulle’a"
+        },
+        {
+          "id_point": 1148,
+          "city": "Warszawa",
+          "latlng": {
+            "lat": "52.2315563",
+            "lng": "21.0215246"
+          },
+          "name": "Pomnik Charlesa de Gaulle’a"
+        },
+        {
+          "id_point": 1149,
+          "city": "Warszawa",
+          "latlng": {
+            "lat": "52.2313566",
+            "lng": "21.0221843"
+          },
+          "name": "Gmach Komitetu Centralnego Polskiej Zjednoczonej Partii Robotniczej"
+        },
+        {
+          "id_point": 1151,
+          "city": "Warszawa",
+          "latlng": {
+            "lat": "52.2286046",
+            "lng": "21.0226392"
+          },
+          "name": "Plac Trzech Krzyży"
+        }
+      ],
+      "title": "Trakt Królewski cz. 2"
+    }
+  ]
+}

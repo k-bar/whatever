@@ -144,3 +144,61 @@ class GeocodeCache(Base):
     lat: Mapped[float | None] = mapped_column(Float)  # null = looked up, not found
     lng: Mapped[float | None] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+# --- live conditions and routes (Warsaw Open Data, app/ingest/conditions.py and routes.py) ----
+
+
+class WeatherStation(Base):
+    """Road weather stations: latest reading only, refreshed every 10 minutes."""
+
+    __tablename__ = "weather_stations"
+
+    name: Mapped[str] = mapped_column(String(120), primary_key=True)
+    lat: Mapped[float] = mapped_column(Float)
+    lng: Mapped[float] = mapped_column(Float)
+    measured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    temp_air: Mapped[float | None] = mapped_column(Float)  # °C
+    temp_road: Mapped[float | None] = mapped_column(Float)  # °C, road surface
+    humidity: Mapped[float | None] = mapped_column(Float)  # %
+    wind_speed: Mapped[float | None] = mapped_column(Float)  # m/s
+    wind_dir: Mapped[int | None] = mapped_column(Integer)  # degrees
+    precipitation: Mapped[float | None] = mapped_column(Float)  # intensity as reported
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class AirStation(Base):
+    """Air quality stations: latest value per parameter, refreshed every 10 minutes."""
+
+    __tablename__ = "air_stations"
+
+    name: Mapped[str] = mapped_column(String(120), primary_key=True)
+    station: Mapped[str | None] = mapped_column(Text)
+    lat: Mapped[float] = mapped_column(Float)
+    lng: Mapped[float] = mapped_column(Float)
+    district: Mapped[str | None] = mapped_column(String(64))
+    street: Mapped[str | None] = mapped_column(Text)
+    index_name: Mapped[str | None] = mapped_column(String(32))  # Polish air quality index, e.g. "Dobry"
+    recommendation: Mapped[str | None] = mapped_column(Text)
+    # {"PM10": {"name", "value", "unit", "index", "time"}, ...}
+    params: Mapped[dict] = mapped_column(JSONB, default=dict)
+    measured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class TouristRoute(Base):
+    __tablename__ = "tourist_routes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(200), unique=True)
+    length_km: Mapped[float | None] = mapped_column(Float)
+    description: Mapped[str | None] = mapped_column(Text)
+    path = mapped_column(Geography("LINESTRING", srid=4326, spatial_index=False), nullable=False)
+    points: Mapped[list] = mapped_column(JSONB, default=list)  # [{"id", "name", "lat", "lng"}]
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

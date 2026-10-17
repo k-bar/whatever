@@ -1,0 +1,140 @@
+[
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        20.9386520006275,
+        52.2857789990916
+      ]
+    },
+    "properties": {
+      "zarzadca": "Urząd Dzielnicy Bielany",
+      "typ": "toaleta stacjonarna",
+      "lokalizacja": "J. Kasprowicza 14, Miejsce Aktywności Lokalnej",
+      "dzielnica": "Bielany",
+      "dostepnosc": 1,
+      "platnosc": 0,
+      "przewijak": 1,
+      "aktu_dan": "Kwiecień 2026",
+      "poch_dan": "Centrum Komunikacji Społecznej",
+      "godziny": "Poniedziałek: Całodobowo; Wtorek: 10:00 - 20:00; Środa: 10:00 - 20:00; Czwartek: 10:00 - 20:00; Piątek: 10:00 - 20:00; Sobota: 10:00 - 20:00; Niedziela: Całodobowo",
+      "uwagi": null
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        20.9887966995077,
+        52.2467992879655
+      ]
+    },
+    "properties": {
+      "zarzadca": "Urząd Dzielnicy Wola",
+      "typ": "toaleta stacjonarna",
+      "lokalizacja": "Jana Pawła II 57, Jaś i Małgosia - klubokawiarnia",
+      "dzielnica": "Wola",
+      "dostepnosc": 1,
+      "platnosc": 0,
+      "przewijak": 0,
+      "aktu_dan": "Kwiecień 2026",
+      "poch_dan": "Centrum Komunikacji Społecznej",
+      "godziny": "Poniedziałek: Całodobowo; Wtorek: Całodobowo; Środa: Całodobowo; Czwartek: Całodobowo; Piątek: Całodobowo; Sobota: Całodobowo; Niedziela: Całodobowo",
+      "uwagi": null
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        20.957103343931,
+        52.2722572671753
+      ]
+    },
+    "properties": {
+      "zarzadca": "Urząd Dzielnicy Bielany",
+      "typ": "stacjonarna automatyczna",
+      "lokalizacja": "Park Olszyna//Z.Romaszewskiego, Park Olszyna",
+      "dzielnica": "Bielany",
+      "dostepnosc": 1,
+      "platnosc": 1,
+      "przewijak": 1,
+      "aktu_dan": "Kwiecień 2026",
+      "poch_dan": "Centrum Komunikacji Społecznej",
+      "godziny": "Poniedziałek: Całodobowo; Wtorek: Całodobowo; Środa: Całodobowo; Czwartek: Całodobowo; Piątek: Całodobowo; Sobota: Całodobowo; Niedziela: Całodobowo",
+      "uwagi": null
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        20.9895859993675,
+        52.2634839987203
+      ]
+    },
+    "properties": {
+      "zarzadca": "Urząd Dzielnicy Żoliborz",
+      "typ": "toaleta stacjonarna",
+      "lokalizacja": "Inwalidów 3, Biblioteka Publiczna, Czytelnia Naukowa Nr XVI",
+      "dzielnica": "Żoliborz",
+      "dostepnosc": 1,
+      "platnosc": 0,
+      "przewijak": 0,
+      "aktu_dan": "Kwiecień 2026",
+      "poch_dan": "Centrum Komunikacji Społecznej",
+      "godziny": "Poniedziałek: 09:00 - 19:00; Wtorek: 09:00 - 19:00; Środa: 09:00 - 19:00; Czwartek: 12:00 - 16:00; Piątek: 09:00 - 19:00; Sobota: 09:00 - 15:00; Niedziela: nieczynne",
+      "uwagi": null
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        20.9989139996769,
+        52.2387509992657
+      ]
+    },
+    "properties": {
+      "zarzadca": "Urząd Dzielnicy Śródmieście",
+      "typ": "toaleta stacjonarna",
+      "lokalizacja": "Mirowski, Hale Mirowskie",
+      "dzielnica": "Śródmieście",
+      "dostepnosc": 0,
+      "platnosc": 0,
+      "przewijak": 0,
+      "aktu_dan": "Kwiecień 2026",
+      "poch_dan": "Centrum Komunikacji Społecznej",
+      "godziny": "Poniedziałek: 07:00 - 19:00; Wtorek: 07:00 - 19:00; Środa: 07:00 - 19:00; Czwartek: 07:00 - 19:00; Piątek: 07:00 - 19:00; Sobota: nieczynne; Niedziela: nieczynne",
+      "uwagi": null
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        21.0134559997226,
+        52.2482089986878
+      ]
+    },
+    "properties": {
+      "zarzadca": "Urząd Dzielnicy Śródmieście",
+      "typ": "toaleta stacjonarna",
+      "lokalizacja": "Świętojańska 5/2, Czytelnia Naukowa Nr VII",
+      "dzielnica": "Śródmieście",
+      "dostepnosc": 1,
+      "platnosc": 0,
+      "przewijak": 0,
+      "aktu_dan": "Kwiecień 2026",
+      "poch_dan": "Centrum Komunikacji Społecznej",
+      "godziny": "Poniedziałek: 10:00 - 19:00; Wtorek: 10:00 - 19:00; Środa: 10:00 - 19:00; Czwartek: 10:00 - 19:00; Piątek: 10:00 - 19:00; Sobota: nieczynne; Niedziela: nieczynne",
+      "uwagi": null
+    }
+  }
+]

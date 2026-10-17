@@ -22,7 +22,6 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       fetchers: ${{ steps.filter.outputs.fetchers }}
-      ingestor: ${{ steps.filter.outputs.ingestor }}
       infra: ${{ steps.filter.outputs.infra }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
@@ -37,10 +36,6 @@ jobs:
             fetchers:
               - 'backend/app/ingest/**'
               - 'backend/tests/fixtures/**'
-            ingestor:
-              - 'src/**'
-              - 'tests/**'
-              - 'requirements.txt'
             infra:
               - 'infra/**'
               - 'deploy/**'
@@ -93,32 +88,6 @@ jobs:
       - name: Tests
         run: uv run pytest -q
 
-  # Kamil's Open Data ingestor (src/, tests/ at the repo root)
-  ingestor:
-    needs: changes
-    if: needs.changes.outputs.ingestor == 'true'
-    runs-on: ubuntu-latest
-    services:
-      db:
-        image: postgis/postgis:16-3.5
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_HOST_AUTH_METHOD: trust
-          POSTGRES_DB: warszawa_test
-        ports: ["54329:5432"]
-        options: >-
-          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
-    env:
-      DATABASE_URL: postgresql+psycopg://postgres@localhost:54329/warszawa_test
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-      - name: Tests
-        run: |
-          [ -f requirements.txt ] || { echo "no requirements.txt yet"; exit 0; }
-          uv venv -q --python 3.12 && uv pip install -q -r requirements.txt
-          uv run --no-project pytest -q tests
-
   # AWS CDK + deploy scripts: must synthesize and pass shellcheck (no AWS credentials needed:
   # lookups are cached in infra/cdk.context.json)
   infra:
@@ -166,7 +135,7 @@ jobs:
   # Single required check for branch protection: passes when every job that ran passed.
   ci-ok:
     if: always()
-    needs: [changes, fetchers, backend, ingestor, infra, frontend, secrets]
+    needs: [changes, fetchers, backend, infra, frontend, secrets]
     runs-on: ubuntu-latest
     steps:
       - run: |

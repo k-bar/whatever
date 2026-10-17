@@ -8,7 +8,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth import get_current_user
-from app.categories import CATEGORIES
+from app.categories import AMENITIES, CATEGORIES
 from app.db import get_db
 from app.models import Attendance, Event, Occurrence, Source, User
 from app.schemas import (
@@ -189,13 +189,18 @@ def is_open(hours: str | None, at: datetime) -> bool:
 def list_places(
     bbox: str | None = None,
     district: str | None = None,
+    category: list[str] | None = Query(
+        None, description="repeatable; amenities only when asked: toilets, aed"
+    ),
     q: str | None = Query(None, max_length=100),
     open_now: bool = False,
     include_unlocated: bool = True,
     db: Session = Depends(get_db),
 ):
-    """Places with opening hours instead of dates (open school pitches)."""
-    stmt = event_filters(select(Event), parse_bbox(bbox), None, "place", q, include_unlocated)
+    """Places with opening hours instead of dates (open school pitches, toilets, defibrillators)."""
+    stmt = event_filters(select(Event), parse_bbox(bbox), category, "place", q, include_unlocated)
+    if not category:
+        stmt = stmt.where(~Event.categories.overlap(sorted(AMENITIES)))
     stmt = stmt.options(selectinload(Event.source)).order_by(Event.district, Event.title)
     if district:
         stmt = stmt.where(Event.district.ilike(district))
