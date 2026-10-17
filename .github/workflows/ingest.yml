@@ -17,6 +17,9 @@ on:
         required: false
         default: "200"
 
+permissions:
+  contents: read
+
 concurrency:
   group: ingest
   cancel-in-progress: false
