@@ -42,13 +42,14 @@
   const root = document.documentElement;
   document.getElementById('theme').onclick = () =>
     root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
-  fetch('variants.json').then(r => r.json()).then(list => {
-    const card = v => `<div class="card">
+  const DIR = '../public/mermaid/';
+  fetch(DIR + 'variants.json').then(r => r.json()).then(list => {
+    const card = v => (v = { ...v, file: DIR + v.file }, `<div class="card">
         <img class="big" src="${v.file}" alt="${v.name}">
         <div><h2>${v.name}</h2><p>${v.note}</p></div>
         <div class="sizes">${[64, 32, 16].map(s =>
           `<div><img src="${v.file}" width="${s}" height="${s}" alt=""><span>${s}</span></div>`).join('')}</div>
-        <div class="file">${v.file}</div></div>`;
+        <div class="file">${v.file}</div></div>`);
     const [master, ...rest] = list;
     document.getElementById('hero').innerHTML = card(master) +
       `<div><h2 style="margin:0 0 8px">${master.name}</h2><p style="color:var(--muted);max-width:52ch">${master.note}

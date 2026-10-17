@@ -1,36 +1,43 @@
-# backend/db/db — bazy danych i skrypty pobierające
+# backend/db — skrypty eksploracyjne i lokalne bazy SQLite
 
-Bazy SQLite z wydarzeniami i miejscami w Warszawie / Polsce oraz skrypty, które je wypełniają.
-Skrypty używają tylko biblioteki standardowej Pythona (bez `pip install`) i zapisują bazy
-w tym samym folderze, w którym leżą, więc można je uruchamiać z dowolnego katalogu.
+Skrypty Mateusza, które pobierają dane do lokalnych baz SQLite (do przeglądania i analizy).
+Używają tylko biblioteki standardowej Pythona i zapisują bazy obok siebie. Bazy `*.db`
+są w `.gitignore` i nie trafiają do repozytorium.
+
+**Aplikacja z nich nie korzysta.** Dane na mapie (syrenka.me) ładuje `backend/app/ingest/`
+prosto do Postgresa, co godzinę:
+
+| Skrypt tutaj | Odpowiednik w aplikacji |
+|---|---|
+| ~~`fetch_data.py`~~ (usunięty) | `app/ingest/sources/warsaw_open_data.py` (wydarzenia, zajęcia sportowe, boiska) |
+| `fetch_streets_gl.py` | `app/ingest/sources/osm_venues.py` (miejsca z OpenStreetMap) |
+| `fetch_kupbilecik.py` | brak: kupbilecik.pl blokuje automaty (HTTP 403), czekamy na ich API |
+| `create_users_db.py` | brak: użytkownicy są w Postgresie (`app/models.py`, migracje Alembic) |
+
+Nowe źródło danych dodaje się w `backend/app/ingest/sources/` (patrz `CONTRIBUTING.md`).
 
 ## Struktura
 
 ```
 backend/db/
-├── backend/                 # (pusty, na kod backendu)
-└── db/
-    ├── db.md                # ten plik
-    ├── fetch_data.py        # API m.st. Warszawy  -> events.db, sport.db
-    ├── fetch_kupbilecik.py  # kupbilecik.pl        -> kup_bilecik.db
-    ├── fetch_streets_gl.py  # OpenStreetMap        -> street_gl.db
-    ├── data_analyse.py      # (pusty)
-    ├── events.db
-    ├── sport.db
-    ├── kup_bilecik.db
-    └── street_gl.db
+├── db.md                    # ten plik
+├── fetch_kupbilecik.py      # kupbilecik.pl   -> kup_bilecik.db
+├── fetch_streets_gl.py      # OpenStreetMap   -> street_gl.db
+├── create_users_db.py       # przykładowi użytkownicy -> users.db
+└── *.db                     # lokalne bazy (gitignored)
 ```
 
 ## Bazy
 
 | Plik | Źródło | Tabele (liczba wierszy) |
 |---|---|---|
-| `events.db` | [dane.um.warszawa.pl](https://dane.um.warszawa.pl) — Kalendarz wydarzeń | `events` (650), `event_occurrences` (2231), `event_addresses` (491), `event_locations` (384) |
-| `sport.db` | dane.um.warszawa.pl — Zajęcia sportowe, Otwarte boiska | `sport_classes` (592), `sport_class_dates` (1253), `sport_class_addresses` (488), `open_pitches` (1227) |
+| `events.db` (stara migawka) | [dane.um.warszawa.pl](https://dane.um.warszawa.pl) — Kalendarz wydarzeń | `events` (650), `event_occurrences` (2231), `event_addresses` (491), `event_locations` (384) |
+| `sport.db` (stara migawka) | dane.um.warszawa.pl — Zajęcia sportowe, Otwarte boiska | `sport_classes` (592), `sport_class_dates` (1253), `sport_class_addresses` (488), `open_pitches` (1227) |
 | `kup_bilecik.db` | [kupbilecik.pl](https://www.kupbilecik.pl) — bilety na wydarzenia w całej Polsce | `events` (4637) |
 | `street_gl.db` | OpenStreetMap (Overpass API) — dane wyświetlane przez [streets.gl](https://streets.gl) | `venues` (447) |
 
-Liczby wierszy według stanu z 17.10.2026.
+Liczby wierszy według stanu z 17.10.2026. `events.db` i `sport.db` pochodzą z usuniętego `fetch_data.py`;
+aktualne dane są w Postgresie (schemat `dev` lub `public`).
 
 ### events.db
 
@@ -89,12 +96,9 @@ streets.gl to trójwymiarowa mapa OpenStreetMap i nie ma własnych wydarzeń, wi
 
 ## Odświeżanie danych
 
-Uruchamiaj z folderu `backend/db/db`:
+Uruchamiaj z folderu `backend/db`:
 
 ```bash
-# events.db + sport.db (wymaga tokenu: https://dane.um.warszawa.pl/en/key-api)
-python fetch_data.py --token TWOJ_TOKEN        # albo zmienna WARSAW_API_TOKEN
-
 # kup_bilecik.db — pełne pobieranie (~2 s na stronę)
 python fetch_kupbilecik.py
 # po blokadzie (HTTP 403) odczekaj ok. godzinę i wznów od strony, którą poda skrypt:

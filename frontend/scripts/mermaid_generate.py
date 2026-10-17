@@ -1,12 +1,13 @@
 """Generates the Warsaw mermaid (Syrenka) icon set.
 
 All artwork is hand-drawn as SVG paths in one shared geometry, so every
-variation keeps the exact same silhouette. Run:  python3 _generate.py
+variation keeps the exact same silhouette. Run from frontend/:  python3 scripts/mermaid_generate.py
+Writes the SVGs and variants.json to public/mermaid/; preview them with scripts/mermaid_gallery.html.
 """
 import re
 from pathlib import Path
 
-OUT = Path(__file__).parent
+OUT = Path(__file__).parent.parent / "public" / "mermaid"
 
 _TOK = re.compile(r"[MLCQHVZ]|-?\d*\.?\d+")
 

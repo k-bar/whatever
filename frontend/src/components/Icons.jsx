@@ -1,4 +1,4 @@
-import mermaidSvg from '../../mermaid.svg'
+import mermaidSvg from '../assets/mermaid.svg'
 
 const S = ({ children, size = 20, stroke = 1.9, ...rest }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke}
@@ -47,7 +47,7 @@ export const History = (p) => <S {...p}><path d="M3 12a9 9 0 1 0 3-6.7" /><path 
 export const Music = (p) => <S {...p}><path d="M9 18V6l11-2v12" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" /></S>
 export const FACT_ICON = { clock: Clock, pin: Pin, map: MapIcon, repeat: Repeat, users: Users, access: Access, phone: Phone }
 
-/** The Warsaw mermaid (Syrenka): the city's red shield, frontend/mermaid.svg. */
+/** The Warsaw mermaid (Syrenka): the city's red shield, src/assets/mermaid.svg. */
 export const Mermaid = ({ size = 26, className }) => (
   <img src={mermaidSvg} width={size} height={size} alt="Warsaw mermaid" className={className} draggable={false} />
 )

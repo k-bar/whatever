@@ -55,31 +55,23 @@ for i in $(seq 1 30); do
 done
 
 # --- frontend -> S3 + CloudFront (skipped when unchanged) -------------------------------------
-if [ -f frontend/package.json ]; then
-  NODE_VERSION=22.12.0
-  if [ ! -x "/opt/node/bin/node" ] || [ "$(/opt/node/bin/node -v)" != "v$NODE_VERSION" ]; then
-    rm -rf /opt/node && mkdir -p /opt/node
-    curl -fsSL "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-arm64.tar.xz" \
-      | tar -xJ --strip-components=1 -C /opt/node
-  fi
-  export PATH="/opt/node/bin:$PATH"
-  log "frontend: npm ci && npm run build"
-  # the UI calls the API cross-origin (VITE_API_URL defaults to "/api", which only exists on the vite dev proxy)
-  (cd frontend && npm ci --no-audit --no-fund && VITE_API_URL="$API_URL" VITE_APP_ENV="$APP_ENV" npm run build)
-  SITES=(frontend/dist)
-elif [ -d frontend ]; then
-  # no build step yet: landing page + Philip's static assets (frontend/ wins on name clashes)
-  SITES=(infra/placeholder frontend)
-else
-  SITES=(infra/placeholder)
+NODE_VERSION=22.12.0
+if [ ! -x "/opt/node/bin/node" ] || [ "$(/opt/node/bin/node -v)" != "v$NODE_VERSION" ]; then
+  rm -rf /opt/node && mkdir -p /opt/node
+  curl -fsSL "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-arm64.tar.xz" \
+    | tar -xJ --strip-components=1 -C /opt/node
 fi
+export PATH="/opt/node/bin:$PATH"
+log "frontend: npm ci && npm run build"
+# the UI calls the API cross-origin (VITE_API_URL defaults to "/api", which only exists on the vite dev proxy)
+(cd frontend && npm ci --no-audit --no-fund && VITE_API_URL="$API_URL" VITE_APP_ENV="$APP_ENV" npm run build)
 OUT=$(mktemp -d)
-for s in "${SITES[@]}"; do cp -r "$s/." "$OUT/"; done
-find "$OUT" \( -name '*.py' -o -name '.DS_Store' \) -delete
+cp -r frontend/dist/. "$OUT/"
+find "$OUT" -name '.DS_Store' -delete
 jq -n --arg api "$API_URL" --arg env "$APP_ENV" '{apiUrl: $api, env: $env}' > "$OUT/config.json"
 hash=$(cd "$OUT" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16)
 if [ "$hash" != "$(cat /var/lib/warszawa/site.hash 2>/dev/null || true)" ]; then
-  log "frontend: publishing ${SITES[*]} to s3://$WEB_BUCKET"
+  log "frontend: publishing to s3://$WEB_BUCKET"
   aws s3 sync "$OUT" "s3://$WEB_BUCKET" --delete --only-show-errors
   aws cloudfront create-invalidation --distribution-id "$WEB_DISTRIBUTION_ID" --paths '/*' >/dev/null
   echo "$hash" > /var/lib/warszawa/site.hash
