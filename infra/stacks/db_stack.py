@@ -77,6 +77,7 @@ class DbStack(cdk.Stack):
             generate_secret_string=sm.SecretStringGenerator(password_length=64, exclude_punctuation=True),
         )
         # Value set by hand: aws secretsmanager put-secret-value --secret-id warszawa-live/warsaw-api-token ...
+        # Either the plain token or JSON {"token", "relay_url", "relay_token"} (see backend/app/config.py).
         self.warsaw_token = sm.Secret(
             self,
             "WarsawApiToken",

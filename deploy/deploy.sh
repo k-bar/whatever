@@ -29,18 +29,7 @@ systemctl daemon-reload
 systemctl enable -q warszawa-api.service
 systemctl restart warszawa-api.service
 systemctl enable -q --now warszawa-ingest.timer
-
-# Kamil's Open Data ingestor (src/), once it's merged
-if [ -f src/main.py ] && [ -f requirements.txt ]; then
-  log "ingestor: installing src/ requirements"
-  uv venv -q --allow-existing .venv-ingestor
-  uv pip install -q --python .venv-ingestor -r requirements.txt
-  chmod -R a+rX /opt/uv/python
-  systemctl enable -q warszawa-ingestor.service
-  systemctl restart warszawa-ingestor.service
-else
-  systemctl disable -q --now warszawa-ingestor.service 2>/dev/null || true
-fi
+systemctl enable -q --now warszawa-conditions.timer
 
 # --- health check: the new code must answer with the new sha ----------------------------------
 for i in $(seq 1 30); do
@@ -62,7 +51,8 @@ if [ -f frontend/package.json ]; then
   fi
   export PATH="/opt/node/bin:$PATH"
   log "frontend: npm ci && npm run build"
-  (cd frontend && npm ci --no-audit --no-fund && npm run build)
+  # the UI calls the API cross-origin (VITE_API_URL defaults to "/api", which only exists on the vite dev proxy)
+  (cd frontend && npm ci --no-audit --no-fund && VITE_API_URL="$API_URL" npm run build)
   SITES=(frontend/dist)
 elif [ -d frontend ]; then
   # no build step yet: landing page + Philip's static assets (frontend/ wins on name clashes)

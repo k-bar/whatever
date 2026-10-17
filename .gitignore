@@ -3,6 +3,7 @@ AGENTS.md
 # secrets
 .env
 apiKey*.txt
+relaytok*.txt
 
 # python
 __pycache__/
@@ -10,9 +11,11 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+backend/scripts/_cache/
 
 # local data snapshots (rebuild with backend/db/fetch_data.py, load with backend/scripts/import_sqlite.py)
 *.db
+backend/db/zdjecia/
 
 # project-local Postgres (backend/scripts/dev-postgres.sh)
 .dev/

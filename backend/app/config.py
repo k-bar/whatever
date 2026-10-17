@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     jwt_expire_days: int = 7
     cors_origins: list[str] = ["*"]
     warsaw_api_token: str | None = None
+    # dane.um.warszawa.pl drops connections from AWS IPs, so the boxes go through an HTTP relay
+    # with a Polish IP (X-Relay-Target protocol). Unset = call the API directly.
+    warsaw_relay_url: str | None = None
+    warsaw_relay_token: str | None = None
     nominatim_user_agent: str = "warszawa-live-hackathon (github.com/k-bar/whatever)"
     db_pool_size: int = 5
     # Postgres schema for this environment ("dev" on the dev box). Tables live there;
@@ -63,8 +67,13 @@ class Settings(BaseSettings):
         if self.jwt_secret_arn:
             self.jwt_secret = read_secret(self.jwt_secret_arn)
         if self.warsaw_api_token_secret_arn:
-            token = read_secret(self.warsaw_api_token_secret_arn).strip()
+            # Plain token, or JSON {"token", "relay_url", "relay_token"}
+            raw = read_secret(self.warsaw_api_token_secret_arn).strip()
+            s = json.loads(raw) if raw.startswith("{") else {"token": raw}
+            token = (s.get("token") or "").strip()
             self.warsaw_api_token = token if token and token != "CHANGE_ME" else None
+            self.warsaw_relay_url = s.get("relay_url") or self.warsaw_relay_url
+            self.warsaw_relay_token = s.get("relay_token") or self.warsaw_relay_token
         return self
 
 

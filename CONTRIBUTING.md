@@ -8,7 +8,7 @@
 | `backend/` (everything else) | @JustCodeMeV | Database, loading, API |
 | `frontend/` | Philip (@philpiano) | The map UI |
 | `infra/`, `deploy/` | @JustCodeMeV | AWS (CDK, Python): RDS, EC2 boxes, CloudFront, domain; on-box deploy scripts |
-| `backend/db/` | Mateusz (@Informatyczek) | scrapers (`db/db/fetch_*.py`: Warsaw Open Data, kupbilecik.pl, streets.gl) and their local SQLite snapshots (gitignored; see `db/db/db.md`) |
+| `backend/db/` | Mateusz (@Informatyczek) | scrapers (`db/fetch_*.py`: Warsaw Open Data, kupbilecik.pl, streets.gl) and their local SQLite snapshots (gitignored; see `db/db.md`) |
 
 ```
 fetchers (sources/*.py) ── list[RawEvent] ──> ingest/run.py ──> RDS Postgres ──> FastAPI ──> UI
@@ -24,7 +24,7 @@ fetchers (sources/*.py) ── list[RawEvent] ──> ingest/run.py ──> RDS 
 | Website | see `deploy/environments.json` | see `deploy/environments.json` |
 | Database | RDS, schema `dev` | same RDS, schema `public` |
 
-Each environment is one EC2 box running the API, the ingest timer and Kamil's `src/` ingestor (once merged).
+Each environment is one EC2 box running the API, the hourly ingest timer and the 10-minute conditions timer.
 
 ## Everyday flow
 
@@ -50,7 +50,7 @@ scripts/dev-postgres.sh start             # local Postgres+PostGIS in .dev/, no 
                                           # (or: docker compose up -d db)
 cp .env.example .env                      # add WARSAW_API_TOKEN if you have one
 uv run alembic upgrade head               # create tables
-uv run python scripts/import_sqlite.py db/db/events.db db/db/sport.db   # load Mateusz's snapshots
+uv run python scripts/import_sqlite.py db/events.db db/sport.db   # load Mateusz's snapshots
 uv run uvicorn app.main:app --reload      # http://localhost:8000/docs
 uv run pytest                             # tests
 ```
@@ -86,7 +86,7 @@ No SSH: use Session Manager (`aws ssm start-session --target <instance from depl
 journalctl -u warszawa-agent -f        # deploys
 journalctl -u warszawa-api -f          # API
 sudo systemctl start warszawa-ingest   # run ingestion now; results in GET /sources
-journalctl -u warszawa-ingestor -f     # Kamil's src/ ingestor
+sudo systemctl start warszawa-conditions  # refresh weather + air quality now
 ```
 
 ## Connecting a DB client (DataGrip) to the dev schema
@@ -108,7 +108,20 @@ only open a tunnel through the dev box. Ask @JustCodeMeV to add you to `DEV_DB_U
      --parameters '{"host":["warszawalivedb-postgres9dc8bb04-covqyqx6uo8t.cba6qiu6ipoi.eu-north-1.rds.amazonaws.com"],"portNumber":["5432"],"localPortNumber":["15432"]}'
    ```
 4. DataGrip: host `localhost`, port `15432`, database `warszawa`, user = your name, SSL mode `require`.
-   Your tables live in schema `dev`.
+   Your tables live in schema `dev`: in the data source's **Schemas** tab tick `dev`, then Refresh (Ctrl+F5).
+   `public` is prod and deliberately invisible to you, so it looks empty.
+
+## Adding a data source
+
+Fetchers live in `backend/app/ingest/sources/` and never touch the database:
+
+1. Write `fetch_records()` (network; Warsaw Open Data goes through `warsaw_open_data.fetch(action)`, which
+   handles the API key and the relay) and a pure `parse(records) -> list[RawEvent]` (`app/ingest/base.py`).
+2. Add your `SPECS` to `app/ingest/sources/__init__.py`.
+3. Save a few real records as `backend/tests/fixtures/<slug>.json` and add a parser test in `tests/test_ingest.py`.
+
+Data that isn't an event or a place (readings, lines) gets a model + Alembic migration and a `Feed`
+(`app/ingest/conditions.py`, `routes.py`). Never create tables by hand or with `create_all`.
 
 ## Don't change AWS resources in the console
 

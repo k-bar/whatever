@@ -160,3 +160,48 @@ def test_come_with_me_flow(client, alice, bob):
 
     assert client.delete(f"/occurrences/{occ_id}/attendance", headers=bob).status_code == 204
     assert client.get(f"/events/{ev['id']}").json()["occurrences"][0]["attendees"] == 1
+
+
+def test_busyareas_serves_the_committed_geojson():
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    r = TestClient(app).get("/busyareas")
+    assert r.status_code == 200
+    fc = r.json()
+    assert fc["type"] == "FeatureCollection" and fc["features"]
+    assert {f["properties"]["level"] for f in fc["features"]} <= {"busy", "very_busy"}
+
+
+def test_amenities_are_opt_in_layers(client, db):
+    seed(db)
+    default = client.get("/places").json()["features"]
+    assert default and not any({"toilets", "aed"} & set(f["properties"]["categories"]) for f in default)
+    toilets = client.get("/places", params={"category": "toilets"}).json()["features"]
+    assert len(toilets) == len(fixture_records("warsaw_toilets"))
+    assert all(f["properties"]["categories"] == ["toilets"] for f in toilets)
+    assert client.get("/places", params={"category": "aed"}).json()["features"]
+
+
+def test_conditions_and_routes(client, db):
+    from app.ingest.conditions import FEEDS, sync
+    from app.ingest.routes import ROUTES
+    from app.ingest.sources.warsaw_open_data import as_records
+
+    for feed in [*FEEDS, ROUTES]:
+        sync(db, feed, as_records(fixture_records(feed.slug)))
+        sync(db, feed, as_records(fixture_records(feed.slug)))  # re-run upserts, no duplicates
+    db.commit()
+
+    c = client.get("/conditions").json()
+    assert len(c["weather"]["features"]) == len(fixture_records("warsaw_weather"))
+    assert len(c["air"]["features"]) == len(fixture_records("warsaw_air"))
+    assert c["weather"]["features"][0]["geometry"]["type"] == "Point"
+
+    r = client.get("/routes").json()["features"]
+    assert len(r) == len(fixture_records("warsaw_routes")["result"])
+    assert r[0]["geometry"]["type"] == "LineString" and len(r[0]["geometry"]["coordinates"]) > 1
+
+    sources = {s["slug"]: s for s in client.get("/sources").json()}
+    assert sources["warsaw_weather"]["last_status"] == "ok"
