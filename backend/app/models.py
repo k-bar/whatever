@@ -106,6 +106,8 @@ class User(Base):
     photos: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
     interests: Mapped[list[str]] = mapped_column(ARRAY(String(32)), default=list)
     links: Mapped[dict] = mapped_column(JSONB, default=dict)
+    # IDs of favourited events/venues (events.id), saved with the account so stars follow you between devices
+    favourite_ids: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=list, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

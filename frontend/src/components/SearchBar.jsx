@@ -79,7 +79,9 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
     <div className="search-wrap" ref={wrapRef}>
       <span className="search-glow" />
       {/* layoutId: the same pill as the start page's big search, so it flies here instead of reappearing */}
-      <motion.div className="search surface" layoutId="search-pill" animate={pushed ? { y: 10, scale: 0.985 } : { y: 0, scale: 1 }} transition={spring}>
+      {/* the flight itself runs at half speed: quarter stiffness + half damping = twice as long, same bounce */}
+      <motion.div className="search surface" layoutId="search-pill" animate={pushed ? { y: 10, scale: 0.985 } : { y: 0, scale: 1 }}
+        transition={{ ...spring, layout: { ...spring, stiffness: spring.stiffness / 4, damping: spring.damping / 2 } }}>
         <motion.button className="btn icon burger-btn" aria-label={t('Menu')} onClick={() => { setMenuOpen(!menuOpen); setModeOpen(false); setFocused(false) }}
           animate={{ rotate: menuOpen ? 90 : 0 }} transition={bouncy}>
           {menuOpen ? <X size={26} stroke={2.2} /> : <Burger />}
