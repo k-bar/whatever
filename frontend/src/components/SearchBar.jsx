@@ -7,6 +7,7 @@ import { fmtWhen } from '../mapboxes/curate'
 import { Brand } from './Brand'
 import { CloseButton } from './CloseButton'
 import { useLang } from '../i18n'
+import { WhenPart, WherePart, whenLabel } from './LandingSearch'
 
 export const MODES = [
   { id: 'search', label: 'Search', hint: 'Places, venues, districts', Icon: Search },
@@ -30,7 +31,7 @@ const readRecent = () => { try { return JSON.parse(localStorage.getItem(RECENT_K
  * The Gemini-style pill: burger (plain) · input · mode dropdown · spyglass (circle).
  * Focusing the input opens the focus panel (recents / category pills / assistant thread).
  */
-export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, searching, mobile, chat, onChatClear, initialQuery = '' }) {
+export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, searching, mobile, chat, onChatClear, initialQuery = '', features }) {
   const { values } = useConfig()
   const { t } = useLang()
   const spring = useSpring()
@@ -47,6 +48,11 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
   const wrapRef = useRef(null)
   const inputRef = useRef(null)
   const Mode = MODES.find((m) => m.id === mode)
+  // Events: what (a tag) · when · where. Runs by itself once all three are chosen, or on the search button.
+  const [evCat, setEvCat] = useState(null)
+  const [evWhen, setEvWhen] = useState(null)
+  const [evWhenDone, setEvWhenDone] = useState(false) // a quick pick or Done, not just the first click of a range
+  const [evWhere, setEvWhere] = useState(null)
 
   useEffect(() => {
     const onDoc = (e) => { if (!wrapRef.current?.contains(e.target)) { setModeOpen(false); setMenuOpen(false); setFocused(false) } }
@@ -61,6 +67,10 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
   }
 
   const submit = (term = q, m = mode, opts) => {
+    if (m === 'events' && !opts) { // search button / Enter in Events: use the tag, when and where picked so far
+      opts = { category: evCat, when: evWhen, where: evWhere }
+      term = [evCat ? categoryLabel(evCat) : term.trim(), whenLabel(evWhen), evWhere?.label].filter(Boolean).join(' · ')
+    }
     setPushed(true)
     setTimeout(() => setPushed(false), 260 / (values.animSpeed || 1))
     setModeOpen(false); setMenuOpen(false)
@@ -69,7 +79,10 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
     onSearch(m, term, opts)
   }
   const clear = () => { setQ(''); onClear(); setFocused(false) }
-  const pickCategory = (slug) => { const label = categoryLabel(slug); setQ(label); submit(label, 'events', { category: slug }) }
+  const pickCategory = (slug) => { const off = evCat === slug; setEvCat(off ? null : slug); setQ(off ? '' : categoryLabel(slug)) }
+  const evReady = !!(evCat && evWhen && evWhenDone && evWhere && evWhere.kind !== 'text') // typed-but-not-picked "where" waits
+  // all three chosen → search; changing any of them afterwards searches again
+  useEffect(() => { if (evReady) submit() }, [evReady, evCat, evWhen, evWhenDone, evWhere]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const panelOpen = values.searchPanel && focused && !menuOpen && !modeOpen && (mode === 'assistant' || !results || q !== (results?.q || ''))
   const showResults = results && !menuOpen && !mobile && !panelOpen && mode !== 'assistant'
@@ -148,16 +161,22 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
                 <div className="fp-list">{SUGGESTED.map((r) => <button key={r} className="fp-item" onClick={() => { setQ(r); submit(r, 'search') }}><Search size={15} />{r}</button>)}</div>
               </div>
             )}
-            {mode === 'events' && (
+            {mode === 'events' && (<>
               <div className="fp-scroll">
                 <div className="blk-title fp-title"><Calendar size={12} /> {t('Pick a category')}</div>
                 <div className="pills">
                   {Object.entries(CATEGORIES).map(([slug, c]) => (
-                    <button key={slug} className="pill-cat" style={{ '--c': c.color }} onClick={() => pickCategory(slug)}><i />{categoryLabel(slug)}</button>
+                    <button key={slug} className={`pill-cat ${evCat === slug ? 'on' : ''}`} style={{ '--c': c.color }} onClick={() => pickCategory(slug)}><i />{categoryLabel(slug)}</button>
                   ))}
                 </div>
               </div>
-            )}
+              <div className="ev-pill hs">
+                <WhenPart value={evWhen} onChange={(w) => { setEvWhen(w); setEvWhenDone(false) }} onDone={() => setEvWhenDone(true)} />
+                <span className="hs-sep" />
+                <WherePart value={evWhere} onChange={setEvWhere} features={features} />
+                <button type="button" className="hero-go" onClick={() => submit()} aria-label={t('Search')}><Search size={19} /></button>
+              </div>
+            </>)}
             {mode === 'assistant' && (
               <>
                 <div className="fp-scroll chat">

@@ -137,6 +137,16 @@ export default function App() {
 
   // ---------- search ----------
   const onSearch = async (mode, q, opts) => {
+    if (mode === 'events' && (opts?.when || opts?.where)) { // Events dropdown: tag · when · where
+      if (opts.when) set('timeWindow', windowFor(opts.when))
+      let list = landingSearch({ q: opts.category ? '' : q.split(' · ')[0], when: opts.when, where: opts.where }, featureList)
+      if (opts.category) list = list.filter((f) => (f.properties.categories || []).includes(opts.category))
+      setResults({ mode, q, results: list })
+      if (mobile) setSheet('results')
+      if (list.length) fitResults(list)
+      else if (opts.where?.lngLat) mapRef.current?.getMap()?.flyTo({ center: opts.where.lngLat, zoom: 15, duration: 1100 })
+      return
+    }
     if (!q.trim() && mode !== 'assistant') { setResults(null); return }
     setSearching(true)
     if (mode === 'assistant') setChat((c) => [...c, { role: 'user', text: q }])
@@ -246,7 +256,7 @@ export default function App() {
       <AnimatePresence>{view === 'map' && [
 
       <div className="top-left" key="top-left">
-        <SearchBar onSearch={onSearch} onMenu={onMenu} onHome={goHome} initialQuery={entryQuery} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} />
+        <SearchBar onSearch={onSearch} onMenu={onMenu} onHome={goHome} initialQuery={entryQuery} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} features={featureList} />
         <motion.div className="side-controls" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0, transition: { ...spring, delay: 0.35 } }}>
           <motion.button className={`btn icon mermaid-btn ${selectsOpen ? 'active' : ''}`} onClick={toggleSelects} aria-label={t('Syrenka Selects')} title={t('Syrenka Selects')}
             whileTap={{ scale: 0.85 }} animate={selectsOpen ? { rotate: [0, -8, 8, 0] } : {}} transition={spring}>
