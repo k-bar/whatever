@@ -1,14 +1,14 @@
 {
   "prod": {
-    "api": "https://d1e7evk5lagv2n.cloudfront.net",
-    "web": "https://d17k19nd7t5vnu.cloudfront.net",
+    "api": "https://api.syrenka.me",
+    "web": "https://syrenka.me",
     "branch": "master",
-    "instance": "i-04eaa8fde9a5c348b"
+    "instance": "i-0967b0e218956695c"
   },
   "dev": {
-    "api": "https://d3jw48vckb09en.cloudfront.net",
-    "web": "https://dvz0u40r36ttr.cloudfront.net",
+    "api": "https://api-dev.syrenka.me",
+    "web": "https://dev.syrenka.me",
     "branch": "dev",
-    "instance": "i-08409f2fd05e24b8e"
+    "instance": "i-0c0288ca5854c3e5e"
   }
 }
