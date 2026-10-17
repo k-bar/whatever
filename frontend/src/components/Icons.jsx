@@ -1,3 +1,5 @@
+import mermaidSvg from '../../mermaid.svg'
+
 const S = ({ children, size = 20, stroke = 1.9, ...rest }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke}
     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...rest}>{children}</svg>
@@ -41,7 +43,7 @@ export const Send = (p) => <S {...p}><path d="m3 11 18-8-8 18-2-8Z" /></S>
 export const History = (p) => <S {...p}><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /><path d="M12 7v5l3 2" /></S>
 export const FACT_ICON = { clock: Clock, pin: Pin, map: MapIcon, repeat: Repeat, users: Users, access: Access, phone: Phone }
 
-/** The Warsaw mermaid, variant chosen in the editor (Branding → Mermaid symbol). */
-export const Mermaid = ({ variant, size = 26, className }) => (
-  <img src={`/mermaid/${variant}.svg`} width={size} height={size} alt="Warsaw mermaid" className={className} draggable={false} />
+/** The Warsaw mermaid (Syrenka): the city's red shield, frontend/mermaid.svg. */
+export const Mermaid = ({ size = 26, className }) => (
+  <img src={mermaidSvg} width={size} height={size} alt="Warsaw mermaid" className={className} draggable={false} />
 )

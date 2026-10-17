@@ -21,12 +21,11 @@ export function styleFor(values) {
 
 // Recolour rules by source-layer, for the "pastel" and "paper" palettes (built on positron).
 const PALETTES = {
-  // "colour": positron base, but nature and paths get real colours
+  // "colour": positron base, but nature gets real colours (footpaths stay plain white like the streets)
   colour: {
     background: '#f3f0ea', water: '#9cc7ea', landcover: '#cfe6c0', park: '#c6e3b3', landuse: '#ece8df',
     building: '#e6e1d8', buildingOutline: 'rgba(90,80,70,0.22)', road: '#ffffff', roadCasing: '#d9d3c7', boundary: '#b7ad9c', text: '#4d4a45',
     landcoverExpr: ['match', ['get', 'class'], ['wood', 'forest'], '#8fbf7f', ['grass', 'meadow', 'park', 'garden', 'recreation_ground', 'village_green'], '#cfe6c0', ['farmland', 'orchard'], '#e3e9c3', ['wetland'], '#b9d7cf', ['sand', 'beach'], '#efe3bf', '#d6e7cc'],
-    pathExpr: ['match', ['get', 'class'], ['path', 'track'], '#c9ab7f', ['pedestrian'], '#e8d9bf', '#d9c3a3'],
   },
   pastel: {
     background: '#fbf7ff', water: '#cfe3f5', landcover: '#dcefdb', park: '#d8ecd6', landuse: '#f3eef8',
@@ -84,15 +83,10 @@ export function applyMapDesign(map, v) {
       if (l.type === 'background') set(() => map.setPaintProperty(l.id, 'background-color', pal.background))
       if (l.type === 'fill' && sl === 'water') set(() => map.setPaintProperty(l.id, 'fill-color', pal.water))
       if (l.type === 'fill' && sl === 'landcover') set(() => map.setPaintProperty(l.id, 'fill-color', pal.landcoverExpr || pal.landcover))
-      if (pal.pathExpr && l.type === 'line' && sl === 'transportation' && (id.includes('path') || id.includes('pedestrian') || id.includes('track') || id.includes('footway'))) {
-        set(() => map.setPaintProperty(l.id, 'line-color', pal.pathExpr))
-        set(() => map.setPaintProperty(l.id, 'line-dasharray', [1, 0]))
-        set(() => map.setPaintProperty(l.id, 'line-opacity', 0.9))
-      }
       if (l.type === 'fill' && sl === 'park') set(() => map.setPaintProperty(l.id, 'fill-color', pal.park))
       if (l.type === 'fill' && sl === 'landuse') set(() => map.setPaintProperty(l.id, 'fill-color', pal.landuse))
       if (l.type === 'fill' && sl === 'building') set(() => map.setPaintProperty(l.id, 'fill-color', pal.building))
-      if (l.type === 'line' && sl === 'transportation' && !id.includes('casing') && !id.includes('outline') && !(pal.pathExpr && (id.includes('path') || id.includes('pedestrian') || id.includes('track') || id.includes('footway')))) set(() => map.setPaintProperty(l.id, 'line-color', pal.road))
+      if (l.type === 'line' && sl === 'transportation' && !id.includes('casing') && !id.includes('outline')) set(() => map.setPaintProperty(l.id, 'line-color', pal.road))
       if (l.type === 'symbol') set(() => map.setPaintProperty(l.id, 'text-color', pal.text))
     }
     // --- Vistula tint ---
@@ -124,9 +118,3 @@ export function firstSymbolLayer(map) {
   return (map.getStyle().layers || []).find((l) => l.type === 'symbol')?.id
 }
 
-export const HEAT_PALETTES = {
-  fire: ['rgba(255,170,0,0)', 'rgba(255,200,60,0.5)', '#ffb347', '#ff7a18', '#e7392b', '#8a0f2e'],
-  ocean: ['rgba(60,160,255,0)', 'rgba(120,200,255,0.5)', '#7fd3ff', '#2b9be7', '#2b4be7', '#1a1a6e'],
-  candy: ['rgba(255,120,220,0)', 'rgba(255,150,230,0.5)', '#ff9ee6', '#ff5fb8', '#c43fe7', '#5a1b8c'],
-  mono: ['rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'ACCENT40', 'ACCENT70', 'ACCENT', 'ACCENT'],
-}

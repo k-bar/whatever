@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
-import { dataStatus, fetchBusy, fetchFeatures, fetchMapbox, fetchTraffic, locateByIp, routeTo, runSearch } from './data/api'
+import { dataStatus, fetchBusyAreas, fetchFeatures, fetchMapbox, locateByIp, routeTo, runSearch } from './data/api'
 import { useFavourites } from './hooks/useFavourites'
 import { useIsMobile } from './hooks/useMedia'
 import { curate } from './mapboxes/curate'
 import { BottomSheet } from './components/BottomSheet'
 import { BottomToolbar } from './components/BottomToolbar'
 import { InterfaceEditor } from './components/InterfaceEditor'
-import { Mermaid, X } from './components/Icons'
+import { CloseButton } from './components/CloseButton'
+import { Mermaid } from './components/Icons'
 import { MapBox } from './components/MapBox'
 import { MapView } from './components/MapView'
 import { ResultsList, SearchBar } from './components/SearchBar'
@@ -22,8 +23,6 @@ export default function App() {
   const fav = useFavourites()
 
   const [features, setFeatures] = useState(null)
-  const [busy, setBusy] = useState(null)
-  const [heat, setHeat] = useState(false)
   const [editorOpen, setEditorOpen] = useState(false)
   const [favOnly, setFavOnly] = useState(false)
   const [panel, setPanel] = useState(null)
@@ -33,7 +32,7 @@ export default function App() {
   const [sheet, setSheet] = useState(null) // mobile: 'results' | 'box' | null
   const [zoom, setZoom] = useState(11.6)
   const [toast, setToast] = useState(null)
-  const [traffic, setTraffic] = useState(null)
+  const [busyAreas, setBusyAreas] = useState(null)
   const [me, setMe] = useState(null)
   const [route, setRoute] = useState(null)
   const meRef = useRef(null)
@@ -42,8 +41,11 @@ export default function App() {
   useEffect(() => { localStorage.setItem('warszawa-live.chat.v1', JSON.stringify(chat.map((m) => ({ ...m, results: undefined })))) }, [chat])
 
   useEffect(() => {
-    fetchFeatures().then(setFeatures); fetchBusy().then(setBusy); fetchTraffic().then(setTraffic)
-    locateByIp().then((loc) => { setMe(loc.lngLat); say(`You: ${loc.label}`) })
+    fetchFeatures().then(setFeatures); fetchBusyAreas().then(setBusyAreas)
+    // "You are here": IP position on load, re-polled every 5 minutes (the IP changes when the user moves networks)
+    locateByIp().then((loc) => { setMe(loc.lngLat); say(`You are here · ${loc.label}`) })
+    const poll = setInterval(() => locateByIp().then((loc) => setMe(loc.lngLat)), 5 * 60 * 1000)
+    return () => clearInterval(poll)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const featureList = features?.features || []
@@ -113,19 +115,18 @@ export default function App() {
 
   return (
     <div className="app">
-      <MapView ref={mapRef} features={features} busy={busy} traffic={traffic} route={route} me={me} heat={heat} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
+      <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
         onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} />
 
-      {/* top-left: search pill + (x) + mermaid */}
+      {/* top-left: search pill + mermaid (as tall as the search bar) + (x) */}
       <div className="top-left">
         <SearchBar onSearch={onSearch} onMenu={onMenu} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} />
         <div className="side-controls">
-          <motion.button className="btn icon" onClick={closeAll} aria-label="Close all map boxes" title="Close all map boxes" whileTap={{ rotate: 90 }} transition={spring}
-            animate={{ opacity: boxes.length || results ? 1 : 0.55 }}><X size={30} stroke={2.4} /></motion.button>
           <motion.button className={`btn icon mermaid-btn ${favOnly ? 'active' : ''}`} onClick={toggleFavOnly} aria-label="My favourite spots" title="My favourite spots"
             whileTap={{ scale: 0.85 }} animate={favOnly ? { rotate: [0, -8, 8, 0] } : {}} transition={spring}>
-            <Mermaid variant={values.mermaidVariant} size={30} />
+            <Mermaid />
           </motion.button>
+          <CloseButton onClick={closeAll} label="Close all map boxes" animate={{ opacity: boxes.length || results ? 1 : 0.55 }} />
         </div>
       </div>
       {values.showTitle && <h1 className="app-title">{values.appTitle}</h1>}
@@ -153,7 +154,7 @@ export default function App() {
         {panel === 'sources' && <SourcesPanel key="s" onClose={() => setPanel(null)} />}
       </AnimatePresence>
 
-      <BottomToolbar heat={heat} onHeat={() => { setHeat(!heat); say(heat ? 'Heatmap off' : 'Busy now · mock Google Popular Times') }}
+      <BottomToolbar busy={values.busyAreas} onBusy={() => { set('busyAreas', !values.busyAreas); say(values.busyAreas ? 'Busy areas off' : 'Busy areas on') }}
         onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()} layersOn={values.showPlaces} onLayers={() => set('showPlaces', !values.showPlaces)} />
 
       {mobile && <BottomSheet open={!!sheet && !!sheetContent} onClose={() => setSheet(null)} initial="half">{sheetContent}</BottomSheet>}

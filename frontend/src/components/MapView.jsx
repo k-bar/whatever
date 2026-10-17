@@ -2,11 +2,53 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useConfig } from '../config/store'
-import { WARSAW_BBOX } from '../data/api'
+import { WARSAW_CENTER } from '../data/api'
 import { categoryMatchExpr } from '../data/categories'
-import { applyMapDesign, firstSymbolLayer, HEAT_PALETTES, styleFor } from './mapStyle'
+import { applyMapDesign, firstSymbolLayer, styleFor } from './mapStyle'
 
-const SRC = 'wl-features', BUSY = 'wl-busy', BOUNDARY = 'wl-boundary', TRAFFIC = 'wl-traffic', ROUTE = 'wl-route'
+const SRC = 'wl-features', BOUNDARY = 'wl-boundary', AREAS = 'wl-busyareas', ROUTE = 'wl-route'
+const AREA_LAYERS = ['wl-busyareas-fill', 'wl-busyareas-line']
+
+const HOME_SHARE = 0.8 // the home view shows this share of all pins
+const HOME_ZOOM = [11, 15] // never further out / closer in than this, whatever the data
+
+/**
+ * Home view padding: keep the view clear of the search bar (top) and toolbar (bottom), and use the same
+ * amount top and bottom so the centre point lands in the middle of the screen.
+ */
+function homePadding() {
+  const gap = 12
+  const top = (document.querySelector('.top-left')?.getBoundingClientRect().bottom ?? 90) + gap
+  const bottom = window.innerHeight - (document.querySelector('.toolbar')?.getBoundingClientRect().top ?? window.innerHeight - 80) + gap
+  const v = Math.max(top, bottom)
+  return { top: v, bottom: v, left: 24, right: 24 }
+}
+
+/**
+ * Home view: always centred on Rondo Dmowskiego, zoomed in as far as possible while HOME_SHARE of the
+ * visible pins (current filters: pitches are hidden by default, time window, …) stay on screen. For each pin, the deepest zoom at which it still fits inside the free area (screen
+ * minus padding) is log2(halfSize / offset), where offset is its mercator distance from the centre in
+ * zoom-0 pixels. The home zoom is the (1 − HOME_SHARE) quantile of those: 80% of pins fit at it or deeper.
+ */
+function homeView(m, features) {
+  const pad = homePadding()
+  const el = m.getContainer()
+  const halfW = (el.clientWidth - pad.left - pad.right) / 2
+  const halfH = (el.clientHeight - pad.top - pad.bottom) / 2
+  const c = maplibregl.MercatorCoordinate.fromLngLat(WARSAW_CENTER)
+  const zooms = []
+  for (const f of features || []) {
+    const [lng, lat] = f.geometry?.coordinates || []
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue
+    const p = maplibregl.MercatorCoordinate.fromLngLat([lng, lat])
+    const dx = Math.abs(p.x - c.x) * 512, dy = Math.abs(p.y - c.y) * 512 // world is 512 px wide at zoom 0
+    zooms.push(Math.log2(Math.min(dx ? halfW / dx : Infinity, dy ? halfH / dy : Infinity)))
+  }
+  zooms.sort((a, b) => a - b)
+  const z = zooms.length ? zooms[Math.floor((1 - HOME_SHARE) * (zooms.length - 1))] : 12.5
+  return { center: WARSAW_CENTER, zoom: Math.min(HOME_ZOOM[1], Math.max(HOME_ZOOM[0], z)), pitch: 0, bearing: 0 }
+}
+
 const EMPTY = { type: 'FeatureCollection', features: [] }
 const LAYERS = ['wl-glow', 'wl-dots', 'wl-starred', 'wl-selected']
 
@@ -44,21 +86,46 @@ function buildFilter(v, favourites, favOnly) {
   return f
 }
 
-export const MapView = forwardRef(function MapView({ features, busy, traffic, route, me, heat, favourites, favOnly, selectedId, onPick, onReady, onMove }, ref) {
+/** JS twin of buildFilter(): the pins actually drawn with the current settings (keep the two in sync). */
+function visiblePins(features, v, favourites, favOnly) {
+  const range = timeRange(v.timeWindow)
+  const favs = new Set(favourites)
+  return (features || []).filter(({ properties: p }) => {
+    const invite = Boolean(p.is_public_invite)
+    const shown = (v.showEvents && p.kind === 'event' && !invite) || (v.showInvites && invite)
+      || (v.showPlaces && p.kind === 'place' && p.venue_type !== 'pitch') || (v.showPitches && p.venue_type === 'pitch')
+    if (!shown) return false
+    if (range && p.starts_at != null && !(p.starts_at >= range[0] && p.starts_at <= range[1])) return false
+    return !favOnly || favs.has(p.event_id)
+  })
+}
+
+export const MapView = forwardRef(function MapView({ features, busyAreas, route, me, favourites, favOnly, selectedId, onPick, onReady, onMove }, ref) {
   const { values } = useConfig()
   const el = useRef(null)
   const map = useRef(null)
   const vRef = useRef(values)
   vRef.current = values
   // latest props for handlers registered once (style.load fires again after every setStyle)
-  const dataRef = useRef({ features, busy, heat, favourites, favOnly, traffic, route })
-  dataRef.current = { features, busy, heat, favourites, favOnly, traffic, route }
+  const dataRef = useRef({ features, favourites, favOnly, busyAreas, route })
+  dataRef.current = { features, favourites, favOnly, busyAreas, route }
   const meMarker = useRef(null)
+  const userMoved = useRef(false), homed = useRef(false)
+
+  const shownPins = () => { const d = dataRef.current; return visiblePins(d.features?.features, vRef.current, d.favourites, d.favOnly) }
+
+  // open on the home view once the pins are in, unless the user already started moving the map
+  function openOnHome(m) {
+    const f = shownPins()
+    if (homed.current || userMoved.current || !f.length) return
+    homed.current = true
+    m.jumpTo(homeView(m, f))
+  }
   const styleKey = styleFor(values)
 
   useImperativeHandle(ref, () => ({
     zoomBy: (d) => map.current?.zoomTo(map.current.getZoom() + d, { duration: 350 }),
-    home: () => map.current?.fitBounds([[WARSAW_BBOX[0], WARSAW_BBOX[1]], [WARSAW_BBOX[2], WARSAW_BBOX[3]]], { padding: 40, pitch: 0, bearing: 0, duration: 1200 }),
+    home: () => map.current?.easeTo({ ...homeView(map.current, shownPins()), duration: 1200 }),
     flyTo: (f, zoom = 15) => map.current?.flyTo({ center: f.geometry.coordinates, zoom: Math.max(map.current.getZoom(), zoom), duration: 1100, essential: true,
       padding: window.innerWidth < 768 ? { bottom: window.innerHeight * 0.45 } : { right: 380 } }),
     getZoom: () => map.current?.getZoom(),
@@ -68,11 +135,13 @@ export const MapView = forwardRef(function MapView({ features, busy, traffic, ro
   // ---------- init ----------
   useEffect(() => {
     const m = new maplibregl.Map({
-      container: el.current, style: styleKey, center: [21.012, 52.232], zoom: 11.6, minZoom: 9.5, maxZoom: 19,
+      container: el.current, style: styleKey, center: WARSAW_CENTER, zoom: 12, minZoom: 9.5, maxZoom: 19,
       maxBounds: [[20.4, 51.9], [21.8, 52.6]], attributionControl: { compact: true }, antialias: true, fadeDuration: 150,
     })
     map.current = m
-    m.on('load', () => { ensureLayers(m); applyMapDesign(m, vRef.current); onReady?.() })
+    m.on('load', () => { ensureLayers(m); applyMapDesign(m, vRef.current); openOnHome(m); onReady?.() })
+    // a drag / wheel / touch counts as the user moving the map; a window resize (also an originalEvent) doesn't
+    m.on('movestart', (e) => { const t = e.originalEvent?.type; if (t && t !== 'resize') userMoved.current = true })
     m.on('style.load', () => { if (!m.getSource(SRC)) { ensureLayers(m); applyMapDesign(m, vRef.current) } })
     m.on('move', () => onMove?.(m.getZoom()))
     m.on('click', 'wl-dots', (e) => { const f = e.features?.[0]; if (f) onPick({ type: 'Feature', id: f.id, geometry: f.geometry, properties: parseProps(f.properties) }) })
@@ -85,15 +154,18 @@ export const MapView = forwardRef(function MapView({ features, busy, traffic, ro
   function ensureLayers(m) {
     const d = dataRef.current
     if (!m.getSource(SRC)) m.addSource(SRC, { type: 'geojson', data: d.features || { type: 'FeatureCollection', features: [] }, promoteId: 'event_id' })
-    if (!m.getSource(BUSY)) m.addSource(BUSY, { type: 'geojson', data: d.busy || { type: 'FeatureCollection', features: [] } })
     if (!m.getSource(BOUNDARY)) m.addSource(BOUNDARY, { type: 'geojson', data: '/warsaw_boundary.geojson' })
-    if (!m.getSource(TRAFFIC)) m.addSource(TRAFFIC, { type: 'geojson', data: d.traffic || EMPTY })
+    if (!m.getSource(AREAS)) m.addSource(AREAS, { type: 'geojson', data: d.busyAreas || EMPTY })
     if (!m.getSource(ROUTE)) m.addSource(ROUTE, { type: 'geojson', data: d.route || EMPTY })
     const before = firstSymbolLayer(m)
-    if (!m.getLayer('wl-traffic-fill')) m.addLayer({ id: 'wl-traffic-fill', type: 'fill', source: TRAFFIC, paint: { 'fill-color': '#f2b705', 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.18, 15, 0.28] } }, before)
-    if (!m.getLayer('wl-traffic-line')) m.addLayer({ id: 'wl-traffic-line', type: 'line', source: TRAFFIC, paint: { 'line-color': '#d9a400', 'line-width': 1.5, 'line-opacity': 0.8 } }, before)
+    // busy areas, Google "area busyness" style: pale yellow fill with a dotted golden outline (no labels).
+    // Only the outer "busy" outline is drawn; the "very_busy" cores stay in the data.
+    const outline = ['==', ['get', 'level'], 'busy']
+    if (!m.getLayer('wl-busyareas-fill')) m.addLayer({ id: 'wl-busyareas-fill', type: 'fill', source: AREAS, filter: outline,
+      paint: { 'fill-color': '#fcd462', 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 11, 0.5, 16, 0.36] } }, before)
+    if (!m.getLayer('wl-busyareas-line')) m.addLayer({ id: 'wl-busyareas-line', type: 'line', source: AREAS, filter: outline, layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: { 'line-color': '#f0ac00', 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1.6, 16, 2.6], 'line-dasharray': [0.1, 2] } }, before)
     if (!m.getLayer('wl-boundary-line')) m.addLayer({ id: 'wl-boundary-line', type: 'line', source: BOUNDARY, paint: { 'line-color': '#e7392b', 'line-width': 1.5, 'line-dasharray': [3, 3], 'line-opacity': 0.55 } }, before)
-    if (!m.getLayer('wl-heat')) m.addLayer({ id: 'wl-heat', type: 'heatmap', source: BUSY, layout: { visibility: d.heat ? 'visible' : 'none' }, paint: { 'heatmap-weight': ['get', 'weight'] } })
     if (!m.getLayer('wl-route-casing')) m.addLayer({ id: 'wl-route-casing', type: 'line', source: ROUTE, layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 7, 'line-opacity': 0.9 } })
     if (!m.getLayer('wl-route')) m.addLayer({ id: 'wl-route', type: 'line', source: ROUTE, layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': vRef.current.accent, 'line-width': 3.5 } })
     if (!m.getLayer('wl-glow')) m.addLayer({ id: 'wl-glow', type: 'circle', source: SRC, paint: { 'circle-blur': 1, 'circle-opacity': 0.55 } })
@@ -101,11 +173,9 @@ export const MapView = forwardRef(function MapView({ features, busy, traffic, ro
     if (!m.getLayer('wl-starred')) m.addLayer({ id: 'wl-starred', type: 'circle', source: SRC, paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#f2a900', 'circle-stroke-width': 3 } })
     if (!m.getLayer('wl-selected')) m.addLayer({ id: 'wl-selected', type: 'circle', source: SRC, filter: ['==', ['get', 'event_id'], '__none__'], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3, 'circle-radius': 16 } })
     styleMarkers(m, vRef.current)
-    styleHeat(m, vRef.current)
     refreshFilters(m)
     styleRoute(m, vRef.current)
-    m.setLayoutProperty('wl-traffic-fill', 'visibility', vRef.current.trafficAreas ? 'visible' : 'none')
-    m.setLayoutProperty('wl-traffic-line', 'visibility', vRef.current.trafficAreas ? 'visible' : 'none')
+    for (const id of AREA_LAYERS) m.setLayoutProperty(id, 'visibility', vRef.current.busyAreas ? 'visible' : 'none')
     m.setLayoutProperty('wl-boundary-line', 'visibility', vRef.current.cityBoundary ? 'visible' : 'none')
     m.setPaintProperty('wl-boundary-line', 'line-color', vRef.current.accent)
   }
@@ -121,11 +191,14 @@ export const MapView = forwardRef(function MapView({ features, busy, traffic, ro
   }, [styleKey])
 
   // ---------- data ----------
-  useEffect(() => { const m = map.current; if (m?.getSource(SRC) && features) m.getSource(SRC).setData(features) }, [features])
-  useEffect(() => { const m = map.current; if (m?.getSource(BUSY) && busy) m.getSource(BUSY).setData(busy) }, [busy])
-  useEffect(() => { const m = map.current; if (m?.getSource(TRAFFIC) && traffic) m.getSource(TRAFFIC).setData(traffic) }, [traffic])
+  useEffect(() => { const m = map.current; if (m?.getSource(SRC) && features) { m.getSource(SRC).setData(features); openOnHome(m) } }, [features])
+  useEffect(() => {
+    const m = map.current
+    if (!m?.getSource(AREAS) || !busyAreas) return
+    m.getSource(AREAS).setData(busyAreas)
+  }, [busyAreas])
   useEffect(() => { const m = map.current; if (m?.getSource(ROUTE)) m.getSource(ROUTE).setData(route || EMPTY) }, [route])
-  useEffect(() => { const m = map.current; if (!m?.getLayer('wl-traffic-fill')) return; for (const id of ['wl-traffic-fill', 'wl-traffic-line']) m.setLayoutProperty(id, 'visibility', values.trafficAreas ? 'visible' : 'none') }, [values.trafficAreas])
+  useEffect(() => { const m = map.current; if (!m?.getLayer('wl-busyareas-fill')) return; for (const id of AREA_LAYERS) m.setLayoutProperty(id, 'visibility', values.busyAreas ? 'visible' : 'none') }, [values.busyAreas])
   useEffect(() => { const m = map.current; if (m?.getLayer('wl-route')) styleRoute(m, values) }, [values.routeStyle, values.accent])
 
   // "me": pulsing light-blue dot (HTML marker so CSS can animate it)
@@ -134,7 +207,7 @@ export const MapView = forwardRef(function MapView({ features, busy, traffic, ro
     if (!m) return
     if (!me || !values.showMe) { meMarker.current?.remove(); meMarker.current = null; return }
     if (!meMarker.current) {
-      const el = document.createElement('div'); el.className = 'me-marker'; el.innerHTML = '<span class="ring"></span><span class="ring r2"></span><span class="core"></span>'
+      const el = document.createElement('div'); el.className = 'me-marker'; el.innerHTML = '<span class="ring"></span><span class="ring r2"></span><span class="core"></span><span class="me-label">You are here</span>'
       meMarker.current = new maplibregl.Marker({ element: el }).setLngLat(me).addTo(m)
     } else meMarker.current.setLngLat(me)
   }, [me, values.showMe])
@@ -154,8 +227,6 @@ export const MapView = forwardRef(function MapView({ features, busy, traffic, ro
   }, [values.cityBoundary, values.accent])
 
   useEffect(() => { const m = map.current; if (m?.getLayer('wl-dots')) styleMarkers(m, values) }, [values.markerStyle, values.markerSize, values.colorBy, values.accent])
-  useEffect(() => { const m = map.current; if (m?.getLayer('wl-heat')) styleHeat(m, values) }, [values.heatPalette, values.heatIntensity, values.heatRadius, values.heatOpacity, values.accent])
-  useEffect(() => { const m = map.current; if (m?.getLayer('wl-heat')) m.setLayoutProperty('wl-heat', 'visibility', heat ? 'visible' : 'none') }, [heat])
 
   function refreshFilters(m) {
     if (!m?.getLayer('wl-dots')) return
@@ -226,24 +297,3 @@ function styleRoute(m, v) {
   m.setLayoutProperty('wl-route', 'line-cap', v.routeStyle === 'dots' ? 'round' : 'round')
 }
 
-function styleHeat(m, v) {
-  const stops = HEAT_PALETTES[v.heatPalette].map((c) => c === 'ACCENT' ? v.accent : c === 'ACCENT70' ? `color-mix(in srgb, ${v.accent} 70%, transparent)` : c === 'ACCENT40' ? `color-mix(in srgb, ${v.accent} 40%, transparent)` : c)
-  // maplibre needs plain colours; resolve color-mix via a canvas
-  const resolved = stops.map(resolveColor)
-  m.setPaintProperty('wl-heat', 'heatmap-color', ['interpolate', ['linear'], ['heatmap-density'], 0, resolved[0], 0.15, resolved[1], 0.35, resolved[2], 0.6, resolved[3], 0.85, resolved[4], 1, resolved[5]])
-  m.setPaintProperty('wl-heat', 'heatmap-intensity', ['interpolate', ['linear'], ['zoom'], 10, 0.6 * v.heatIntensity, 15, 2.2 * v.heatIntensity])
-  m.setPaintProperty('wl-heat', 'heatmap-radius', ['interpolate', ['linear'], ['zoom'], 10, v.heatRadius * 0.6, 14, v.heatRadius, 17, v.heatRadius * 2.4])
-  m.setPaintProperty('wl-heat', 'heatmap-opacity', v.heatOpacity)
-}
-
-let ctx
-function resolveColor(c) {
-  if (!c.startsWith('color-mix')) return c
-  const m = c.match(/,\s*(#[0-9a-f]{3,8})\s+(\d+)%/i)
-  if (!m) return c
-  ctx ||= document.createElement('canvas').getContext('2d')
-  ctx.fillStyle = m[1]
-  const hex = ctx.fillStyle
-  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16)
-  return `rgba(${r},${g},${b},${Number(m[2]) / 100})`
-}

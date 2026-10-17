@@ -4,6 +4,7 @@ import { useConfig, useSpring } from '../config/store'
 import { Burger, Calendar, Chevron, Database, History, Message, Plus, Search, Sparkle, Star, User, X, Minus } from './Icons'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
+import { CloseButton } from './CloseButton'
 
 export const MODES = [
   { id: 'search', label: 'Search', hint: 'Places, venues, districts', Icon: Search },
@@ -195,7 +196,7 @@ export function ResultsList({ results, onPick, onClear }) {
     <>
       <div className="results-h">
         <h3>{results.mode === 'assistant' ? 'Assistant' : `${list.length} result${list.length === 1 ? '' : 's'}`}{results.q ? ` · “${results.q}”` : ''}</h3>
-        {onClear && <button className="btn icon small ghost" onClick={onClear} aria-label="Close results"><X size={20} stroke={2.2} /></button>}
+        {onClear && <CloseButton size={34} onClick={onClear} label="Close results" />}
       </div>
       <div className="results-scroll">
         {results.answer && <div className="assistant"><b>✦ </b>{results.answer}</div>}

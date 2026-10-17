@@ -3,7 +3,8 @@ import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import { fetchSources } from '../data/api'
 import { categoryColor, categoryLabel } from '../data/categories'
-import { Star, X } from './Icons'
+import { CloseButton } from './CloseButton'
+import { Star } from './Icons'
 
 const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
 
@@ -13,7 +14,7 @@ function Shell({ title, onClose, children, sub }) {
     <motion.aside className="side-panel surface" initial={{ x: -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }} transition={spring}>
       <div className="sp-head">
         <div><h2>{title}</h2>{sub && <div className="mb-sub">{sub}</div>}</div>
-        <button className="btn icon small ghost" onClick={onClose} aria-label="Close"><X size={18} /></button>
+        <CloseButton size={34} onClick={onClose} />
       </div>
       <div className="sp-scroll">{children}</div>
     </motion.aside>

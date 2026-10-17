@@ -4,8 +4,8 @@ import { Flame, Home, Layers, Minus, Moon, Plus, Sun } from './Icons'
 
 const WINDOWS = [['today', 'Today'], ['weekend', 'Weekend'], ['week', 'Week'], ['month', 'Month']]
 
-/** Centred, symmetrical: [venues] [heat] | [-] [home] [+] | [dark] [Today·Weekend·Week·Month] */
-export function BottomToolbar({ heat, onHeat, onZoom, onHome, onLayers, layersOn }) {
+/** Centred, symmetrical: [venues] [busy areas] | [-] [home] [+] | [dark] [Today·Weekend·Week·Month] */
+export function BottomToolbar({ busy, onBusy, onZoom, onHome, onLayers, layersOn }) {
   const { values, set } = useConfig()
   const spring = useSpring()
   const dark = values.darkMode
@@ -14,7 +14,7 @@ export function BottomToolbar({ heat, onHeat, onZoom, onHome, onLayers, layersOn
     <motion.div className="toolbar-wrap" initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ ...spring, delay: 0.2 }}>
       <div className="toolbar surface">
         <button className={`tb ${layersOn ? 'on' : ''}`} onClick={onLayers} title="Venues layer"><Layers size={20} /><small>Venues</small></button>
-        <button className={`tb heat ${heat ? 'on' : ''}`} onClick={onHeat} title="Busy now heatmap"><Flame size={20} /><small>Busy</small></button>
+        <button className={`tb busy ${busy ? 'on' : ''}`} onClick={onBusy} title="Busy areas"><Flame size={20} /><small>Busy</small></button>
         <span className="sep" />
         <button className="tb" onClick={() => onZoom(-1)} title="Zoom out"><Minus size={20} /><small>Out</small></button>
         <button className="tb home" onClick={onHome} title="Whole city"><Home size={22} /><small>City</small></button>

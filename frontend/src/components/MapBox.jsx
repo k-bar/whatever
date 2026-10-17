@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
-import { Bike, FACT_ICON, Plus, Star, Ticket, Walk, X } from './Icons'
+import { CloseButton } from './CloseButton'
+import { Bike, FACT_ICON, Plus, Star, Ticket, Walk } from './Icons'
 import { categoryColor } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 
@@ -79,7 +80,7 @@ export function MapBox({ data, feature, expanded, journey, onClose, onExpand, st
   return (
     <motion.article className={`mapbox surface ${expanded ? 'expanded' : ''}`} layout layoutId={layoutId}
       initial={{ opacity: 0, scale: 0.85, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 8 }} transition={spring}>
-      {onClose && <button className="btn icon small mb-x" onClick={onClose} aria-label="Close"><X size={24} stroke={2.4} /></button>}
+      {onClose && <CloseButton size={34} className="mb-x" onClick={onClose} />}
       {onStar && <button className={`btn icon small mb-star ${starred ? 'on' : ''}`} onClick={onStar} aria-label="Star"><Star size={16} filled={starred} /></button>}
       {showImage && data.image && <div className="mb-img" style={{ backgroundImage: `url(${data.image})` }} />}
       {showImage && !data.image && <div className="mb-img" style={{ height: 8, background: `linear-gradient(90deg, ${c}, color-mix(in srgb, ${c} 30%, transparent))` }} />}

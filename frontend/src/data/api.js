@@ -7,7 +7,8 @@ import { categoryLabel } from './categories'
 
 const BASE = import.meta.env.VITE_API_URL || '/api'
 export const WARSAW_BBOX = [20.85, 52.1, 21.27, 52.37]
-export const WARSAW_CENTER = [21.012, 52.232]
+// Our declared centre point: Rondo Romana Dmowskiego (Marszałkowska × Aleje Jerozolimskie).
+export const WARSAW_CENTER = [21.0114, 52.2306]
 
 export const dataStatus = { source: 'loading' } // 'api' | 'mock' | 'loading'
 
@@ -34,14 +35,6 @@ export async function fetchFeatures() {
   } catch {
     dataStatus.source = 'mock'
     return (await fetch('/mock/features.geojson')).json()
-  }
-}
-
-export async function fetchBusy() {
-  try {
-    return await get('/busy')
-  } catch {
-    return (await fetch('/mock/busy.geojson')).json()
   }
 }
 
@@ -124,18 +117,32 @@ function localSearch(mode, q, features, opts = {}) {
   return { results }
 }
 
-/* ---------- position, routing, traffic ---------- */
+/* ---------- position, routing, busy areas ---------- */
 
-/** Where am I? IP geolocation (no permission prompt). Falls back to Centrum. */
+// Free, keyless, CORS-enabled IP geolocation services, tried in order (ipapi.co rate-limits quickly).
+const IP_PROVIDERS = [
+  ['https://get.geojs.io/v1/ip/geo.json', (j) => ({ lat: +j.latitude, lng: +j.longitude, city: j.city })],
+  ['https://ipwho.is/', (j) => (j.success === false ? null : { lat: +j.latitude, lng: +j.longitude, city: j.city })],
+  ['https://ipapi.co/json/', (j) => (j.error ? null : { lat: +j.latitude, lng: +j.longitude, city: j.city })],
+]
+const inWarsawArea = ({ lat, lng }) => Math.abs(lat - 52.23) < 0.6 && Math.abs(lng - 21.01) < 0.8
+
+/**
+ * Where am I? IP geolocation (no permission prompt, ~1–5 km accurate). Tries each provider until
+ * one answers. Outside the Warsaw area (or all lookups failing) the user is placed at Centrum.
+ */
 export async function locateByIp() {
-  try {
-    const r = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) })
-    const j = await r.json()
-    if (j.latitude && j.longitude && Math.abs(j.latitude - 52.23) < 0.6 && Math.abs(j.longitude - 21.01) < 0.8) return { lngLat: [j.longitude, j.latitude], label: j.city || 'your IP', exact: false }
-    return { lngLat: WARSAW_CENTER, label: `${j.city || 'outside Warsaw'} → shown at Centrum`, exact: false }
-  } catch {
-    return { lngLat: WARSAW_CENTER, label: 'Centrum (IP lookup failed)', exact: false }
+  for (const [url, parse] of IP_PROVIDERS) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(3000) })
+      if (!r.ok) continue
+      const pos = parse(await r.json())
+      if (!pos || !Number.isFinite(pos.lat) || !Number.isFinite(pos.lng)) continue
+      if (inWarsawArea(pos)) return { lngLat: [pos.lng, pos.lat], label: pos.city || 'Warsaw', exact: false, source: new URL(url).host }
+      return { lngLat: WARSAW_CENTER, label: `${pos.city || 'outside Warsaw'} → shown at Centrum`, exact: false, source: new URL(url).host }
+    } catch { /* try the next provider */ }
   }
+  return { lngLat: WARSAW_CENTER, label: 'Centrum (IP lookup failed)', exact: false, source: null }
 }
 
 const WALK_KMH = 4.8, BIKE_KMH = 15
@@ -163,19 +170,14 @@ export function haversineKm([lng1, lat1], [lng2, lat2]) {
   return 2 * R * Math.asin(Math.sqrt(a))
 }
 
-/** High-traffic areas (Google "busy" style golden boxes). Mock until the Places API lands: GET /traffic */
-export async function fetchTraffic() {
+/**
+ * Busy areas: detailed golden outlines of where people bump into each other (level "busy" and its
+ * "very_busy" core). Built from OpenStreetMap by backend/busyareas; GET /busyareas, mock copy offline.
+ */
+export async function fetchBusyAreas() {
   try {
-    return await get('/traffic')
+    return await get('/busyareas')
   } catch {
-    const boxes = [ // [lng, lat, w, h, label]
-      [21.0200, 52.2310, 0.006, 0.006, 'Nowy Świat / Chmielna'], [21.0060, 52.2320, 0.006, 0.004, 'Centrum / Pałac Kultury'],
-      [21.0400, 52.2410, 0.004, 0.009, 'Bulwary Wiślane'], [21.0180, 52.2240, 0.004, 0.003, 'Hala Koszyki'],
-      [21.0125, 52.2200, 0.004, 0.003, 'Plac Zbawiciela'], [21.0160, 52.2495, 0.005, 0.005, 'Stare Miasto'],
-      [21.0350, 52.2530, 0.005, 0.003, 'Ząbkowska'], [20.9850, 52.2320, 0.005, 0.004, 'Rondo Daszyńskiego'],
-      [21.0050, 52.2290, 0.004, 0.003, 'Dworzec Centralny'], [20.9800, 52.2690, 0.004, 0.003, 'Plac Wilsona'],
-    ]
-    return { type: 'FeatureCollection', features: boxes.map(([x, y, w, h, label]) => ({ type: 'Feature', properties: { label, level: 'high' },
-      geometry: { type: 'Polygon', coordinates: [[[x - w, y - h], [x + w, y - h], [x + w, y + h], [x - w, y + h], [x - w, y - h]]] } })) }
+    return (await fetch('/mock/busy_areas.geojson')).json()
   }
 }

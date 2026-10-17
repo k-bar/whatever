@@ -15,12 +15,6 @@
 const FONTS = ['Manrope', 'Inter', 'Space Grotesk', 'DM Sans', 'Syne', 'Playfair Display', 'Fraunces', 'JetBrains Mono']
 const fontOptions = FONTS.map((f) => ({ value: f, label: f }))
 
-export const MERMAID_VARIANTS = [
-  ['01-flat-official', 'Flat official'], ['00-heraldic-master', 'Heraldic'], ['02-line', 'Line'],
-  ['03-gradient', 'Gradient'], ['04-knockout', 'Knockout'], ['05-pastel', 'Pastel'],
-  ['06-ink-sticker', 'Ink sticker'], ['07-app-tile', 'App tile'], ['08-night', 'Night'], ['09-mono', 'Mono stamp'],
-]
-
 export const SECTIONS = [
   {
     id: 'typography', label: 'Typography',
@@ -37,15 +31,12 @@ export const SECTIONS = [
   {
     id: 'surfaces', label: 'Surfaces & buttons',
     params: [
+      // Surfaces are always solid white (solid dark in dark mode): no glass / transparency knobs on purpose.
       { id: 'buttonStyle', label: 'Button style', type: 'select', default: 'glass', options: [
-        { value: 'glass', label: 'Liquid glass' }, { value: 'filled', label: 'Filled' }, { value: 'soft', label: 'Soft' }, { value: 'outline', label: 'Outline' }] },
+        { value: 'glass', label: 'White' }, { value: 'filled', label: 'Filled' }, { value: 'soft', label: 'Soft' }, { value: 'outline', label: 'Outline' }] },
       { id: 'accent', label: 'Accent colour', type: 'color', default: '#e7392b',
         options: ['#e7392b', '#ff6b4a', '#2b6be7', '#7c4dff', '#0fa37f', '#f2a900', '#111111'] },
       { id: 'radius', label: 'Corner radius', type: 'range', min: 6, max: 32, step: 1, unit: 'px', default: 22 },
-      { id: 'glassBlur', label: 'Glass blur', type: 'range', min: 0, max: 40, step: 1, unit: 'px', default: 16 },
-      { id: 'glassOpacity', label: 'Glass opacity', type: 'range', min: 0.1, max: 1, step: 0.05, default: 0.45 },
-      { id: 'glassTint', label: 'Glass tint', type: 'select', default: 'neutral', options: [
-        { value: 'neutral', label: 'Neutral' }, { value: 'warm', label: 'Warm' }, { value: 'cool', label: 'Cool' }, { value: 'accent', label: 'Accent' }] },
       { id: 'shadow', label: 'Shadow depth', type: 'select', default: 'soft', options: [
         { value: 'none', label: 'None' }, { value: 'soft', label: 'Soft' }, { value: 'deep', label: 'Deep' }, { value: 'hard', label: 'Hard offset' }] },
       { id: 'controlSize', label: 'Control size', type: 'range', min: 36, max: 60, step: 2, unit: 'px', default: 48 },
@@ -82,7 +73,7 @@ export const SECTIONS = [
         { value: 'default', label: 'Default' }, { value: 'azure', label: 'Azure' }, { value: 'ink', label: 'Ink' }, { value: 'mint', label: 'Mint' }] },
       { id: 'mapSaturation', label: 'Map saturation', type: 'range', min: 0, max: 1.6, step: 0.1, default: 1 },
       { id: 'cityBoundary', label: 'City boundary line', type: 'toggle', default: true },
-      { id: 'trafficAreas', label: 'High-traffic areas (golden)', type: 'toggle', default: true },
+      { id: 'busyAreas', label: 'Busy areas (golden outlines)', type: 'toggle', default: true },
       { id: 'showMe', label: 'My position (IP based)', type: 'toggle', default: true },
       { id: 'routeStyle', label: 'Route line style', type: 'select', default: 'dashed', options: [
         { value: 'dashed', label: 'Dashed' }, { value: 'solid', label: 'Solid' }, { value: 'dots', label: 'Dots' }] },
@@ -109,7 +100,7 @@ export const SECTIONS = [
     id: 'mapbox', label: 'Map info boxes',
     params: [
       { id: 'boxStyle', label: 'Map info box design style', type: 'select', default: 'glass', options: [
-        { value: 'glass', label: 'Glass' }, { value: 'card', label: 'Clean card' }, { value: 'paper', label: 'Paper' }, { value: 'outlined', label: 'Outlined' }, { value: 'poster', label: 'Poster first' }] },
+        { value: 'glass', label: 'White' }, { value: 'card', label: 'Clean card' }, { value: 'paper', label: 'Paper' }, { value: 'outlined', label: 'Outlined' }, { value: 'poster', label: 'Poster first' }] },
       { id: 'boxWidth', label: 'Box width', type: 'range', min: 280, max: 420, step: 10, unit: 'px', default: 340 },
       { id: 'boxImages', label: 'Show images / posters', type: 'toggle', default: true },
       { id: 'boxDensity', label: 'Density', type: 'select', default: 'comfy', options: [{ value: 'compact', label: 'Compact' }, { value: 'comfy', label: 'Comfortable' }] },
@@ -126,21 +117,9 @@ export const SECTIONS = [
     ],
   },
   {
-    id: 'heatmap', label: 'Busy-now heatmap',
-    params: [
-      { id: 'heatPalette', label: 'Heat palette', type: 'select', default: 'fire', options: [
-        { value: 'fire', label: 'Fire' }, { value: 'ocean', label: 'Ocean' }, { value: 'candy', label: 'Candy' }, { value: 'mono', label: 'Mono accent' }] },
-      { id: 'heatIntensity', label: 'Intensity', type: 'range', min: 0.2, max: 3, step: 0.1, default: 1 },
-      { id: 'heatRadius', label: 'Radius', type: 'range', min: 10, max: 60, step: 2, unit: 'px', default: 28 },
-      { id: 'heatOpacity', label: 'Opacity', type: 'range', min: 0.2, max: 1, step: 0.05, default: 0.75 },
-    ],
-  },
-  {
     id: 'branding', label: 'Branding',
     params: [
       { id: 'appTitle', label: 'App title', type: 'text', default: 'Warszawa Live' },
-      { id: 'mermaidVariant', label: 'Mermaid symbol', type: 'select', default: '09-mono',
-        options: MERMAID_VARIANTS.map(([value, label]) => ({ value, label })) },
       { id: 'showTitle', label: 'Show title under search', type: 'toggle', default: false },
     ],
   },

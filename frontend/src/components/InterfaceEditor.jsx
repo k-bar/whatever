@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { SECTIONS } from '../config/schema'
 import { useConfig, useSpring } from '../config/store'
-import { Check, Chevron, ChevronL, ChevronR, Redo, Sliders, Undo, X } from './Icons'
+import { CloseButton } from './CloseButton'
+import { Check, Chevron, ChevronL, ChevronR, Redo, Sliders, Undo } from './Icons'
 import { useIsMobile } from '../hooks/useMedia'
 
 /* ---------- controls ---------- */
@@ -133,7 +134,7 @@ export function InterfaceEditor({ open, onToggle }) {
                 <button className={`btn pill small ${dirty ? 'primary' : ''}`} onClick={save} disabled={!dirty && status === 'idle'}>
                   {status === 'saving' ? 'Saving…' : status === 'saved' ? 'Saved ✓' : status === 'local' ? 'Saved locally' : dirty ? 'Save' : 'Saved'}
                 </button>
-                <button className="btn icon small ghost" onClick={onToggle} aria-label="Close editor"><X size={18} /></button>
+                <CloseButton size={34} onClick={onToggle} label="Close editor" />
               </div>
             </header>
             <div className="ed-tools">

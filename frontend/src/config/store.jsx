@@ -30,8 +30,7 @@ export function applyConfig(v) {
   root.style.setProperty('--bodyFontFamily', `'${v.bodyFont}', system-ui, sans-serif`)
   root.style.setProperty('--anim', `${(1 / (v.animSpeed || 1)).toFixed(2)}`)
   root.dataset.theme = v.darkMode ? 'dark' : 'light'
-  const tint = { neutral: v.darkMode ? '24, 28, 35' : '255, 255, 255', warm: v.darkMode ? '34, 28, 24' : '255, 249, 240', cool: v.darkMode ? '20, 28, 40' : '240, 247, 255', accent: hexToRgb(v.accent, v.darkMode) }[v.glassTint] || '255,255,255'
-  root.style.setProperty('--surface-rgb', tint)
+  root.style.setProperty('--surface-rgb', v.darkMode ? '24, 28, 35' : '255, 255, 255')
   document.querySelector('meta[name=theme-color]')?.setAttribute('content', v.darkMode ? '#0e1116' : '#f4f1ea')
 }
 
@@ -97,11 +96,4 @@ export function useSpring(overrides = {}) {
   const speed = values.animSpeed || 1
   const bounce = values.reduceMotion ? 0 : values.bounce
   return { type: 'spring', stiffness: 420 * speed, damping: 34 - bounce * 40, mass: 0.9, ...overrides }
-}
-
-function hexToRgb(hex, dark) {
-  const n = parseInt(hex.slice(1), 16)
-  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255
-  const mix = (c, to) => Math.round(c * 0.25 + to * 0.75)
-  return dark ? `${mix(r, 24)}, ${mix(g, 28)}, ${mix(b, 35)}` : `${mix(r, 255)}, ${mix(g, 255)}, ${mix(b, 255)}`
 }
