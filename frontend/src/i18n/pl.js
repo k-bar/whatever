@@ -355,4 +355,20 @@ export const PL = {
   'Add a photo': 'Dodaj zdjęcie',
   'Remove photo': 'Usuń zdjęcie',
   'Uploading…': 'Wysyłam…',
+
+  // In the city: toilets, AED, walking routes
+  'In the city': 'Na mieście',
+  'Toilets': 'Toalety',
+  'Defibrillators (AED)': 'Defibrylatory (AED)',
+  'Walking routes': 'Trasy spacerowe',
+  'Public toilet': 'Toaleta publiczna',
+  'Closed today': 'Dziś zamknięte',
+  'Opening hours unknown': 'Godziny otwarcia nieznane',
+  'Defibrillator (AED)': 'Defibrylator (AED)',
+  'In a cardiac arrest: call 112, start CPR and send someone for the AED. It talks you through every step.': 'Przy zatrzymaniu krążenia: zadzwoń pod 112, zacznij resuscytację i poślij kogoś po AED. Urządzenie poprowadzi cię krok po kroku.',
+  'Walking route': 'Trasa spacerowa',
+  'about {h} h on foot, without stops': 'ok. {h} h pieszo, bez postojów',
+  '{n} stops, from {first}': '{n} przystanków, start: {first}',
+  'City data': 'Dane miasta',
+  'Open 24 hours': 'Otwarte całą dobę',
 }

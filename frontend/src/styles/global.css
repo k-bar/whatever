@@ -1023,3 +1023,4 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .close-all { position: fixed; top: 66px; right: 16px; z-index: 89; padding: 5px 12px; border-radius: 999px; background: var(--surface-solid); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--fg-2); transition: opacity .2s, color .15s, transform .15s; }
 .close-all:hover { color: var(--fg); transform: translateY(-1px); }
 .close-all.idle { opacity: .55; }
+.pm-title.pm-sub { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); } /* "In the city" section of the pin box */

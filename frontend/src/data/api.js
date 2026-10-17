@@ -50,6 +50,18 @@ export async function fetchFeatures() {
   }
 }
 
+/**
+ * "In the city" layers (Warsaw open data, see components/cityLayers.js): 'toilets' and 'aed' come from
+ * GET /places?category=…, 'walks' (tourist walking routes) from GET /routes. Empty when the API lacks them.
+ */
+export async function fetchCityLayer(id) {
+  try {
+    return await get(id === 'walks' ? '/routes' : `/places?category=${id}`, { timeout: 15000 })
+  } catch {
+    return { type: 'FeatureCollection', features: [] }
+  }
+}
+
 export async function fetchSources() {
   try {
     return await get('/sources')

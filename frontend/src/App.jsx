@@ -2,7 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
 import { useLang } from './i18n'
-import { fetchBusyAreas, fetchFeatures, fetchMapbox, locateByIp, routeTo, runSearch } from './data/api'
+import { fetchBusyAreas, fetchCityLayer, fetchFeatures, fetchMapbox, locateByIp, routeTo, runSearch } from './data/api'
+import { CITY_LAYERS, walkBoxFeature } from './components/cityLayers'
 import { useFavourites } from './hooks/useFavourites'
 import { useStartPoint } from './hooks/useStartPoint'
 import { useIsMobile } from './hooks/useMedia'
@@ -60,6 +61,12 @@ export default function App() {
   const start = useStartPoint() // picked in Profile; beats the IP guess
   const firstPosition = useRef(true)
   const [route, setRoute] = useState(null)
+  // "In the city" layers (toilets, AED, walking routes): fetched the first time each is switched on
+  const [city, setCity] = useState({})
+  useEffect(() => {
+    for (const l of CITY_LAYERS) if (values[l.param] && !city[l.id]) fetchCityLayer(l.id).then((fc) => setCity((c) => ({ ...c, [l.id]: fc })))
+  }, [values.showToilets, values.showAed, values.showWalks]) // eslint-disable-line react-hooks/exhaustive-deps
+  const cityCounts = Object.fromEntries(CITY_LAYERS.map((l) => [l.id, city[l.id]?.features.length]))
   const [draftPin, setDraftPin] = useState(null) // "+ Create event" is open: where the new event happens
   const meRef = useRef(null)
   useEffect(() => { meRef.current = me }, [me])
@@ -132,6 +139,12 @@ export default function App() {
     setBoxes((b) => b.map((x) => ({ ...x, data: { ...curate(x.feature), ...x.remote } })))
   }, [lang])
 
+  // a walking route: its box (journey to the first stop) and the whole line in view
+  const pickWalk = (route) => {
+    openBox(walkBoxFeature(route), { fly: false })
+    const b = route.geometry.coordinates.reduce((acc, [x, y]) => [Math.min(acc[0], x), Math.min(acc[1], y), Math.max(acc[2], x), Math.max(acc[3], y)], [999, 999, -999, -999])
+    mapRef.current?.getMap()?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 120, bottom: window.innerHeight * 0.5, left: 30, right: 30 } : { top: 110, bottom: 110, left: 80, right: 420 }, maxZoom: 15.5, duration: 900 })
+  }
   const closeBox = (key) => setBoxes((b) => { const n = b.filter((x) => x.key !== key); if (!n.length) setRoute(null); return n })
   const closeAll = () => { setBoxes([]); setResults(null); setRoute(null); if (sheet) setSheet(null); say(t('Closed all map boxes')) }
   const expandBox = (key) => setBoxes((b) => b.map((x) => ({ ...x, expanded: x.key === key ? !x.expanded : false })))
@@ -267,7 +280,8 @@ export default function App() {
   return (
     <div className={`app ${view === 'map' && panel && !mobile ? (panelFull ? 'slide-full' : 'slide-open') : ''} ${flying ? 'flying' : ''}`}>
       <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
-        onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={revealed} draftPin={draftPin} onDraftPin={setDraftPin} />
+        onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={revealed} draftPin={draftPin} onDraftPin={setDraftPin}
+        city={city} onPickWalk={pickWalk} />
 
       <AnimatePresence>{view === 'landing' && <Landing key="landing" features={features ? featureList : null} onEnter={enterMap} getMap={getMap} />}</AnimatePresence>
 
@@ -308,7 +322,7 @@ export default function App() {
       <Stage key="toolbar" delay={0.45}>
         <BottomToolbar busy={values.busyAreas} onBusy={() => { set('busyAreas', !values.busyAreas); say(t(values.busyAreas ? 'Busy areas off' : 'Busy areas on')) }}
           onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()}
-          pinCounts={pinCounts} />
+          pinCounts={pinCounts} cityCounts={cityCounts} />
       </Stage>,
 
       // the live API status and the land-use key live in the Data sources panel (SidePanels.jsx)

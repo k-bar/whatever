@@ -5,6 +5,7 @@ import { useConfig } from '../config/store'
 import { WARSAW_CENTER } from '../data/api'
 import { categoryMatchExpr } from '../data/categories'
 import { enabledPinGroups, PIN_GROUPS, pinGroup, withPinGroups } from '../data/pinGroups'
+import { CITY_CLICK_LAYERS, ensureCityLayers, highlightWalk, setCityData, setCityVisibility } from './cityLayers'
 
 const PIN_PARAMS = PIN_GROUPS.map((g) => g.param)
 import { translate, useLang } from '../i18n'
@@ -180,7 +181,7 @@ function visiblePins(features, v, favourites, favOnly, { allGroups = false } = {
   })
 }
 
-export const MapView = forwardRef(function MapView({ features, busyAreas, route, me, favourites, favOnly, selectedId, onPick, onReady, onMove, revealed = true, draftPin, onDraftPin }, ref) {
+export const MapView = forwardRef(function MapView({ features, busyAreas, route, me, favourites, favOnly, selectedId, onPick, onReady, onMove, revealed = true, draftPin, onDraftPin, city = {}, onPickWalk }, ref) {
   const { values } = useConfig()
   const { lang, t } = useLang()
   const el = useRef(null)
@@ -194,6 +195,8 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   const draftMarker = useRef(null)
   const draftRef = useRef({ draftPin, onDraftPin })
   draftRef.current = { draftPin, onDraftPin }
+  const cityRef = useRef({ city, onPickWalk }) // toilets / AED / walking routes (cityLayers.js)
+  cityRef.current = { city, onPickWalk }
   const userMoved = useRef(false), homed = useRef(false)
   const revealedRef = useRef(revealed)
 
@@ -240,6 +243,20 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     m.on('click', 'wl-dots', (e) => { const f = e.features?.[0]; if (f && !draftRef.current.draftPin) onPick({ type: 'Feature', id: f.id, geometry: f.geometry, properties: parseProps(f.properties) }) })
     m.on('mouseenter', 'wl-dots', () => { m.getCanvas().style.cursor = 'pointer' })
     m.on('mouseleave', 'wl-dots', () => { m.getCanvas().style.cursor = '' })
+    // toilets / AEDs open a box like any place; a walking route opens its own box (full line from the data)
+    m.on('click', CITY_CLICK_LAYERS.amenity, (e) => { const f = e.features?.[0]; if (f && !draftRef.current.draftPin) onPick({ type: 'Feature', id: f.id, geometry: f.geometry, properties: parseProps(f.properties) }) })
+    m.on('click', CITY_CLICK_LAYERS.walk, (e) => {
+      const key = e.features?.[0]?.properties.walk_key
+      if (!key || draftRef.current.draftPin || m.queryRenderedFeatures(e.point, { layers: ['wl-dots', CITY_CLICK_LAYERS.amenity].filter((l) => m.getLayer(l)) }).length) return
+      const { city, onPickWalk } = cityRef.current
+      const i = Number(key.split('-')[1])
+      const route = city.walks?.features?.[i]
+      if (route) onPickWalk?.({ ...route, properties: { ...route.properties, walk_key: key, color: e.features[0].properties.color } })
+    })
+    for (const id of Object.values(CITY_CLICK_LAYERS)) {
+      m.on('mouseenter', id, () => { m.getCanvas().style.cursor = 'pointer' })
+      m.on('mouseleave', id, () => { m.getCanvas().style.cursor = '' })
+    }
     return () => m.remove()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -269,6 +286,8 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     if (!m.getLayer('wl-dots')) m.addLayer({ id: 'wl-dots', type: 'circle', source: SRC, paint: {} })
     if (!m.getLayer('wl-starred')) m.addLayer({ id: 'wl-starred', type: 'circle', source: SRC, paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#f2a900', 'circle-stroke-width': 3 } })
     if (!m.getLayer('wl-selected')) m.addLayer({ id: 'wl-selected', type: 'circle', source: SRC, filter: ['==', ['get', 'event_id'], '__none__'], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3, 'circle-radius': 16 } })
+    ensureCityLayers(m, cityRef.current.city, before, 'wl-glow')
+    setCityVisibility(m, vRef.current)
     m.moveLayer(AREA_LABEL) // above the event dots, so it never hides
     styleMarkers(m, vRef.current)
     applyReveal(m, vRef.current, revealedRef.current)
@@ -298,6 +317,10 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     m.getSource(AREA_LABEL)?.setData(busiestAreaLabel(busyAreas))
   }, [busyAreas])
   useEffect(() => { const m = map.current; if (m?.getLayer(AREA_LABEL)) m.setLayoutProperty(AREA_LABEL, 'text-field', t('Busy Area')) }, [lang, t])
+  // toilets / AED / walking routes: new data, toggles, and the route whose box is open
+  useEffect(() => { const m = map.current; if (m?.getSource('wl-amenities')) setCityData(m, city) }, [city])
+  useEffect(() => { const m = map.current; if (m) setCityVisibility(m, values) }, [values.showToilets, values.showAed, values.showWalks]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const m = map.current; if (m) highlightWalk(m, selectedId) }, [selectedId])
   useEffect(() => { const m = map.current; if (m?.getSource(ROUTE)) m.getSource(ROUTE).setData(route || EMPTY) }, [route])
   useEffect(() => { const m = map.current; if (!m?.getLayer('wl-busyareas-fill')) return; for (const id of AREA_LAYERS) m.setLayoutProperty(id, 'visibility', values.busyAreas ? 'visible' : 'none') }, [values.busyAreas])
   useEffect(() => { const m = map.current; if (m?.getLayer('wl-route')) styleRoute(m, values) }, [values.routeStyle, values.accent])
