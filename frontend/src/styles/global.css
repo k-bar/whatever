@@ -1110,3 +1110,15 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 :root[data-selects-btn='lines'] .selects > .selects-head { width: min(1120px, 100%); display: flex; align-items: center; gap: 18px; background: none; box-shadow: none; padding: 6px 0; }
 :root[data-selects-btn='lines'] .selects > .selects-head::before, :root[data-selects-btn='lines'] .selects > .selects-head::after { content: ''; flex: 1; height: 1px; background: color-mix(in srgb, var(--fg) 18%, transparent); }
 :root[data-selects-btn='lines'] .selects > .selects-head:hover { transform: none; box-shadow: none; color: var(--accent); }
+
+/* ---------- interface editor: on every screen, always overlaid (toggle left of the account; tray below it) ---------- */
+.top-right { position: fixed; z-index: 95; }
+.ed-tray { z-index: 96; }
+/* start page: the toggle sits left of Log in / the account pill, and the header nav shuffles left for it */
+.top-right.on-landing { top: 18px; right: calc(clamp(16px, 5vw, 64px) + var(--account-w, 0px) + 12px); }
+.landing-head { padding-right: calc(clamp(16px, 5vw, 64px) + var(--account-w, 0px) + 16px + var(--controlSize) + 12px); }
+@media (max-width: 767px) {
+  /* phones: the header is full, so the toggle tucks under the account button instead */
+  .top-right.on-landing { top: calc(12px + 44px + 8px); right: 12px; }
+  .landing-head { padding-right: calc(12px + var(--account-w, 0px) + 10px); }
+}
