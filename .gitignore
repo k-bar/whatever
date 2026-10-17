@@ -2,7 +2,7 @@ AGENTS.md
 
 # secrets
 .env
-apiKey.txt
+apiKey*.txt
 
 # python
 __pycache__/

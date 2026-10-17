@@ -8,7 +8,7 @@
 | `backend/` (everything else) | @JustCodeMeV | Database, loading, API |
 | `frontend/` | Philip (@philpiano) | The map UI |
 | `infra/` | @JustCodeMeV | AWS (CDK, Python): RDS Postgres, API + ingest Lambdas, frontend hosting, domain |
-| `backend/db/` | Mateusz (@Informatyczek) | `fetch_data.py`: original Warsaw Open Data → SQLite script (ported to `sources/warsaw_open_data.py`); local `events.db`, `sport.db`, `apiKey.txt` live here (gitignored) |
+| `backend/db/` | Mateusz (@Informatyczek) | scrapers (`db/db/fetch_*.py`: Warsaw Open Data, kupbilecik.pl, streets.gl) and their local SQLite snapshots (gitignored; see `db/db/db.md`) |
 
 ```
 fetchers (sources/*.py) ── list[RawEvent] ──> ingest/run.py ──> RDS Postgres ──> FastAPI ──> UI
@@ -34,7 +34,7 @@ scripts/dev-postgres.sh start             # local Postgres+PostGIS in .dev/, no 
                                           # (or: docker compose up -d db)
 cp .env.example .env                      # add WARSAW_API_TOKEN if you have one
 uv run alembic upgrade head               # create tables
-uv run python scripts/import_sqlite.py db/events.db db/sport.db   # load Mateusz's snapshots
+uv run python scripts/import_sqlite.py db/db/events.db db/db/sport.db   # load Mateusz's snapshots
 uv run uvicorn app.main:app --reload      # http://localhost:8000/docs
 uv run pytest                             # tests
 ```
