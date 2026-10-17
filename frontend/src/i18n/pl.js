@@ -268,6 +268,7 @@ export const PL = {
   'First name': 'Imię',
   'Last name': 'Nazwisko',
   'Age': 'Wiek',
+  'Age must be between 13 and 120': 'Wiek musi być od 13 do 120 lat',
   // profile details
   'Account': 'Konto',
   'Member since': 'Na Syrence od',

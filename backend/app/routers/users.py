@@ -68,8 +68,12 @@ def update_me(body: ProfileIn, user: User = Depends(get_current_user), db: Sessi
     if data.get("gender") == "":
         user.gender = None
         del data["gender"]
+    for field in ("first_name", "last_name"):
+        if field in data:
+            data[field] = (data[field] or "").strip() or None
     for field, value in data.items():
-        if value is not None or field == "bio":  # bio: null clears it; other fields can't be emptied to null
+        # bio and the personal details: null clears them; other fields can't be emptied to null
+        if value is not None or field in ("bio", "first_name", "last_name", "age"):
             setattr(user, field, value)
     try:
         db.commit()
