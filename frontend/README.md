@@ -1,4 +1,4 @@
-# Warszawa Live — frontend
+# Syrenka.me — frontend
 
 React + Vite + MapLibre GL. One live map of everything social in Warsaw.
 

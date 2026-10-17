@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from app import userevents
 from app.auth import get_current_user
 from app.categories import AMENITIES, CATEGORIES
 from app.db import get_db
@@ -83,6 +84,8 @@ def feature(
         }
     if event.opening_hours is not None:
         props["opening_hours"] = event.opening_hours
+    if event.source.slug == userevents.SOURCE_SLUG and event.raw:
+        props |= event.raw  # subtitle, audience, event_type, host (see app/userevents)
     if distance_m is not None:
         props["distance_m"] = round(distance_m)
     geometry = {"type": "Point", "coordinates": [event.lng, event.lat]} if event.lat is not None else None

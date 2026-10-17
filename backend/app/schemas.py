@@ -21,6 +21,10 @@ class RegisterIn(BaseModel):
     display_name: str = Field(min_length=1, max_length=80)
 
 
+class GuestIn(BaseModel):
+    display_name: str = Field("Guest", min_length=1, max_length=80)
+
+
 class LoginIn(BaseModel):
     email: EmailStr
     password: str
