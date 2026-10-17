@@ -7,7 +7,7 @@
 | `backend/app/ingest/sources/` | Kamil (@kdzwigal) | One file per data source: fetch records, turn them into `RawEvent`s |
 | `backend/` (everything else) | @JustCodeMeV | Database, loading, API |
 | `frontend/` | Philip (@philpiano) | The map UI |
-| `fetch_data.py` | Mateusz (@Informatyczek) | Original Warsaw Open Data → SQLite script (ported to `sources/warsaw_open_data.py`) |
+| `backend/db/` | Mateusz (@Informatyczek) | `fetch_data.py`: original Warsaw Open Data → SQLite script (ported to `sources/warsaw_open_data.py`); local `events.db`, `sport.db`, `apiKey.txt` live here (gitignored) |
 
 ```
 fetchers (sources/*.py) ── list[RawEvent] ──> ingest/run.py ──> Postgres ──> FastAPI ──> UI
@@ -33,7 +33,7 @@ scripts/dev-postgres.sh start             # local Postgres+PostGIS in .dev/, no 
                                           # (or: docker compose up -d db)
 cp .env.example .env                      # add WARSAW_API_TOKEN if you have one
 uv run alembic upgrade head               # create tables
-uv run python scripts/import_sqlite.py ../events.db ../sport.db   # load Mateusz's snapshots
+uv run python scripts/import_sqlite.py db/events.db db/sport.db   # load Mateusz's snapshots
 uv run uvicorn app.main:app --reload      # http://localhost:8000/docs
 uv run pytest                             # tests
 ```

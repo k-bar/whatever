@@ -4,6 +4,6 @@
 /backend/app/ingest/sources/    @kdzwigal @JustCodeMeV
 /backend/tests/fixtures/        @kdzwigal
 /frontend/                      @philpiano
-/fetch_data.py                  @Informatyczek
+/backend/db/                     @Informatyczek
 /PLAN.md                        @philpiano
 /.github/                       @JustCodeMeV
