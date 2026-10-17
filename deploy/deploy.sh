@@ -62,7 +62,8 @@ if [ -f frontend/package.json ]; then
   fi
   export PATH="/opt/node/bin:$PATH"
   log "frontend: npm ci && npm run build"
-  (cd frontend && npm ci --no-audit --no-fund && npm run build)
+  # the UI calls the API cross-origin (VITE_API_URL defaults to "/api", which only exists on the vite dev proxy)
+  (cd frontend && npm ci --no-audit --no-fund && VITE_API_URL="$API_URL" npm run build)
   SITES=(frontend/dist)
 elif [ -d frontend ]; then
   # no build step yet: landing page + Philip's static assets (frontend/ wins on name clashes)

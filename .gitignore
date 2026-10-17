@@ -3,6 +3,7 @@ AGENTS.md
 # secrets
 .env
 apiKey*.txt
+relaytok*.txt
 
 # python
 __pycache__/

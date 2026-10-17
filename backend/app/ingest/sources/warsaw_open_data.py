@@ -33,12 +33,26 @@ RECURRING_WEEKS = 5  # weekly sport classes without explicit dates: generate thi
 def fetch(action: str) -> list[dict]:
     if not settings.warsaw_api_token:
         raise RuntimeError("WARSAW_API_TOKEN is not set (https://dane.um.warszawa.pl/en/key-api)")
-    req = urllib.request.Request(
-        API + action, method="POST", headers={"Authorization": settings.warsaw_api_token}
-    )
-    with urllib.request.urlopen(req, timeout=120) as r:
+    with urllib.request.urlopen(api_request(action), timeout=120) as r:
         data = json.loads(r.read().decode("utf-8"))
     return as_records(data)
+
+
+def api_request(action: str) -> urllib.request.Request:
+    """POST to the API, through the relay when one is configured (see config.py)."""
+    if not settings.warsaw_relay_url:
+        return urllib.request.Request(
+            API + action, method="POST", headers={"Authorization": settings.warsaw_api_token}
+        )
+    return urllib.request.Request(
+        settings.warsaw_relay_url,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {settings.warsaw_relay_token}",
+            "X-Relay-Target": API + action,
+            "X-Relay-Authorization": settings.warsaw_api_token,
+        },
+    )
 
 
 def as_records(data):
