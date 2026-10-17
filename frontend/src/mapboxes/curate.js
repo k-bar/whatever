@@ -1,8 +1,7 @@
 import { locale, translate } from '../i18n'
 /**
  * Map box curation: decide what the small info box shows for a clicked feature.
- * Returns an ordered list of blocks. GET /mapboxes/{id} (backend/UI_CONTRACT.md) is the server-side twin;
- * when it answers (fetchMapbox), its `blocks` replace these.
+ * Returns an ordered list of blocks. Curation is client-side only: the backend has no /mapboxes endpoint.
  *
  * Block types rendered by <MapBox>: posters, hours, pitch, live, social, text, facts, tickets
  */
@@ -40,7 +39,8 @@ export function curate(feature, ctx = {}) {
   const blocks = []
   const badges = (p.categories || []).slice(0, 2).map(categoryLabel)
   if (p.is_public_invite) badges.unshift('Public invite')
-  if (p.source === 'warsaw_open_data') badges.push('City data')
+  if (p.source?.startsWith('warsaw_')) badges.push('City data') // warsaw_events, warsaw_sport, ... (GET /sources)
+  if (p.source === 'kupbilecik') badges.push('Tickets')
 
   // ---- "In the city" layers: toilets, defibrillators, walking routes (components/cityLayers.js) ----
   const cats = p.categories || []

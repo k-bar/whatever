@@ -1,11 +1,10 @@
-import json
-
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import busyareas
 from app.db import get_db
+from app.ingest.routes import route_line, route_points
 from app.models import AirStation, TouristRoute, WeatherStation
 
 router = APIRouter(tags=["map"])
@@ -74,21 +73,22 @@ def conditions(db: Session = Depends(get_db)):
 @router.get("/routes")
 def routes(db: Session = Depends(get_db)):
     """Tourist routes as GeoJSON LineStrings, with their points of interest."""
-    rows = db.execute(select(TouristRoute, func.ST_AsGeoJSON(TouristRoute.path)).order_by(TouristRoute.title))
-    return {
-        "type": "FeatureCollection",
-        "features": [
+    features = []
+    for r in db.scalars(select(TouristRoute).order_by(TouristRoute.title)):
+        line = route_line(r.traces)
+        if len(line) < 2:
+            continue
+        features.append(
             {
                 "type": "Feature",
                 "id": r.id,
-                "geometry": json.loads(geometry),
+                "geometry": {"type": "LineString", "coordinates": line},
                 "properties": {
                     "title": r.title,
                     "length_km": r.length_km,
                     "description": r.description,
-                    "points": r.points,
+                    "points": route_points(r.tourist_points),
                 },
             }
-            for r, geometry in rows
-        ],
-    }
+        )
+    return {"type": "FeatureCollection", "features": features}

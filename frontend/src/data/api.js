@@ -70,33 +70,6 @@ export async function fetchSources() {
   }
 }
 
-export async function fetchMapbox(feature) {
-  // backend/mapboxes will curate "the most important info" server-side; until then the
-  // frontend curates locally (src/mapboxes/curate.js) and this just returns null.
-  try {
-    return await get(`/mapboxes/${encodeURIComponent(feature.properties.event_id)}`, { timeout: 1200 })
-  } catch {
-    return null
-  }
-}
-
-export async function loadSettings() {
-  try {
-    return await get('/ui/settings', { timeout: 1200 })
-  } catch {
-    return null
-  }
-}
-
-export async function saveSettings(values) {
-  try {
-    await get('/ui/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(values), timeout: 1500 })
-    return true
-  } catch {
-    return false
-  }
-}
-
 /* ---------- past events: stored, never searched ---------- */
 
 const toDate = (iso) => new Date(String(iso).replace(/([+-]\d{2})$/, '$1:00'))
@@ -106,16 +79,11 @@ export const isPast = (p, now = Date.now()) => !!p?.starts_at && toDate(p.ends_a
 export const upcoming = (features) => (features || []).filter((f) => !isPast(f.properties))
 
 /**
- * Search. mode ∈ search | events | assistant. Tries backend/search/<mode> first, then
+ * Search. mode ∈ search | events | assistant. The backend has no search endpoint, so this
  * filters the already-loaded features client-side.
  */
 export async function runSearch(mode, q, features, opts = {}) {
-  try {
-    const r = await get(`/search/${mode}?q=${encodeURIComponent(q)}${opts.category ? `&category=${opts.category}` : ''}`, { timeout: 1500 })
-    return { ...r, results: upcoming(r.results) }
-  } catch {
-    return localSearch(mode, q, upcoming(features), opts)
-  }
+  return localSearch(mode, q, upcoming(features), opts)
 }
 
 function localSearch(mode, q, features, opts = {}) {
@@ -143,7 +111,7 @@ function localSearch(mode, q, features, opts = {}) {
     const cats = [...new Set(results.flatMap((f) => f.properties.categories))].slice(0, 3).join(', ')
     const top = results.slice(0, 3).map((f) => `• ${f.properties.title}${f.properties.venue_name ? ` @ ${f.properties.venue_name}` : ''}`).join('\n')
     const answer = n
-      ? `I found ${n} things matching “${q}” across the city, mostly ${cats}. My top picks:\n${top}\n\nTap one to open it on the map. (Assistant is a stub: backend/search/assistant.py will plug in a real model.)`
+      ? `I found ${n} things matching “${q}” across the city, mostly ${cats}. My top picks:\n${top}\n\nTap one to open it on the map. (Assistant is a stub: it searches what's on the map.)`
       : `Nothing matches “${q}” yet. Try a district (Praga, Mokotów), a mood (jazz, run, picnic) or a venue.`
     return { answer, results }
   }

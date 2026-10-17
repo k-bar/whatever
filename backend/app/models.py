@@ -241,14 +241,16 @@ class AirStation(Base):
 
 
 class TouristRoute(Base):
+    """Kamil's table (src/models.py): raw API shape. /routes builds the LineString from traces."""
+
     __tablename__ = "tourist_routes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(200), unique=True)
+    title: Mapped[str] = mapped_column(String(255), unique=True)
     length_km: Mapped[float | None] = mapped_column(Float)
     description: Mapped[str | None] = mapped_column(Text)
-    path = mapped_column(Geography("LINESTRING", srid=4326, spatial_index=False), nullable=False)
-    points: Mapped[list] = mapped_column(JSONB, default=list)  # [{"id", "name", "lat", "lng"}]
+    traces: Mapped[list | None] = mapped_column(JSONB)  # [[lat, lng], ...] as the API sends it
+    tourist_points: Mapped[list | None] = mapped_column(JSONB)  # [{"id_point", "name", "latlng": {...}}]
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
