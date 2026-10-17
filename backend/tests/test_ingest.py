@@ -71,7 +71,6 @@ def test_occurrence_with_attendees_survives_removal(db):
     assert len(ids) == 2  # 01-02 dropped, 01-03 added
 
 
-
 def test_past_occurrences_are_kept_when_the_source_stops_listing_them(db):
     spec = SOURCES["warsaw_events"]
     load(db, spec, [raw("a", starts=("2020-05-01T18:00:00+02:00", "2030-01-02T18:00:00+01:00"))], None)
@@ -82,6 +81,7 @@ def test_past_occurrences_are_kept_when_the_source_stops_listing_them(db):
     db.commit()
     years = sorted(o.starts_at.year for o in db.scalars(select(Occurrence)))
     assert years == [2020, 2030]  # 2020 kept as history; cancelled 2030-01-02 dropped; 2030-01-03 added
+
 
 def test_api_request_direct_and_via_relay(monkeypatch):
     from app.config import settings
