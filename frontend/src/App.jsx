@@ -194,6 +194,12 @@ export default function App() {
     if (list.length) fitResults(list)
     else if (where?.lngLat) mapRef.current?.getMap()?.flyTo({ center: where.lngLat, zoom: 15, duration: 1100 })
   }
+  // toasts raised from deep components (map box CTAs)
+  useEffect(() => {
+    const on = (e) => say(e.detail)
+    window.addEventListener('syrenka:toast', on)
+    return () => window.removeEventListener('syrenka:toast', on)
+  }, [say])
   // Escape closes the topmost thing: create panel, then slide-over, then the newest map box / results
   useEffect(() => {
     const onKey = (e) => {

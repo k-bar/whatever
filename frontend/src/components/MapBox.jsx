@@ -5,11 +5,13 @@ import { Bike, FACT_ICON, Plus, Star, Ticket, Walk } from './Icons'
 import { categoryColor } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 import { useLang } from '../i18n'
+import { askToJoin, toggleGoing, useSocial } from '../data/social'
 
 const AV_COLORS = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
 
-function Block({ b }) {
+function Block({ b, feature }) {
   const { t } = useLang()
+  const social = useSocial()
   switch (b.type) {
     case 'facts':
       return <div className="blk facts">{b.items.map((it, i) => { const I = FACT_ICON[it.icon]; return <div className="fact" key={i}>{I && <I size={15} />}<span>{it.text}</span></div> })}</div>
@@ -32,9 +34,16 @@ function Block({ b }) {
         </div>
       )
     case 'social': {
-      const n = b.attendees || 0
+      const id = String(feature.properties.event_id)
+      const going = Boolean(social.going[id]), asked = Boolean(social.joined[id])
+      const isInvite = Boolean(feature.properties.is_public_invite || feature.properties.audience)
+      const n = (b.attendees || 0) + (going ? 1 : 0)
+      const act = async () => {
+        if (isInvite) { const r = await askToJoin(feature); window.dispatchEvent(new CustomEvent('syrenka:toast', { detail: t(r.needsLogin ? 'Asked to join · log in so the host can answer you' : 'Asked to join · the host will get back to you') })) }
+        else { const r = await toggleGoing(feature); window.dispatchEvent(new CustomEvent('syrenka:toast', { detail: t(r.on ? "You're going · it now counts in Syrenka Selects" : 'Not going anymore') })) }
+      }
       return (
-        <div className="blk social">
+        <div className={`blk social ${going || asked ? 'on' : ''}`}>
           {/* only real people: the host's initial; attendee avatars come once the API lists them */}
           {b.host && <div className="avatars"><span className="av" style={{ background: AV_COLORS[0] }}>{b.host[0]}</span></div>}
           <div className="txt">
@@ -42,8 +51,12 @@ function Block({ b }) {
             {n ? <><b>{n}</b> {t('going')}</> : <>{t('Be the first to go')}</>}
             {b.wanting ? <>, <b>{b.wanting}</b> {t('looking for company')}</> : null}
             {b.seats != null && <> · <b>{b.seats}</b> {t(b.seats === 1 ? 'seat left' : 'seats left')}</>}
+            {going && <> · <b className="you">{t("you're going")}</b></>}
+            {asked && <> · <b className="you">{t('asked to join')}</b></>}
           </div>
-          <button className="btn small primary">{b.cta}</button>
+          <button className={`btn small ${going || asked ? '' : 'primary'}`} onClick={act} disabled={asked}>
+            {isInvite ? (asked ? t('Asked ✓') : b.cta) : going ? t('Going ✓') : b.cta}
+          </button>
         </div>
       )
     }
@@ -106,7 +119,7 @@ export function MapBox({ data, feature, expanded, journey, onClose, onExpand, st
             {!journey.pending && <span className="src">{journey.km.toFixed(1)} km · {t(journey.source === 'osrm' ? 'streets' : 'estimate')}</span>}
           </div>
         )}
-        {data.blocks.slice(0, expanded ? 99 : 3).map((b, i) => <Block b={b} key={i} />)}
+        {data.blocks.slice(0, expanded ? 99 : 3).map((b, i) => <Block b={b} feature={feature} key={i} />)}
         {expanded && data.url && <a className="mb-link" href={data.url} target="_blank" rel="noreferrer">{t('Open source page ↗')}</a>}
         {expanded && (
           <div className="blk">

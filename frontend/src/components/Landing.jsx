@@ -11,6 +11,7 @@ import { FlagPL, FlagUK } from './LangSwitch'
 import { Calendar as CalendarIcon, Chevron, Flame, Layers, MapIcon, Mermaid, Music, Sparkle, Ticket, Users } from './Icons'
 import { LandingNetwork } from './LandingNetwork'
 import { useIsMobile } from '../hooks/useMedia'
+import { useSocial } from '../data/social'
 
 // Quick tiles under the search. Colours come from our category palette; the "together" tiles carry a
 // people badge to say this is user-made content (public invitations), not just listings.
@@ -53,7 +54,8 @@ export function Landing({ features, onEnter, getMap }) {
   const scroller = useRef(null)
   const [more, setMore] = useState(false)
   const [broken, setBroken] = useState(() => new Set()) // posters that failed to load drop out of Syrenka Selects
-  const selects = useMemo(() => pickSelects(features).filter(({ feature: f }) => !broken.has(f.properties.event_id)), [features, broken])
+  const social = useSocial()
+  const selects = useMemo(() => pickSelects(features, { social }).filter(({ feature: f }) => !broken.has(f.properties.event_id)), [features, broken, social])
   const loading = !features
   const allCats = Object.keys(CATEGORIES).filter((slug) => slug !== 'other')
 
@@ -116,15 +118,17 @@ export function Landing({ features, onEnter, getMap }) {
         <div className="selects-grid">
           {loading && Array.from({ length: 6 }).map((_, i) => <div key={i} className={`sel-card skeleton ${i === 0 ? 'wide' : ''}`} />)}
           {!loading && !selects.length && <p className="selects-empty">{t('Nothing picked yet. Open the map to see everything.')}</p>}
-          {selects.map(({ feature: f, wide }, i) => {
+          {selects.map(({ feature: f, wide, going, asked, userMade }, i) => {
             const p = f.properties
             const cat = p.categories?.[0]
             return (
               <motion.button key={p.event_id} className={`sel-card ${wide ? 'wide' : ''}`} onClick={() => onEnter({ feature: f })}
                 initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ ...spring, delay: (i % 4) * 0.05 }}>
-                <div className="sel-img">
-                  <img className="sel-photo" src={secureImage(p.image_url)} alt="" loading="lazy" onError={() => setBroken((b) => new Set(b).add(p.event_id))} />
+                <div className="sel-img" style={p.image_url ? {} : { background: `linear-gradient(135deg, ${categoryColor(cat)}, color-mix(in srgb, ${categoryColor(cat)} 40%, #fff))` }}>
+                  {p.image_url && <img className="sel-photo" src={secureImage(p.image_url)} alt="" loading="lazy" onError={() => setBroken((b) => new Set(b).add(p.event_id))} />}
                   <span className="sel-cat" style={{ color: categoryColor(cat) }}>{categoryLabel(cat)}</span>
+                  {userMade && <span className="sel-people"><Users size={13} /> {t('Made by people')}</span>}
+                  {(going || asked) && <span className="sel-you">{t(going ? "You're going" : 'Asked to join')}</span>}
                 </div>
                 <div className="sel-body">
                   <div className="sel-when">{fmtWhen(p.starts_at)}{p.venue_name ? ` · ${p.venue_name}` : ''}</div>

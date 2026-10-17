@@ -23,18 +23,22 @@ const KIND = {
 
 const BIG_VENUE = /stadion|narodow|teatr wielki|filharmoni|torwar|progresj|stodo|palladium|tama|hala koszyki|kopernik|zachęt|muzeum|łazienk|pałac kultury|plac defilad|koneser|elektrowni/i
 
-export function pickSelects(features, { now = new Date(), count = 12 } = {}) {
+export function pickSelects(features, { now = new Date(), count = 12, social = null } = {}) {
   const t0 = now.getTime()
+  const going = social?.going || {}, joined = social?.joined || {}
   const seenTitle = new Set()
   const candidates = []
   for (const f of features || []) {
     const p = f.properties || {}
     if (p.kind !== 'event' || !p.title || !p.starts_at) continue
+    const id = String(p.event_id)
+    const userMade = Boolean(p.is_public_invite || p.audience) // public invitations / "+ Create event"
+    const acted = Boolean(going[id] || joined[id]) // you pressed "I'm going" or "Ask to join"
     const start = Date.parse(p.starts_at), end = Date.parse(p.ends_at || p.starts_at)
     if (!Number.isFinite(start)) continue
     if (p.daily || end - start > 3 * DAY) continue // year-long listings, permanent offers
     if (end < t0 || start - t0 > HORIZON_DAYS * DAY) continue // over, or too far ahead
-    if (!p.image_url) continue // Syrenka Selects shows posters only
+    if (!p.image_url && !userMade && !acted) continue // posters only, except the user-generated layer
     const key = p.title.trim().toLowerCase()
     if (seenTitle.has(key)) continue // the same show on several dates: keep the soonest only
     seenTitle.add(key)
@@ -46,6 +50,8 @@ export function pickSelects(features, { now = new Date(), count = 12 } = {}) {
     if (p.lead) score *= 1.15
     if (BIG_VENUE.test(`${p.venue_name || ''} ${p.address || ''}`)) score *= 1.3
     score *= 1 + Math.min(1, ((p.attendees || 0) + (p.wanting_company || 0)) / 20)
+    if (userMade) score *= 1.6 // people made this: the point of Syrenka Selects
+    if (acted) score *= 3 // you're going / asked to join: always near the top
     candidates.push({ f, score, cat, venue: (p.venue_name || p.address || '').toLowerCase() })
   }
   candidates.sort((a, b) => b.score - a.score)
@@ -74,7 +80,7 @@ export function pickSelects(features, { now = new Date(), count = 12 } = {}) {
   order.push(...rest.slice(0, 4))
   if (heads[1]) order.push({ ...heads[1], wide: true })
   order.push(...rest.slice(4))
-  return order.map(({ f, wide }) => ({ feature: f, wide: !!wide }))
+  return order.map(({ f, wide }) => ({ feature: f, wide: !!wide, going: Boolean(going[String(f.properties.event_id)]), asked: Boolean(joined[String(f.properties.event_id)]), userMade: Boolean(f.properties.is_public_invite || f.properties.audience) }))
 }
 
 /** City images sometimes come as http://; serve them over https so the page stays secure. */

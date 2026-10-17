@@ -341,3 +341,15 @@ async function fetchPrivateUserEvents() {
     return []
   }
 }
+
+/* ---------- going / asking to join (backend/app/routers/social.py) ---------- */
+
+/** PUT /occurrences/{id}/attendance — "I'm going"; wants_company puts you on the "come with me" list. */
+export async function setAttendance(occurrenceId, wantsCompany = true) {
+  return authed(`/occurrences/${occurrenceId}/attendance`, { method: 'PUT', body: { wants_company: wantsCompany }, timeout: 8000 })
+}
+
+/** POST /occurrences/{id}/join-requests — ask the host (or someone who wants company) to join them. */
+export async function requestJoin(occurrenceId, targetUserId, message = null) {
+  return authed(`/occurrences/${occurrenceId}/join-requests`, { method: 'POST', body: { target_user_id: targetUserId, message }, timeout: 8000 })
+}
