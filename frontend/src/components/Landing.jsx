@@ -130,7 +130,7 @@ export function Landing({ features, onEnter, getMap }) {
           <h2>{t('Syrenka Selects')}</h2>
         </motion.div>
         <div className="selects-grid">
-          {loading && Array.from({ length: 6 }).map((_, i) => <div key={i} className={`sel-card skeleton ${i === 0 ? 'wide' : ''}`} />)}
+          {loading && Array.from({ length: 6 }).map((_, i) => <div key={i} className={`sel-card skeleton ${i === 2 ? 'wide' : ''}`} />)}
           {!loading && !selects.length && <p className="selects-empty">{t('Nothing picked yet. Open the map to see everything.')}</p>}
           {selects.map(({ feature: f, wide, going, asked, userMade }, i) => {
             const p = f.properties
