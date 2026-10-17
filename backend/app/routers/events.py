@@ -181,8 +181,10 @@ def is_open(hours: str | None, at: datetime) -> bool:
     if not m:
         return False
     h1, m1, h2, m2 = map(int, m.groups())
-    minutes = at.hour * 60 + at.minute
-    return h1 * 60 + m1 <= minutes < h2 * 60 + m2
+    minutes, start, end = at.hour * 60 + at.minute, h1 * 60 + m1, h2 * 60 + m2
+    if end <= start:  # past midnight, e.g. a club open 19:00-04:00
+        return minutes >= start or minutes < end
+    return start <= minutes < end
 
 
 @router.get("/places", response_model=FeatureCollection)

@@ -6,6 +6,9 @@ under `app/routers/`, tables via models + Alembic.
 
 ## Available now (new map layers)
 
+- `GET /places` now also returns about 450 OpenStreetMap venues (theatres, cinemas, clubs, museums,
+  stadiums...), `source: "osm_venues"`, with categories (`theatre`, `film`, `nightlife`, `exhibitions`, ...)
+  and `opening_hours` where OSM has them. `open_now=true` handles hours past midnight.
 - `GET /places?category=toilets` / `?category=aed`: public toilets (695) and defibrillators (710) as Point
   features, same shape as other places (`opening_hours` for toilets). Plain `/places` leaves them out.
 - `GET /conditions` → `{"weather": FeatureCollection, "air": FeatureCollection}`, latest reading per station,
