@@ -1,7 +1,7 @@
 # UI contract: endpoints the frontend calls that the API doesn't serve yet
 
 Collected from Philip's stubs (frontend/src/data/api.js is the caller). Until each one exists,
-the UI falls back to client-side logic or `frontend/public/mock/`. Implement them as routers
+the UI falls back to client-side logic (no mock data). Implement them as routers
 under `app/routers/`, tables via models + Alembic.
 
 ## `backend/mapboxes/__init__.py` (removed)

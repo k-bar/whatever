@@ -5,7 +5,7 @@ to bump into each other and make new friends. They replace the old rectangular "
 
 | file | what |
 |---|---|
-| `busy_areas.geojson` | the data (committed). Served as `GET /busyareas`, copied to `frontend/public/mock/busy_areas.geojson` as the offline fallback |
+| `busy_areas.geojson` | the data (committed). Served as `GET /busyareas` |
 | `../../scripts/build_busy_areas.py` | rebuilds it from OpenStreetMap (stdlib only) |
 | `__init__.py` | `load()` for the API, plus the property contract |
 | `../../scripts/_cache/osm.json` | raw Overpass download (gitignored) |

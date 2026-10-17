@@ -14,7 +14,6 @@ Method (stdlib only, no numpy/shapely):
 
 Output:
     backend/app/busyareas/busy_areas.geojson      served as GET /busyareas
-    frontend/public/mock/busy_areas.geojson       frontend fallback while the API is down
 
 Usage:
     python3 backend/scripts/build_busy_areas.py [--refresh] [--busy 18] [--very 45] [--stats]
@@ -35,7 +34,6 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 CACHE = HERE / "_cache" / "osm.json"
 OUT = ROOT / "backend" / "app" / "busyareas" / "busy_areas.geojson"
-MOCK_OUT = ROOT / "frontend" / "public" / "mock" / "busy_areas.geojson"
 
 BBOX = (20.85, 52.10, 21.27, 52.37)  # west, south, east, north (same as the frontend's WARSAW_BBOX)
 OVERPASS = "https://overpass-api.de/api/interpreter"
@@ -520,8 +518,6 @@ def main():
     }
     text = json.dumps(fc, ensure_ascii=False, separators=(",", ":"))
     OUT.write_text(text)
-    MOCK_OUT.parent.mkdir(parents=True, exist_ok=True)
-    MOCK_OUT.write_text(text)
     busy = [f for f in features if f["properties"]["level"] == "busy"]
     print(
         f"{len(busy)} busy areas, {len(features) - len(busy)} very busy cores -> {OUT.relative_to(ROOT)} ({len(text) // 1024} KB)"

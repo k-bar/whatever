@@ -159,7 +159,7 @@ export default function App() {
 
       {mobile && <BottomSheet open={!!sheet && !!sheetContent} onClose={() => setSheet(null)} initial="half">{sheetContent}</BottomSheet>}
 
-      {values.apiBadge && <div className={`data-badge surface ${dataStatus.source}`}><i />{dataStatus.source === 'api' ? 'live API' : dataStatus.source === 'mock' ? 'mock data · API offline' : 'loading…'} · {featureList.length} pins</div>}
+      {values.apiBadge && <div className={`data-badge surface ${dataStatus.source}`}><i />{dataStatus.source === 'api' ? 'live API' : dataStatus.source === 'offline' ? 'API offline' : 'loading…'} · {featureList.length} pins</div>}
       {values.debugOverlay && <div className="debug surface">z {zoom.toFixed(2)} · boxes {boxes.length} · fav {fav.ids.size} · {mobile ? 'mobile' : 'desktop'}</div>}
 
       <AnimatePresence>{toast && <motion.div className="toast surface" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 10, opacity: 0 }}>{toast}</motion.div>}</AnimatePresence>
