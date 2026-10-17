@@ -89,6 +89,27 @@ sudo systemctl start warszawa-ingest   # run ingestion now; results in GET /sour
 journalctl -u warszawa-ingestor -f     # Kamil's src/ ingestor
 ```
 
+## Connecting a DB client (DataGrip) to the dev schema
+
+You get your own Postgres login (all rights on schema `dev`, no access to prod) and an AWS user that can
+only open a tunnel through the dev box. Ask @JustCodeMeV to add you to `DEV_DB_USERS` in
+`infra/stacks/team_stack.py`.
+
+1. Install the AWS CLI v2 and the
+   [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html),
+   then `aws configure --profile syrenka` with the keys you were sent (region `eu-north-1`).
+2. Your DB password:
+   `aws secretsmanager get-secret-value --profile syrenka --secret-id warszawa-live/dev/db-users/<you> --query SecretString --output text`
+3. Open the tunnel and leave it running:
+   ```bash
+   aws ssm start-session --profile syrenka \
+     --target "$(aws ec2 describe-instances --profile syrenka --filters Name=tag:env,Values=dev Name=instance-state-name,Values=running --query 'Reservations[0].Instances[0].InstanceId' --output text)" \
+     --document-name AWS-StartPortForwardingSessionToRemoteHost \
+     --parameters '{"host":["warszawalivedb-postgres9dc8bb04-covqyqx6uo8t.cba6qiu6ipoi.eu-north-1.rds.amazonaws.com"],"portNumber":["5432"],"localPortNumber":["15432"]}'
+   ```
+4. DataGrip: host `localhost`, port `15432`, database `warszawa`, user = your name, SSL mode `require`.
+   Your tables live in schema `dev`.
+
 ## Infrastructure changes
 
 `infra/deploy.sh` (CDK). App code never goes through it: merging is the deploy.

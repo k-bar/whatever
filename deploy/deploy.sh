@@ -63,16 +63,20 @@ if [ -f frontend/package.json ]; then
   export PATH="/opt/node/bin:$PATH"
   log "frontend: npm ci && npm run build"
   (cd frontend && npm ci --no-audit --no-fund && npm run build)
-  SITE=frontend/dist
+  SITES=(frontend/dist)
+elif [ -d frontend ]; then
+  # no build step yet: landing page + Philip's static assets (frontend/ wins on name clashes)
+  SITES=(infra/placeholder frontend)
 else
-  SITE=infra/placeholder
+  SITES=(infra/placeholder)
 fi
 OUT=$(mktemp -d)
-cp -r "$SITE/." "$OUT/"
+for s in "${SITES[@]}"; do cp -r "$s/." "$OUT/"; done
+find "$OUT" \( -name '*.py' -o -name '.DS_Store' \) -delete
 jq -n --arg api "$API_URL" --arg env "$APP_ENV" '{apiUrl: $api, env: $env}' > "$OUT/config.json"
 hash=$(cd "$OUT" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16)
 if [ "$hash" != "$(cat /var/lib/warszawa/site.hash 2>/dev/null || true)" ]; then
-  log "frontend: publishing $SITE to s3://$WEB_BUCKET"
+  log "frontend: publishing ${SITES[*]} to s3://$WEB_BUCKET"
   aws s3 sync "$OUT" "s3://$WEB_BUCKET" --delete --only-show-errors
   aws cloudfront create-invalidation --distribution-id "$WEB_DISTRIBUTION_ID" --paths '/*' >/dev/null
   echo "$hash" > /var/lib/warszawa/site.hash

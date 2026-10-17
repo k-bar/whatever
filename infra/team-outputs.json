@@ -1,0 +1,5 @@
+{
+  "WarszawaLiveTeam": {
+    "KamilSecretArn": "arn:aws:secretsmanager:eu-north-1:015454941566:secret:warszawa-live/dev/db-users/kamil-jcMaUA"
+  }
+}

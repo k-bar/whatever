@@ -7,6 +7,7 @@
   WarszawaLiveDns   CloudFront certificate   }
   WarszawaLiveProd  EC2 box + API CloudFront + website, deploys release/prod
   WarszawaLiveDev   EC2 box + API CloudFront + website, deploys release/dev
+  WarszawaLiveTeam  IAM users + DB logins for teammates' DB clients (dev schema, via SSM tunnel)
 
 Code reaches the boxes by pull, not push (the SCP blocks GitHub OIDC roles): CI passes ->
 .github/workflows/release.yml moves release/<env> -> the box's agent deploys it (deploy/deploy.sh).
@@ -18,6 +19,7 @@ import aws_cdk as cdk
 from stacks.db_stack import DbStack
 from stacks.dns_stack import DnsStack, ZoneStack
 from stacks.env_stack import EnvConfig, EnvStack
+from stacks.team_stack import TeamStack
 
 app = cdk.App()
 env = cdk.Environment(account="015454941566", region="eu-north-1")
@@ -58,5 +60,7 @@ ENVS = [
 for cfg in ENVS:
     s = EnvStack(app, f"WarszawaLive{cfg.name.capitalize()}", env=env, cfg=cfg, db=db, dns=dns)
     cdk.Tags.of(s).add("env", cfg.name)
+
+TeamStack(app, "WarszawaLiveTeam", env=env, db=db)
 
 app.synth()
