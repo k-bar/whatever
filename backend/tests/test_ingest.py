@@ -57,7 +57,15 @@ def test_outside_warsaw_dropped_and_missing_marked_inactive(db):
 def test_occurrence_with_attendees_survives_removal(db):
     spec = SOURCES["warsaw_events"]
     load(db, spec, [raw("a", starts=("2030-01-01T18:00:00+01:00", "2030-01-02T18:00:00+01:00"))], None)
-    user = User(email="x@example.com", password_hash="x", display_name="X", photos=[], interests=[], links={})
+    user = User(
+        email="x@example.com",
+        password_hash="x",
+        display_name="X",
+        username="x.user",
+        photos=[],
+        interests=[],
+        links={},
+    )
     db.add(user)
     db.flush()
     attended = db.scalars(select(Occurrence).order_by(Occurrence.starts_at)).first()
@@ -71,7 +79,6 @@ def test_occurrence_with_attendees_survives_removal(db):
     assert len(ids) == 2  # 01-02 dropped, 01-03 added
 
 
-
 def test_past_occurrences_are_kept_when_the_source_stops_listing_them(db):
     spec = SOURCES["warsaw_events"]
     load(db, spec, [raw("a", starts=("2020-05-01T18:00:00+02:00", "2030-01-02T18:00:00+01:00"))], None)
@@ -82,6 +89,7 @@ def test_past_occurrences_are_kept_when_the_source_stops_listing_them(db):
     db.commit()
     years = sorted(o.starts_at.year for o in db.scalars(select(Occurrence)))
     assert years == [2020, 2030]  # 2020 kept as history; cancelled 2030-01-02 dropped; 2030-01-03 added
+
 
 def test_api_request_direct_and_via_relay(monkeypatch):
     from app.config import settings
