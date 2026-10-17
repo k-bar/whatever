@@ -1048,3 +1048,18 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .close-all { position: fixed; top: var(--close-all-top); right: 16px; z-index: 89; height: var(--close-all-h); display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; background: var(--surface-solid); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--fg-2); transition: color .15s, transform .15s; } /* opacity: fade in/out in App.jsx */
 .close-all:hover { color: var(--fg); transform: translateY(-1px); }
 .pm-title.pm-sub { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); } /* "In the city" section of the pin box */
+
+/* ---------- scrolling lists with soft edges (hooks/useScrollFade.js): the open map boxes ---------- */
+@property --fade-top { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --fade-bottom { syntax: '<length>'; inherits: false; initial-value: 0px; }
+.scroll-fade {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+  transition: --fade-top .25s ease, --fade-bottom .25s ease;
+  scrollbar-width: thin; scrollbar-color: transparent transparent; /* hidden until you scroll or hover */
+}
+.scroll-fade.fade-top { --fade-top: 36px; }
+.scroll-fade.fade-bottom { --fade-bottom: 48px; }
+.scroll-fade.scrolling, .scroll-fade:hover { scrollbar-color: color-mix(in srgb, var(--fg) 28%, transparent) transparent; }
+.boxes.scroll-fade { overscroll-behavior: contain; scroll-padding-top: 4px; }
+.boxes > * { flex-shrink: 0; } /* boxes keep their full height; the stack scrolls instead of squeezing them */

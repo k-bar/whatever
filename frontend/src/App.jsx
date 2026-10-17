@@ -5,6 +5,7 @@ import { useLang } from './i18n'
 import { fetchBusyAreas, fetchCityLayer, fetchFeatures, fetchMapbox, locateByIp, routeTo, runSearch } from './data/api'
 import { CITY_LAYERS, walkBoxFeature } from './components/cityLayers'
 import { useFavourites } from './hooks/useFavourites'
+import { useScrollFade } from './hooks/useScrollFade'
 import { useStartPoint } from './hooks/useStartPoint'
 import { useIsMobile } from './hooks/useMedia'
 import { curate } from './mapboxes/curate'
@@ -30,6 +31,8 @@ const Stage = ({ delay = 0, children }) => (
 
 /** Where an element sits on screen right now (null when it isn't rendered). */
 const rectOf = (selector) => document.querySelector(selector)?.getBoundingClientRect() ?? null
+
+const MAX_OPEN_BOXES = 20 // older boxes stay open and scroll; only past this many does the oldest close
 
 export default function App() {
   const { values, set } = useConfig()
@@ -101,13 +104,16 @@ export default function App() {
   const say = useCallback((t) => { setToast(t); setTimeout(() => setToast(null), 1800) }, [])
 
   // ---------- map boxes ----------
+  // Open boxes stay open: the stack scrolls (soft top / bottom edges, scrollbar only while scrolling)
+  const boxesRef = useScrollFade()
   const openBox = useCallback(async (feature, { fly = true } = {}) => {
     const key = String(feature.properties.event_id)
     const data = curate(feature)
     setBoxes((b) => {
       const rest = b.filter((x) => x.key !== key).map((x) => ({ ...x, expanded: false }))
-      return [{ key, feature, data, expanded: false }, ...rest].slice(0, values.maxBoxes)
+      return [{ key, feature, data, expanded: false }, ...rest].slice(0, MAX_OPEN_BOXES)
     })
+    boxesRef.current?.scrollTo({ top: 0, behavior: 'smooth' }) // the newest box goes on top: bring it into view
     if (mobile) setSheet('box')
     if (fly) mapRef.current?.flyTo(feature, 14.5)
     const from = meRef.current
@@ -120,7 +126,7 @@ export default function App() {
     }
     const remote = await fetchMapbox(feature) // backend/mapboxes curation wins when available
     if (remote?.blocks) setBoxes((b) => b.map((x) => (x.key === key ? { ...x, remote, data: { ...x.data, ...remote } } : x)))
-  }, [mobile, values.maxBoxes])
+  }, [mobile]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // events in the new language after a PL/EN switch (the server sends Claude's translations)
   const firstLang = useRef(true)
@@ -310,7 +316,7 @@ export default function App() {
       /* desktop map boxes */
       !mobile && (
         <Stage key="boxes" delay={0.4}>
-          <div className="boxes">
+          <div className="boxes scroll-fade" ref={boxesRef}>
             <AnimatePresence>
               {boxes.map((b) => (
                 <MapBox key={b.key} layoutId={`box-${b.key}`} data={b.data} feature={b.feature} expanded={b.expanded} journey={b.journey} onClose={() => closeBox(b.key)} onExpand={() => expandBox(b.key)}

@@ -121,7 +121,6 @@ export const SECTIONS = [
       { id: 'boxWidth', label: 'Box width', type: 'range', min: 280, max: 420, step: 10, unit: 'px', default: 340 },
       { id: 'boxImages', label: 'Show images / posters', type: 'toggle', default: true },
       { id: 'boxDensity', label: 'Density', type: 'select', default: 'comfy', options: [{ value: 'compact', label: 'Compact' }, { value: 'comfy', label: 'Comfortable' }] },
-      { id: 'maxBoxes', label: 'Max open boxes', type: 'range', min: 1, max: 6, step: 1, default: 3 },
     ],
   },
   {
