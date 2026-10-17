@@ -1,7 +1,8 @@
+import re
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, HttpUrl, TypeAdapter
 
 from app.categories import CATEGORIES
 
@@ -19,6 +20,7 @@ class RegisterIn(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     display_name: str = Field(min_length=1, max_length=80)
+    username: str | None = Field(None, max_length=31)  # optional; made from display_name when missing
 
 
 class LoginIn(BaseModel):
@@ -31,10 +33,34 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
 
 
+_UPLOADED_PHOTO = re.compile(r"^/userevents/photos/[0-9a-f]{32}$")
+_HTTP_URL = TypeAdapter(HttpUrl)
+
+
+def _photo_ref(value: str) -> str:
+    """A web address, or a photo uploaded through POST /userevents/photos (the profile picture)."""
+    if not _UPLOADED_PHOTO.match(value):
+        _HTTP_URL.validate_python(value)
+    return value
+
+
+PhotoRef = Annotated[str, Field(max_length=2000), AfterValidator(_photo_ref)]
+
+
+class Hangout(BaseModel):
+    """'You can find me at': a venue from the map (place_id = events.id) or just a name."""
+
+    name: str = Field(min_length=1, max_length=80)
+    place_id: int | None = None
+
+
 class ProfileIn(BaseModel):
     display_name: str | None = Field(None, min_length=1, max_length=80)
+    username: str | None = Field(None, max_length=31)  # checked in app/usernames.py; 409 when taken
+    gender: Literal["f", "m", ""] | None = None  # "" clears it
+    hangouts: list[Hangout] | None = Field(None, max_length=5)
     bio: str | None = Field(None, max_length=2000)
-    photos: list[HttpUrl] | None = Field(None, max_length=10)
+    photos: list[PhotoRef] | None = Field(None, max_length=10)  # photos[0] is the profile picture
     interests: list[CategorySlug] | None = None
     links: dict[str, HttpUrl] | None = None  # {"instagram": "https://...", "github": "..."}
 
@@ -43,10 +69,13 @@ class PublicUser(ORM):
     """What other people see. Never includes email."""
 
     id: int
+    username: str
     display_name: str
+    gender: str | None
     bio: str | None
     photos: list[str]
     interests: list[str]
+    hangouts: list[Hangout]
 
 
 class ContactUser(PublicUser):
@@ -59,6 +88,61 @@ class Me(ContactUser):
     email: str
     created_at: datetime
     favourite_ids: list[int]
+
+
+# --- profiles & friends -----------------------------------------------------------------------
+
+
+class ProfileStats(BaseModel):
+    friends: int
+    been_to: int  # attended event dates that are over
+    hosted: int  # events this person created (not cancelled)
+
+
+class ProfileOut(PublicUser):
+    """A profile page. relation is from the viewer's side."""
+
+    stats: ProfileStats
+    relation: Literal["self", "friends", "request_sent", "request_received", "none"]
+    can_see_events: bool  # yourself and your friends see the going / been to / hosting lists
+
+
+class UsernameCheck(BaseModel):
+    username: str
+    available: bool
+    reason: str | None = None
+
+
+class FriendRequestIn(BaseModel):
+    username: str = Field(min_length=1, max_length=31)
+
+
+class FriendRequestOut(BaseModel):
+    id: int
+    direction: Literal["incoming", "outgoing"]
+    status: Literal["pending", "accepted"]
+    user: PublicUser  # the other person
+    created_at: datetime
+
+
+class FriendDecisionIn(BaseModel):
+    status: Literal["accepted", "declined"]
+
+
+class ProfileEvent(BaseModel):
+    """One line in going / been to / hosting."""
+
+    event_id: int | None  # events.id (map pin), when it has one
+    occurrence_id: int | None
+    user_event_id: int | None  # for events made with "+ Create event"
+    title: str
+    starts_at: datetime
+    ends_at: datetime | None
+    venue_name: str | None
+    image_url: str | None
+    category: str | None
+    lat: float | None
+    lng: float | None
 
 
 class FavouritesIO(BaseModel):

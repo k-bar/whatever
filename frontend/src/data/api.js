@@ -308,17 +308,6 @@ export async function fetchMe() {
   try { return await authed('/me', { timeout: 6000 }) } catch { return null }
 }
 
-/** Save my profile (PATCH /me): display_name, bio, photos, interests, links. Returns the updated profile. */
-export async function updateMe(patch) {
-  return authed('/me', { method: 'PATCH', body: patch, timeout: 8000 })
-}
-
-/** Occurrences I said I'm going to, with event title and dates (GET /me/attending). */
-export async function fetchAttending() {
-  if (!readToken()) return []
-  try { return await authed('/me/attending', { timeout: 6000 }) } catch { return [] }
-}
-
 /** Join requests to me that are still waiting for an answer (GET /me/join-requests). */
 export async function fetchJoinRequests() {
   if (!readToken()) return []
@@ -334,6 +323,30 @@ export async function fetchFavourites() {
 /** Save the whole list of favourited events/venues (PUT /me/favourites). Logged in only; logged out, stars stay in the browser. */
 export async function saveFavourites(ids) {
   try { return (await authed('/me/favourites', { method: 'PUT', body: { ids } })).ids } catch { return null }
+}
+
+/* ---------- profiles & friends (backend/app/routers/profiles.py) ---------- */
+
+/** Call as the logged-in user when there is a session, anonymously otherwise (public profile pages). */
+const maybeAuthed = (path, opts = {}) => (readToken() ? authed(path, opts) : get(path, { timeout: 8000, ...opts }))
+
+/** A profile page: by id, or by @username. Includes stats and how the viewer relates to them. */
+export const fetchProfile = (who) => maybeAuthed(typeof who === 'number' ? `/users/${who}/profile` : `/profiles/${encodeURIComponent(who)}`)
+/** scope: going | been | hosting. Yourself and friends only (403 otherwise). */
+export const fetchProfileEvents = (userId, scope) => maybeAuthed(`/users/${userId}/events?scope=${scope}`)
+export const fetchFriends = (userId) => maybeAuthed(`/users/${userId}/friends`)
+export const fetchFriendRequests = (direction = 'incoming') => authed(`/me/friend-requests?direction=${direction}`)
+export const sendFriendRequest = (username) => authed('/friends/requests', { method: 'POST', body: { username } })
+export const answerFriendRequest = (id, status) => authed(`/friend-requests/${id}`, { method: 'PATCH', body: { status } })
+export const unfriend = (userId) => authed(`/friends/${userId}`, { method: 'DELETE' })
+export const searchPeople = (q) => maybeAuthed(`/people/search?q=${encodeURIComponent(q)}`)
+export const checkUsername = (name) => maybeAuthed(`/usernames/${encodeURIComponent(name)}/available`)
+/** PATCH /me: display_name, username, gender ('f' | 'm' | '' to clear), bio, interests, hangouts. */
+export const updateMe = (patch) => authed('/me', { method: 'PATCH', body: patch })
+/** Upload a profile picture (shrunk in the browser, stored by the API); returns its path for photos[0]. */
+export async function uploadProfilePhoto(file) {
+  const r = await authed('/userevents/photos', { method: 'POST', body: { data_url: await shrinkPhoto(file, 800) } })
+  return r.url
 }
 
 /** Shrink a photo in the browser (longest side 1600 px, JPEG) so uploads stay small. */

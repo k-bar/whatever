@@ -10,7 +10,6 @@ import { curate } from './mapboxes/curate'
 import { BottomSheet } from './components/BottomSheet'
 import { BottomToolbar } from './components/BottomToolbar'
 import { InterfaceEditor } from './components/InterfaceEditor'
-import { DEV_TOOLS } from './config/env'
 import { LanduseLegend } from './components/LanduseLegend'
 import { CloseButton } from './components/CloseButton'
 import { Mermaid } from './components/Icons'
@@ -118,7 +117,7 @@ export default function App() {
     if (remote?.blocks) setBoxes((b) => b.map((x) => (x.key === key ? { ...x, remote, data: { ...x.data, ...remote } } : x)))
   }, [mobile, values.maxBoxes])
 
-  // events in the new language after a PL/EN switch (the server sends its translations)
+  // events in the new language after a PL/EN switch (the server sends Claude's translations)
   const firstLang = useRef(true)
   useEffect(() => {
     if (firstLang.current) { firstLang.current = false; return }
@@ -289,7 +288,7 @@ export default function App() {
       values.showTitle && <h1 className="app-title" key="title">{values.appTitle}</h1>,
 
       /* top-right: editor toggle lives inside InterfaceEditor */
-      DEV_TOOLS && <Stage key="top-right" delay={0.55}><div className="top-right"><InterfaceEditor open={editorOpen} onToggle={() => setEditorOpen(!editorOpen)} /></div></Stage>,
+      <Stage key="top-right" delay={0.55}><div className="top-right"><InterfaceEditor open={editorOpen} onToggle={() => setEditorOpen(!editorOpen)} /></div></Stage>,
 
       /* desktop map boxes */
       !mobile && (
@@ -312,14 +311,14 @@ export default function App() {
       </Stage>,
 
       <Stage key="legend" delay={0.6}><LanduseLegend getMap={() => mapRef.current?.getMap()} mobile={mobile} /></Stage>,
-      DEV_TOOLS && values.apiBadge && <Stage key="badge" delay={0.65}><div className={`data-badge surface ${dataStatus.source}`}><i />{t(dataStatus.source === 'api' ? 'live API' : dataStatus.source === 'offline' ? 'API offline' : 'loading…')} · {featureList.length} {t('pins')}</div></Stage>,
+      values.apiBadge && <Stage key="badge" delay={0.65}><div className={`data-badge surface ${dataStatus.source}`}><i />{t(dataStatus.source === 'api' ? 'live API' : dataStatus.source === 'offline' ? 'API offline' : 'loading…')} · {featureList.length} {t('pins')}</div></Stage>,
     ]}</AnimatePresence>
 
       {/* the slide-over: profiles, messages, favourite spots, sources; switched from its own burger */}
       <AnimatePresence>
         {view === 'map' && panel && (
           <SlideOver key="slideover" section={panel} onSection={onMenu} onClose={closePanel} full={panelFull} onFull={() => setPanelFull((f) => !f)} onHome={goHome} mobile={mobile}>
-            {panel === 'profile' && <ProfilePanel features={featureList} favourites={fav.ids} />}
+            {panel === 'profile' && <ProfilePanel features={featureList} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
             {panel === 'messages' && <MessagesPanel />}
             {panel === 'favourites' && <FavouritesPanel features={featureList} favourites={fav.ids} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
             {panel === 'sources' && <SourcesPanel />}
@@ -335,7 +334,7 @@ export default function App() {
 
       {mobile && <BottomSheet open={!!sheet && !!sheetContent} onClose={() => setSheet(null)} initial="half">{sheetContent}</BottomSheet>}
 
-      {DEV_TOOLS && values.debugOverlay && <div className="debug surface">z {zoom.toFixed(2)} · boxes {boxes.length} · fav {fav.ids.size} · {mobile ? 'mobile' : 'desktop'}</div>}
+      {values.debugOverlay && <div className="debug surface">z {zoom.toFixed(2)} · boxes {boxes.length} · fav {fav.ids.size} · {mobile ? 'mobile' : 'desktop'}</div>}
 
       <AnimatePresence>{toast && <motion.div className="toast surface" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 10, opacity: 0 }}>{toast}</motion.div>}</AnimatePresence>
     </div>
