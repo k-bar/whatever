@@ -22,4 +22,4 @@ __pycache__/
 
 # CDK
 infra/cdk.out/
-infra/outputs.json
+infra/*outputs.json

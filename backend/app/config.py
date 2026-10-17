@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def read_secret(arn: str) -> str:
-    import boto3  # only on AWS; bundled in the Lambda runtime
+    import boto3  # only needed on AWS (EC2 boxes use their instance role)
 
     return boto3.client("secretsmanager").get_secret_value(SecretId=arn)["SecretString"]
 

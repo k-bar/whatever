@@ -11,8 +11,9 @@ class DbStack(cdk.Stack):
     """Shared by both environments: one RDS instance (prod = schema public, dev = schema dev),
     the security group of the app boxes, and secrets.
 
-    Postgres only accepts the app boxes (plus the internet while `db_open_to_internet` is true in
-    cdk.json, kept during the Lambda -> EC2 move). SSL is forced; the password is generated.
+    Postgres only accepts the app boxes (people reach it through an SSM tunnel via the dev box; see
+    CONTRIBUTING.md). `db_open_to_internet` in cdk.json is an emergency switch, normally false.
+    SSL is forced; the password is generated.
     """
 
     def __init__(self, scope: Construct, id: str, *, open_to_internet: bool, **kwargs) -> None:
@@ -34,7 +35,7 @@ class DbStack(cdk.Stack):
         sg = ec2.SecurityGroup(self, "DbSg", vpc=vpc, description="Postgres for Warszawa Live (SSL only)")
         sg.add_ingress_rule(self.app_sg, ec2.Port.tcp(5432), "app boxes")
         if open_to_internet:
-            sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(5432), "temporary: Lambda / migration")
+            sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(5432), "emergency access only")
 
         params = rds.ParameterGroup(
             self,
