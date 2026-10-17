@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
 import { useLang } from './i18n'
-import { dataStatus, fetchBusyAreas, fetchFeatures, fetchMapbox, locateByIp, routeTo, runSearch } from './data/api'
+import { fetchBusyAreas, fetchFeatures, fetchMapbox, locateByIp, routeTo, runSearch } from './data/api'
 import { useFavourites } from './hooks/useFavourites'
 import { useStartPoint } from './hooks/useStartPoint'
 import { useIsMobile } from './hooks/useMedia'
@@ -11,7 +11,6 @@ import { BottomSheet } from './components/BottomSheet'
 import { BottomToolbar } from './components/BottomToolbar'
 import { InterfaceEditor } from './components/InterfaceEditor'
 import { DEV_TOOLS } from './config/env'
-import { LanduseLegend } from './components/LanduseLegend'
 import { CloseButton } from './components/CloseButton'
 import { Mermaid } from './components/Icons'
 import { MapBox } from './components/MapBox'
@@ -118,7 +117,7 @@ export default function App() {
     if (remote?.blocks) setBoxes((b) => b.map((x) => (x.key === key ? { ...x, remote, data: { ...x.data, ...remote } } : x)))
   }, [mobile, values.maxBoxes])
 
-  // events in the new language after a PL/EN switch (the server sends its translations)
+  // events in the new language after a PL/EN switch (the server sends Claude's translations)
   const firstLang = useRef(true)
   useEffect(() => {
     if (firstLang.current) { firstLang.current = false; return }
@@ -311,18 +310,17 @@ export default function App() {
           pins={values.showPins} onPins={() => { set('showPins', !values.showPins); say(t(values.showPins ? 'Pins off' : 'Pins on')) }} />
       </Stage>,
 
-      <Stage key="legend" delay={0.6}><LanduseLegend getMap={() => mapRef.current?.getMap()} mobile={mobile} /></Stage>,
-      DEV_TOOLS && values.apiBadge && <Stage key="badge" delay={0.65}><div className={`data-badge surface ${dataStatus.source}`}><i />{t(dataStatus.source === 'api' ? 'live API' : dataStatus.source === 'offline' ? 'API offline' : 'loading…')} · {featureList.length} {t('pins')}</div></Stage>,
+      // the live API status and the land-use key live in the Data sources panel (SidePanels.jsx)
     ]}</AnimatePresence>
 
       {/* the slide-over: profiles, messages, favourite spots, sources; switched from its own burger */}
       <AnimatePresence>
         {view === 'map' && panel && (
           <SlideOver key="slideover" section={panel} onSection={onMenu} onClose={closePanel} full={panelFull} onFull={() => setPanelFull((f) => !f)} onHome={goHome} mobile={mobile}>
-            {panel === 'profile' && <ProfilePanel features={featureList} favourites={fav.ids} />}
+            {panel === 'profile' && <ProfilePanel features={featureList} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
             {panel === 'messages' && <MessagesPanel />}
             {panel === 'favourites' && <FavouritesPanel features={featureList} favourites={fav.ids} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
-            {panel === 'sources' && <SourcesPanel />}
+            {panel === 'sources' && <SourcesPanel pins={featureList.length} getMap={() => mapRef.current?.getMap()} mobile={mobile} />}
           </SlideOver>
         )}
       </AnimatePresence>

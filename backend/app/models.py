@@ -3,6 +3,7 @@ from datetime import datetime
 from geoalchemy2 import Geography
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
@@ -12,6 +13,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -102,6 +104,11 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True)
     password_hash: Mapped[str] = mapped_column(Text)
     display_name: Mapped[str] = mapped_column(String(80))
+    # @username, Instagram style: unique, lowercase, chosen by the user (app/usernames.py)
+    username: Mapped[str] = mapped_column(String(30), unique=True)
+    gender: Mapped[str | None] = mapped_column(String(1))  # f / m / null; Polish labels: Byłam / Byłem
+    # "You can find me at": [{"name": "Spatif", "place_id": 123 | null}], up to 5
+    hangouts: Mapped[list[dict]] = mapped_column(JSONB, default=list, server_default="[]")
     bio: Mapped[str | None] = mapped_column(Text)
     photos: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
     interests: Mapped[list[str]] = mapped_column(ARRAY(String(32)), default=list)
@@ -141,6 +148,31 @@ class JoinRequest(Base):
     requester: Mapped[User] = relationship(foreign_keys=[requester_id])
     target: Mapped[User] = relationship(foreign_keys=[target_user_id])
     occurrence: Mapped[Occurrence] = relationship()
+
+
+class Friendship(Base):
+    """A friend request; accepted = friends. One row per pair of people, whoever asked first."""
+
+    __tablename__ = "friendships"
+    __table_args__ = (
+        CheckConstraint("requester_id <> addressee_id", name="ck_friendships_not_self"),
+        Index(
+            "ux_friendships_pair",
+            text("least(requester_id, addressee_id)"),
+            text("greatest(requester_id, addressee_id)"),
+            unique=True,
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    requester_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    addressee_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="pending")  # pending / accepted
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    requester: Mapped[User] = relationship(foreign_keys=[requester_id])
+    addressee: Mapped[User] = relationship(foreign_keys=[addressee_id])
 
 
 class GeocodeCache(Base):

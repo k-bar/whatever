@@ -57,7 +57,15 @@ def test_outside_warsaw_dropped_and_missing_marked_inactive(db):
 def test_occurrence_with_attendees_survives_removal(db):
     spec = SOURCES["warsaw_events"]
     load(db, spec, [raw("a", starts=("2030-01-01T18:00:00+01:00", "2030-01-02T18:00:00+01:00"))], None)
-    user = User(email="x@example.com", password_hash="x", display_name="X", photos=[], interests=[], links={})
+    user = User(
+        email="x@example.com",
+        password_hash="x",
+        display_name="X",
+        username="x.user",
+        photos=[],
+        interests=[],
+        links={},
+    )
     db.add(user)
     db.flush()
     attended = db.scalars(select(Occurrence).order_by(Occurrence.starts_at)).first()

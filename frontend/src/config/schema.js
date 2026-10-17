@@ -63,7 +63,7 @@ export const SECTIONS = [
         { value: 'colour', label: 'Colour (parks, water, paths)' }, { value: 'grey', label: 'Grey (Positron)' }, { value: 'pastel', label: 'Pastel' }, { value: 'paper', label: 'Warm paper' },
         { value: 'bright', label: 'Bright colours' }, { value: 'liberty', label: 'Liberty' }, { value: 'fiord', label: 'Fiord (blue dark)' }, { value: 'dark', label: 'Dark matter' }] },
       { id: 'landuse', label: 'Land-use colours (residential, commercial…)', type: 'toggle', default: true },
-      { id: 'landuseLegend', label: 'Land-use key (bottom right)', type: 'toggle', default: true },
+      { id: 'landuseLegend', label: 'Land-use key (in Data sources)', type: 'toggle', default: true },
       { id: 'streetLabels', label: 'Street names', type: 'select', default: 'normal', options: [
         { value: 'none', label: 'Hidden' }, { value: 'small', label: 'Small' }, { value: 'normal', label: 'Normal' }, { value: 'large', label: 'Large' }] },
       { id: 'poiLabels', label: 'Place labels (POI)', type: 'toggle', default: false },
@@ -139,7 +139,7 @@ export const SECTIONS = [
     params: [
       { id: 'darkMode', label: 'Dark mode', type: 'toggle', default: false },
       { id: 'debugOverlay', label: 'Debug overlay (zoom, counts)', type: 'toggle', default: false },
-      { id: 'apiBadge', label: 'Show data-source badge', type: 'toggle', default: true },
+      { id: 'apiBadge', label: 'Live API status (in Data sources)', type: 'toggle', default: true },
     ],
   },
 ]
