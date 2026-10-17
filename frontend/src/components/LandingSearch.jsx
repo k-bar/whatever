@@ -105,15 +105,14 @@ export function WherePart({ value, onChange, features }) {
  * The start page's search pill: what (½) · when (¼) · where (¼). When and where are optional; the
  * search button always works. onSearch({ q, when, where }).
  */
-export function LandingSearch({ features, onSearch, layoutId }) {
+export function LandingSearch({ features, onSearch }) {
   const { t } = useLang()
-  const spring = useSpring()
   const [q, setQ] = useState('')
   const [when, setWhen] = useState(null)
   const [where, setWhere] = useState(null)
   const submit = (e) => { e?.preventDefault(); onSearch({ q: q.trim(), when, where, summary: [q.trim(), whenLabel(when), where?.label].filter(Boolean).join(' · ') }) }
   return (
-    <motion.form className="hero-search hs surface" layoutId={layoutId} onSubmit={submit} transition={spring}>
+    <motion.form className="hero-search hs surface" onSubmit={submit}>
       <label className="hs-part hs-what">
         <Search size={19} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("What's the plan today?")} aria-label={t('Search')} autoFocus />
