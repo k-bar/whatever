@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warszawa Live</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 15vh auto; padding: 0 1rem; }
+</style>
+</head>
+<body>
+<h1>Warszawa Live</h1>
+<p>The map is coming soon. Meanwhile, the API is live: <a id="api" href="#">API docs</a>.</p>
+<script>
+  fetch("/config.json").then(r => r.json()).then(c => { document.getElementById("api").href = c.apiUrl + "/docs"; });
+</script>
+</body>
+</html>

@@ -8,19 +8,33 @@ DB_NAME = "warszawa"
 
 
 class DbStack(cdk.Stack):
-    """Postgres reachable from the internet (Lambdas run outside a VPC, so no NAT bill).
+    """Shared by both environments: one RDS instance (prod = schema public, dev = schema dev),
+    the security group of the app boxes, and secrets.
 
-    Protection = SSL-only connections + a 32-char generated password in Secrets Manager.
+    Postgres only accepts the app boxes (plus the internet while `db_open_to_internet` is true in
+    cdk.json, kept during the Lambda -> EC2 move). SSL is forced; the password is generated.
     """
 
-    def __init__(self, scope: Construct, id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, id: str, *, open_to_internet: bool, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
-        vpc = ec2.Vpc.from_lookup(self, "DefaultVpc", is_default=True)
+        self.vpc = vpc = ec2.Vpc.from_lookup(self, "DefaultVpc", is_default=True)
+
+        # App boxes: HTTP only from CloudFront's origin-facing IP ranges; no SSH (use SSM Session Manager)
+        self.app_sg = ec2.SecurityGroup(
+            self, "AppSg", vpc=vpc, description="Warszawa Live app boxes (HTTP from CloudFront only)"
+        )
+        cloudfront_ips = ec2.PrefixList.from_lookup(
+            self, "CloudFrontOrigins", prefix_list_name="com.amazonaws.global.cloudfront.origin-facing"
+        )
+        self.app_sg.add_ingress_rule(
+            ec2.Peer.prefix_list(cloudfront_ips.prefix_list_id), ec2.Port.tcp(80), "CloudFront to API"
+        )
 
         sg = ec2.SecurityGroup(self, "DbSg", vpc=vpc, description="Postgres for Warszawa Live (SSL only)")
-        sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(5432), "Lambda / dev access, password + SSL")
-        # Synth warns (W2508, W9011) about the open port and public instance: accepted, see class docstring.
+        sg.add_ingress_rule(self.app_sg, ec2.Port.tcp(5432), "app boxes")
+        if open_to_internet:
+            sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(5432), "temporary: Lambda / migration")
 
         params = rds.ParameterGroup(
             self,
@@ -66,6 +80,15 @@ class DbStack(cdk.Stack):
             self,
             "WarsawApiToken",
             secret_name="warszawa-live/warsaw-api-token",
+            secret_string_value=cdk.SecretValue.unsafe_plain_text("CHANGE_ME"),
+        )
+
+        # Read-only GitHub deploy key (private half) used by the app boxes to pull the repo.
+        # Value set by hand; the public half is added by the repo owner under Settings -> Deploy keys.
+        self.deploy_key = sm.Secret(
+            self,
+            "DeployKey",
+            secret_name="warszawa-live/deploy-key",
             secret_string_value=cdk.SecretValue.unsafe_plain_text("CHANGE_ME"),
         )
 

@@ -25,7 +25,7 @@ def invite(client, headers, **kw):
 
 
 def test_health_and_meta(client):
-    assert client.get("/health").json() == {"status": "ok"}
+    assert client.get("/health").json()["status"] == "ok"
     cats = client.get("/categories").json()
     assert {"slug": "music", "label": "Music"} in cats
 

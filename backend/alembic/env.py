@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import create_engine, pool
+from sqlalchemy import create_engine, pool, text
 
 from app import models  # noqa: F401  (registers tables on Base.metadata)
 from app.config import settings
@@ -35,10 +35,18 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = create_engine(settings.database_url, poolclass=pool.NullPool)
+    connectable = create_engine(
+        settings.database_url, poolclass=pool.NullPool, connect_args=settings.connect_args
+    )
     with connectable.connect() as connection:
+        if settings.db_schema:  # dev box: everything goes into its own schema
+            connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{settings.db_schema}"'))
+            connection.commit()
         context.configure(
-            connection=connection, target_metadata=target_metadata, include_object=include_object
+            connection=connection,
+            target_metadata=target_metadata,
+            include_object=include_object,
+            version_table_schema=settings.db_schema,
         )
         with context.begin_transaction():
             context.run_migrations()

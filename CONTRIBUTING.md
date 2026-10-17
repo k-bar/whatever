@@ -7,7 +7,7 @@
 | `backend/app/ingest/sources/` | Kamil (@kdzwigal) | One file per data source: fetch records, turn them into `RawEvent`s |
 | `backend/` (everything else) | @JustCodeMeV | Database, loading, API |
 | `frontend/` | Philip (@philpiano) | The map UI |
-| `infra/` | @JustCodeMeV | AWS (CDK, Python): RDS Postgres, API + ingest Lambdas, deploy role |
+| `infra/` | @JustCodeMeV | AWS (CDK, Python): RDS Postgres, API + ingest Lambdas, frontend hosting, domain |
 | `backend/db/` | Mateusz (@Informatyczek) | `fetch_data.py`: original Warsaw Open Data → SQLite script (ported to `sources/warsaw_open_data.py`); local `events.db`, `sport.db`, `apiKey.txt` live here (gitignored) |
 
 ```
@@ -21,7 +21,7 @@ fetchers (sources/*.py) ── list[RawEvent] ──> ingest/run.py ──> RDS 
 2. Branch: `git switch -c <name>/<topic>`, e.g. `kamil/meetup-source`
 3. Commit, push, open a PR to `master`. The template asks three questions.
 4. CI runs. Wait for **ci-ok** to go green. CODEOWNERS asks the right person to review.
-5. Merge. The **Deploy** workflow ships the API to AWS once CI passes on `master`.
+5. Merge. @JustCodeMeV deploys to AWS with `infra/deploy.sh` (the AWS org blocks GitHub-to-AWS deploy roles).
 
 Never commit `.env`, `apiKey.txt`, tokens or `*.db` files. CI runs gitleaks and fails the PR if it finds a secret.
 

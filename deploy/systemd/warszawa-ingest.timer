@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Warszawa Live ingest on schedule
+
+[Timer]
+OnCalendar=@INGEST_SCHEDULE@
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

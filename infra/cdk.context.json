@@ -30,5 +30,12 @@
         ]
       }
     ]
-  }
+  },
+  "cc-api-provider:account=015454941566:expectedMatchCount=exactly-one:propertiesToReturn.0=PrefixListId:propertyMatch.PrefixListName=com.amazonaws.global.cloudfront.origin-facing:region=eu-north-1:typeName=AWS$:$:EC2$:$:PrefixList": [
+    {
+      "PrefixListId": "pl-fab65393",
+      "Identifier": "pl-fab65393"
+    }
+  ],
+  "ssm:account=015454941566:parameterName=/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64:region=eu-north-1": "ami-04e0c7320ad3a3a48"
 }

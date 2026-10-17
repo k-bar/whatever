@@ -1,8 +1,17 @@
 {
   "app": "uv run python app.py",
-  "watch": { "include": ["**"], "exclude": ["build", "cdk.out", ".venv"] },
+  "watch": {
+    "include": [
+      "**"
+    ],
+    "exclude": [
+      "cdk.out",
+      ".venv"
+    ]
+  },
   "context": {
     "@aws-cdk/core:enableDiffNoFail": true,
-    "@aws-cdk/core:defaultCrossStackReferences": "strong"
+    "@aws-cdk/core:defaultCrossStackReferences": "strong",
+    "db_open_to_internet": true
   }
 }

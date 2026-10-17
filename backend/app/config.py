@@ -20,7 +20,12 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["*"]
     warsaw_api_token: str | None = None
     nominatim_user_agent: str = "warszawa-live-hackathon (github.com/k-bar/whatever)"
-    db_pool_size: int = 5  # Lambda: 1 (one request per container)
+    db_pool_size: int = 5
+    # Postgres schema for this environment ("dev" on the dev box). Tables live there;
+    # PostGIS types stay in public, so the search_path is "<schema>, public".
+    db_schema: str | None = None
+    app_env: str = "local"  # local / dev / prod
+    git_sha: str = "unknown"  # set by deploy/deploy.sh
 
     # On AWS the values above come from Secrets Manager (set by infra/).
     db_secret_arn: str | None = None  # RDS-generated JSON: username, password, host, port, dbname
@@ -35,6 +40,17 @@ class Settings(BaseSettings):
             if v.startswith(prefix):
                 return "postgresql+psycopg://" + v[len(prefix) :]
         return v
+
+    @field_validator("db_schema")
+    @classmethod
+    def safe_schema(cls, v: str | None) -> str | None:
+        if v and not v.isidentifier():
+            raise ValueError("DB_SCHEMA must be a plain identifier")
+        return v or None
+
+    @property
+    def connect_args(self) -> dict:
+        return {"options": f"-csearch_path={self.db_schema},public"} if self.db_schema else {}
 
     @model_validator(mode="after")
     def load_aws_secrets(self) -> "Settings":

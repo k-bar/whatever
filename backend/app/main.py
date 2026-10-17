@@ -26,4 +26,4 @@ app.include_router(social.router)
 def health():
     with engine.connect() as conn:
         conn.execute(text("SELECT 1"))
-    return {"status": "ok"}
+    return {"status": "ok", "env": settings.app_env, "sha": settings.git_sha}
