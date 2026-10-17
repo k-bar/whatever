@@ -300,7 +300,9 @@ export default function App() {
       values.showTitle && <h1 className="app-title" key="title">{values.appTitle}</h1>,
 
       /* under "Log in" / the account pill: close every open map box and the results list */
-      <Stage key="close-all" delay={0.5}><button className={`close-all ${boxes.length || results ? '' : 'idle'}`} onClick={closeAll}>{t('Close all')}</button></Stage>,
+      // only there while something is open (map boxes, results, the phone's sheet); fades in and out
+      (boxes.length > 0 || results || sheet) && <motion.button key="close-all" className="close-all" onClick={closeAll}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25, ease: 'easeOut' }}>{t('Close all')}</motion.button>,
 
       /* top-right: editor toggle lives inside InterfaceEditor */
       <Stage key="top-right" delay={0.55}><div className="top-right"><InterfaceEditor open={editorOpen} onToggle={() => setEditorOpen(!editorOpen)} /></div></Stage>,

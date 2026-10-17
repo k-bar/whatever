@@ -1045,7 +1045,6 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 /* ---------- "Close all": small text button under Log in / the account pill (replaces the (x) by the Syrenka) ---------- */
 /* map boxes start below it, never under it: --boxes-top is derived from the button's top + height */
 :root { --close-all-top: 66px; --close-all-h: 28px; --boxes-top: calc(var(--close-all-top) + var(--close-all-h) + 12px); }
-.close-all { position: fixed; top: var(--close-all-top); right: 16px; z-index: 89; height: var(--close-all-h); display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; background: var(--surface-solid); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--fg-2); transition: opacity .2s, color .15s, transform .15s; }
+.close-all { position: fixed; top: var(--close-all-top); right: 16px; z-index: 89; height: var(--close-all-h); display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; background: var(--surface-solid); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--fg-2); transition: color .15s, transform .15s; } /* opacity: fade in/out in App.jsx */
 .close-all:hover { color: var(--fg); transform: translateY(-1px); }
-.close-all.idle { opacity: .55; }
 .pm-title.pm-sub { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); } /* "In the city" section of the pin box */
