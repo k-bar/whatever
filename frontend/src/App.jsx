@@ -8,6 +8,7 @@ import { curate } from './mapboxes/curate'
 import { BottomSheet } from './components/BottomSheet'
 import { BottomToolbar } from './components/BottomToolbar'
 import { InterfaceEditor } from './components/InterfaceEditor'
+import { DEV_TOOLS } from './config/env'
 import { CloseButton } from './components/CloseButton'
 import { Mermaid } from './components/Icons'
 import { MapBox } from './components/MapBox'
@@ -132,7 +133,7 @@ export default function App() {
       {values.showTitle && <h1 className="app-title">{values.appTitle}</h1>}
 
       {/* top-right: editor toggle lives inside InterfaceEditor */}
-      <div className="top-right"><InterfaceEditor open={editorOpen} onToggle={() => setEditorOpen(!editorOpen)} /></div>
+      {DEV_TOOLS && <div className="top-right"><InterfaceEditor open={editorOpen} onToggle={() => setEditorOpen(!editorOpen)} /></div>}
 
       {/* desktop map boxes */}
       {!mobile && (
@@ -159,8 +160,8 @@ export default function App() {
 
       {mobile && <BottomSheet open={!!sheet && !!sheetContent} onClose={() => setSheet(null)} initial="half">{sheetContent}</BottomSheet>}
 
-      {values.apiBadge && <div className={`data-badge surface ${dataStatus.source}`}><i />{dataStatus.source === 'api' ? 'live API' : dataStatus.source === 'offline' ? 'API offline' : 'loading…'} · {featureList.length} pins</div>}
-      {values.debugOverlay && <div className="debug surface">z {zoom.toFixed(2)} · boxes {boxes.length} · fav {fav.ids.size} · {mobile ? 'mobile' : 'desktop'}</div>}
+      {DEV_TOOLS && values.apiBadge && <div className={`data-badge surface ${dataStatus.source}`}><i />{dataStatus.source === 'api' ? 'live API' : dataStatus.source === 'offline' ? 'API offline' : 'loading…'} · {featureList.length} pins</div>}
+      {DEV_TOOLS && values.debugOverlay && <div className="debug surface">z {zoom.toFixed(2)} · boxes {boxes.length} · fav {fav.ids.size} · {mobile ? 'mobile' : 'desktop'}</div>}
 
       <AnimatePresence>{toast && <motion.div className="toast surface" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 10, opacity: 0 }}>{toast}</motion.div>}</AnimatePresence>
     </div>
