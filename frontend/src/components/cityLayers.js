@@ -5,6 +5,8 @@
  *   walks    GET /routes                   the city's tourist walking routes (LineStrings + stops)
  * They live on their own sources/layers, apart from the event pins, so they never change pin counts or
  * the home view. Each is switched on from the toolbar's pin box (config: showToilets / showAed / showWalks).
+ * Toilets and AEDs are for the walk you're on: they only appear within AMENITY_RADIUS_M of your route
+ * (the journey to an open box, and an open walking route's line), see `alongPaths`.
  */
 
 export const CITY_LAYERS = [
@@ -12,6 +14,46 @@ export const CITY_LAYERS = [
   { id: 'aed', param: 'showAed', label: 'Defibrillators (AED)', emoji: '❤️' },
   { id: 'walks', param: 'showWalks', label: 'Walking routes', emoji: '🚶' },
 ]
+
+export const AMENITY_RADIUS_M = 600
+const NEAR_PATH = ['toilets', 'aed']
+
+/**
+ * The lines you're walking: the route on the map (a FeatureCollection), every open box's journey (so
+ * tapping a toilet doesn't hide the ones along your first route) and any open walking route's line.
+ */
+export function walkPaths(route, boxes = []) {
+  const lines = [...(route?.features || []).map((f) => f.geometry), ...boxes.flatMap((b) => [b.journey?.geometry, b.feature?.line])]
+  return lines.filter(Boolean).flatMap((g) => (g.type === 'MultiLineString' ? g.coordinates : g.type === 'LineString' ? [g.coordinates] : []))
+}
+
+/**
+ * The city layers with toilets and AEDs cut down to those within `radius` metres of the paths
+ * (none when there's no path). Flat metres around Warsaw's latitude: plenty for a few hundred metres.
+ */
+export function alongPaths(city, paths, radius = AMENITY_RADIUS_M) {
+  const kx = 111320 * Math.cos((52.23 * Math.PI) / 180), ky = 110540
+  const segs = []
+  for (const line of paths) for (let i = 1; i < line.length; i++) {
+    const [ax, ay] = [line[i - 1][0] * kx, line[i - 1][1] * ky], [bx, by] = [line[i][0] * kx, line[i][1] * ky]
+    segs.push([ax, ay, bx, by, Math.min(ax, bx) - radius, Math.min(ay, by) - radius, Math.max(ax, bx) + radius, Math.max(ay, by) + radius])
+  }
+  if (paths.length && !segs.length) for (const [x, y] of paths.flat()) segs.push([x * kx, y * ky, x * kx, y * ky, x * kx - radius, y * ky - radius, x * kx + radius, y * ky + radius])
+  const r2 = radius * radius
+  const near = ([lng, lat]) => {
+    const px = lng * kx, py = lat * ky
+    return segs.some(([ax, ay, bx, by, x0, y0, x1, y1]) => {
+      if (px < x0 || px > x1 || py < y0 || py > y1) return false
+      const dx = bx - ax, dy = by - ay, len = dx * dx + dy * dy
+      const t = len ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len)) : 0
+      const ex = ax + t * dx - px, ey = ay + t * dy - py
+      return ex * ex + ey * ey <= r2
+    })
+  }
+  const out = { ...city }
+  for (const id of NEAR_PATH) if (city[id]) out[id] = { ...city[id], features: segs.length ? city[id].features.filter((f) => f.geometry?.type === 'Point' && near(f.geometry.coordinates)) : [] }
+  return out
+}
 
 const AMENITIES = 'wl-amenities', WALKS = 'wl-walks', STOPS = 'wl-walk-stops'
 export const CITY_CLICK_LAYERS = { amenity: 'wl-amenities', walk: 'wl-walks-hit' }
