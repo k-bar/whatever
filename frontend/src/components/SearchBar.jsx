@@ -8,6 +8,7 @@ import { Brand } from './Brand'
 import { CloseButton } from './CloseButton'
 import { useLang } from '../i18n'
 import { WhenPart, WherePart, whenLabel } from './LandingSearch'
+import { FLIGHT_MS } from '../landing/searchFlight'
 
 export const MODES = [
   { id: 'search', label: 'Search', hint: 'Places, venues, districts', Icon: Search },
@@ -23,6 +24,16 @@ export const MENU_ITEMS = [
   { id: 'sources', label: 'Data sources', Icon: Database, hint: '' },
 ]
 
+// Burger menus (this one and the slide-over's) open with clip-path, never scale: closed is a burger-sized
+// corner at the top left, open reaches a little past every edge so the shadow isn't clipped.
+export const MENU_CLOSED = 'inset(0% 84% 88% 0% round 24px)'
+export const MENU_OPEN = 'inset(-14% -14% -14% -14% round 24px)'
+/** The burger menus' open / close: the same calm "push" as the search pill's flight (landing/searchFlight.js). */
+export function usePush() {
+  const { values } = useConfig()
+  return values.reduceMotion ? { duration: 0.1 } : { duration: FLIGHT_MS / 1000 / (values.animSpeed || 1), ease: [0.4, 0, 0.2, 1] }
+}
+
 const SUGGESTED = ['jazz tonight', 'run club', 'Praga nightlife', 'free exhibitions', 'picnic', 'stand-up', 'teatr', 'Mokotów']
 const RECENT_KEY = 'warszawa-live.recent.v1'
 const readRecent = () => { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]') } catch { return [] } }
@@ -36,6 +47,7 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
   const { t } = useLang()
   const spring = useSpring()
   const bouncy = useSpring({ stiffness: 520, damping: 18 })
+  const push = usePush()
   const [q, setQ] = useState(initialQuery)
   const placeholder = values.searchPlaceholder === 'Search Warsaw tonight…' ? "What's the plan today?" : values.searchPlaceholder
   const [mode, setMode] = useState('search')
@@ -94,7 +106,7 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
       {/* arriving from / leaving for the start page is a separate flight (landing/searchFlight.js) */}
       <motion.div className="search surface" animate={pushed ? { y: 10, scale: 0.985 } : { y: 0, scale: 1 }} transition={spring}>
         <motion.button className="btn icon burger-btn" aria-label={t('Menu')} onClick={() => { setMenuOpen(!menuOpen); setModeOpen(false); setFocused(false) }}
-          animate={{ rotate: menuOpen ? 90 : 0 }} transition={bouncy}>
+          animate={{ rotate: menuOpen ? 90 : 0 }} transition={push}>
           {menuOpen ? <X size={26} stroke={2.2} /> : <Burger />}
         </motion.button>
         <input ref={inputRef} value={q} placeholder={mode === 'assistant' ? t('Ask the assistant…') : t(placeholder)} onChange={(e) => setQ(e.target.value)}
@@ -125,18 +137,20 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
         )}
       </AnimatePresence>
 
-      {/* burger menu: liquid glass, overshoots then snaps back */}
+      {/* burger menu: grows out from under the burger and stops, like the search pill's push. It is revealed
+          with clip-path, never scaled, so the text and shadow are drawn once and nothing re-renders as it lands. */}
       <AnimatePresence>
         {menuOpen && (
-          <motion.div className="burger-menu surface" initial={{ opacity: 0, scaleX: 0.3, scaleY: 0.1 }}
-            animate={{ opacity: 1, scaleX: [0.3, 1.06, 1], scaleY: [0.1, 1.08, 1] }} exit={{ opacity: 0, scaleX: 0.5, scaleY: 0.3 }}
-            transition={values.reduceMotion ? { duration: 0.1 } : { duration: 0.42 / (values.animSpeed || 1), times: [0, 0.65, 1], ease: ['easeOut', 'easeInOut'] }}>
+          <motion.div className="burger-menu surface" style={{ willChange: 'clip-path' }}
+            initial={{ clipPath: MENU_CLOSED, opacity: 0 }}
+            animate={{ clipPath: MENU_OPEN, opacity: 1 }}
+            exit={{ clipPath: MENU_CLOSED, opacity: [1, 1, 0], transition: { ...push, opacity: { ...push, times: [0, 0.75, 1] } } }}
+            transition={{ ...push, opacity: { duration: push.duration * 0.25, ease: 'linear' } }}>
             <div className="bm-title"><Brand onHome={() => { setMenuOpen(false); onHome?.() }} /></div>
-            {MENU_ITEMS.map((it, i) => (
-              <motion.button key={it.id} className={`bm-item ${it.accent ? 'accent' : ''}`} onClick={() => { setMenuOpen(false); onMenu(it.id) }}
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.12 + i * 0.04 }}>
+            {MENU_ITEMS.map((it) => (
+              <button key={it.id} className={`bm-item ${it.accent ? 'accent' : ''}`} onClick={() => { setMenuOpen(false); onMenu(it.id) }}>
                 <span className="ic"><it.Icon size={18} /></span>{t(it.label)}<small>{it.hint && t(it.hint)}</small>
-              </motion.button>
+              </button>
             ))}
           </motion.div>
         )}
