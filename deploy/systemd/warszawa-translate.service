@@ -1,0 +1,19 @@
+[Unit]
+Description=Warszawa Live translations: event titles and descriptions PL -> EN (backend/app/translate.py)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=warszawa
+WorkingDirectory=@ROOT@/backend
+EnvironmentFile=/etc/warszawa/instance.env
+EnvironmentFile=/etc/warszawa/release.env
+# ~30 ms per text on CPU: 2000 events fit well inside the 10-minute interval; the rest wait for the next run
+ExecStart=@ROOT@/backend/.venv/bin/python -m app.translate --limit 2000
+TimeoutStartSec=20min
+# the API shares the CPU: translation yields to it
+Nice=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
