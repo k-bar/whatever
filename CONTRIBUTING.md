@@ -71,84 +71,53 @@ Rules for `RawEvent`:
 - No coordinates? Fill `address`. The loader geocodes it.
 - Put the source's own category labels in `categories_raw`. The backend maps them in `app/categories.py`.
 
-## Using the API / Fetching data from AWS RDS (Philip & consumers)
+## Using the API (Philip & consumers)
 
-The entire backend runs on EC2 in the same AWS VPC (`eu-north-1`) as the PostgreSQL RDS instance (`warszawa`) and serves data directly from RDS behind CloudFront:
+The API runs on EC2 next to RDS (`eu-north-1`) and reads the environment's schema:
 
-- **Dev API** (reads from RDS schema `dev`): `https://api-dev.syrenka.me`
-- **Prod API** (reads from RDS schema `public`): `https://api.syrenka.me`
-- **Interactive docs & schemas**: `<api-url>/docs` | **OpenAPI JSON**: `<api-url>/openapi.json`
+- **Dev** (schema `dev`): `https://api-dev.syrenka.me`
+- **Prod** (schema `public`): `https://api.syrenka.me`
+- Interactive docs and schemas: `<api-url>/docs`. OpenAPI JSON: `<api-url>/openapi.json`. That is the
+  source of truth for parameters; the table below is a summary.
 
-### Endpoints reading from AWS RDS
-
-| Endpoint | Description | Key query parameters |
+| Endpoint | What | Main parameters |
 |---|---|---|
-| `GET /events` | GeoJSON `FeatureCollection` of events & classes (one feature per occurrence) | `bbox=west,south,east,north`, `from=ISO8601`, `to=ISO8601`, `category=music,sport,...`, `kind=event\|class\|place`, `q=<search>`, `district=<name>`, `free_only=true`, `lang=pl\|en`, `limit=1000` |
-| `GET /events/now` | GeoJSON `FeatureCollection` of events happening right now or starting within `within_hours` | `within_hours=3` (`1`–`24`), `lang=pl\|en` |
-| `GET /events/{id}` | Full details of a single event / place / class (including all occurrences and social counts) | `lang=pl\|en` |
-| `GET /places` | GeoJSON `FeatureCollection` of static places & amenities (AEDs, public toilets, open pitches, OSM venues) | `bbox=west,south,east,north`, `category=sport,utility,culture,...`, `q=<search>`, `district=<name>`, `lang=pl\|en` |
-| `GET /conditions` | Latest weather (`weather_stations`) and air quality (`air_stations`) readings from RDS as GeoJSON points + summary | — |
-| `GET /routes` | Tourist routes (`tourist_routes` LineStrings) from RDS as GeoJSON `FeatureCollection` | `lang=pl\|en` |
-| `GET /sources` | Ingestion status (`last_status`, `last_run_at`, `item_count`) for all registered RDS data sources (`warsaw_events`, `kupbilecik`, `osm_venues`, `warsaw_sport`, `warsaw_pitches`, `warsaw_aed`, `warsaw_toilets`, `warsaw_air`, `warsaw_weather`, `warsaw_routes`) | — |
-| `GET /categories` | Available map categories (`music`, `art`, `film`, `theatre`, `sport`, `science`, `kids`, `food`, `market`, `tour`, `workshop`, `party`, `talks`, `outdoor`, `community`, `utility`, `other`) | `lang=pl\|en` |
-| `GET /busy-areas` | GeoJSON polygons of busy areas in Warsaw | — |
-
-### Example API requests (`curl`)
-
-```bash
-# 1. Check all RDS data sources and record counts
-curl -s https://api-dev.syrenka.me/sources | jq
-
-# 2. Fetch upcoming events in Warsaw (GeoJSON)
-curl -s "https://api-dev.syrenka.me/events?limit=100&lang=pl" | jq '.features | length'
-
-# 3. Filter events by bounding box and category (e.g. music & theatre)
-curl -s "https://api-dev.syrenka.me/events?bbox=20.85,52.10,21.27,52.37&category=music,theatre" | jq
-
-# 4. Fetch static places/amenities (AEDs, toilets, open pitches, OSM venues)
-curl -s "https://api-dev.syrenka.me/places?category=utility,sport" | jq
-
-# 5. Fetch current weather & air quality conditions and tourist routes
-curl -s https://api-dev.syrenka.me/conditions | jq '.summary'
-curl -s https://api-dev.syrenka.me/routes | jq
-```
+| `GET /events` | GeoJSON, one feature per occurrence | `bbox=west,south,east,north`, `from`, `to`, `category` (repeatable), `kind=event\|class`, `q`, `limit`, `lang=pl\|en` |
+| `GET /events/now` | Happening near a point within a few hours | `lat`, `lng`, `radius_m`, `hours`, `lang` |
+| `GET /events/{id}` | One event / place / class with all occurrences | `lang` |
+| `GET /places` | Venues and amenities (toilets and AEDs only when asked for by `category`) | `bbox`, `category`, `q`, `lang` |
+| `GET /conditions` | Latest weather and air quality as GeoJSON points | |
+| `GET /routes` | Tourist routes as LineStrings, built from Kamil's `tourist_routes.traces` | |
+| `GET /sources` | Ingestion status per source (`last_status`, `last_run_at`, `item_count`) | |
+| `GET /categories` | Category slugs and labels (`app/categories.py`) | |
+| `GET /busyareas` | GeoJSON polygons of busy areas | |
 
 - Login: `POST /auth/login` returns `access_token`. Send it as `Authorization: Bearer <token>`.
 - Need something else? Open an **API request** issue.
 
-## On the box & EC2 + RDS deployment setup (needs AWS access to account 015454941566, ask @JustCodeMeV)
+## On the box (needs AWS access to account 015454941566, ask @JustCodeMeV)
 
-> **Important for whoever deploys on EC2:** The entire backend (`warszawa-api`, `warszawa-ingest`, `warszawa-conditions`, and the `src/` RDS synchronizer) runs on the EC2 instance in the **same AWS VPC (`eu-north-1`) as the RDS PostgreSQL database** (`warszawalivedb-postgres9dc8bb04-covqyqx6uo8t.cba6qiu6ipoi.eu-north-1.rds.amazonaws.com`, database `warszawa`). It connects directly to RDS over the internal AWS network (never through a developer laptop tunnel). Whoever deploys or provisions the EC2 box must make sure the environment, schema migrations, and systemd timers are configured as described below.
+`deploy/deploy.sh` does everything on each merge: `alembic upgrade head` in the box's schema (including
+Kamil's raw tables from `src/models.py`, migration `0006`), then the systemd units:
 
-1. **Environment configuration (`/etc/warszawa/instance.env`) on the EC2 box** — must be present before running `deploy/deploy.sh` or starting the systemd services:
-   ```ini
-   APP_ENV=dev                                 # "dev" or "prod"
-   DB_SCHEMA=dev                               # "dev" on the dev EC2 box, "public" on prod
-   DATABASE_URL=postgresql+psycopg://<db_user>:<db_password>@warszawalivedb-postgres9dc8bb04-covqyqx6uo8t.cba6qiu6ipoi.eu-north-1.rds.amazonaws.com:5432/warszawa?sslmode=require
-   WARSAW_API_TOKEN=<api-key-for-dane.um.warszawa.pl>
-   INGEST_GEOCODE_LIMIT=200
-   INGEST_SCHEDULE=*-*-* *:05:00
-   API_URL=https://api-dev.syrenka.me          # or https://api.syrenka.me on prod
-   ```
-2. **Database migrations & systemd services (`deploy/deploy.sh`)** — when deploying on EC2, ensure:
-   - Alembic migrations are applied to the target RDS schema: `cd backend && .venv/bin/alembic upgrade head`
-   - All 13 raw/historical tables in RDS (`tourist_routes`, `tourist_points`, `toilets`, `weather_measurements`, `defibrillators`, `sports_activities`, `open_sports_fields`, `city_events`, `air_quality_stations`, `air_quality_measurements`, `kupbilecik_events`, `streets_gl_venues`, `sync_logs`) are initialized and synced:
-     ```bash
-     DB_SCHEMA=dev DATABASE_URL="..." WARSAW_API_KEY="..." python -m src.main
-     ```
-   - The systemd services and timers are enabled and running so `events`, `event_occurrences`, `sources`, `weather_stations`, `air_stations`, and `tourist_routes` in RDS stay populated for FastAPI:
-     ```bash
-     sudo systemctl enable --now warszawa-api.service
-     sudo systemctl enable --now warszawa-ingest.timer
-     sudo systemctl enable --now warszawa-conditions.timer
-     ```
+| Unit | What |
+|---|---|
+| `warszawa-api` | FastAPI |
+| `warszawa-ingest.timer` | `app/ingest/run.py`: fetchers -> `events`, plus tourist routes |
+| `warszawa-conditions.timer` | weather + air quality -> `weather_stations`, `air_stations` |
+| `warszawa-sync` | Kamil's `src/` scheduler -> raw tables (`toilets`, `city_events`, `kupbilecik_events`, `sync_logs`, ...), via `app/ingest/src_sync.py` |
+
+`src_sync.py` gives Kamil's code the box's DB credentials (Secrets Manager), the `<DB_SCHEMA>, public`
+search_path and the Warsaw API relay. Never run `python -m src.main` against RDS by hand: it ignores
+`DB_SCHEMA` and writes into `public`, which is prod.
 
 No SSH: use Session Manager (`aws ssm start-session --target <instance from deploy/environments.json>`).
 
 ```bash
 journalctl -u warszawa-agent -f        # deploys
 journalctl -u warszawa-api -f          # API
-sudo systemctl start warszawa-ingest   # run ingestion now (including kupbilecik, osm_venues, warsaw_*); results in GET /sources
+journalctl -u warszawa-sync -f         # Kamil's src/ sync; results also in the sync_logs table
+sudo systemctl start warszawa-ingest   # run ingestion now; results in GET /sources
 sudo systemctl start warszawa-conditions  # refresh weather + air quality now
 ```
 
@@ -176,7 +145,12 @@ only open a tunnel through the dev box. Ask @JustCodeMeV to add you to `DEV_DB_U
 
 ## Adding a data source
 
-Fetchers live in `backend/app/ingest/sources/` and never touch the database:
+Kamil owns the database schema and the data sources; the backend adapts to them. Two places:
+
+- `src/` (Kamil): raw Open Data tables, defined in `src/models.py`. New or changed tables need a backend
+  migration that creates them in the right schema (see `0006_kamil_tables.py`); ping @JustCodeMeV.
+- `backend/app/ingest/sources/`: fetchers that feed `events`. They return RawEvents; they may read
+  Kamil's raw tables as a fallback (see `kupbilecik.py`) but never write:
 
 1. Write `fetch_records()` (network; Warsaw Open Data goes through `warsaw_open_data.fetch(action)`, which
    handles the API key and the relay) and a pure `parse(records) -> list[RawEvent]` (`app/ingest/base.py`).
@@ -184,7 +158,7 @@ Fetchers live in `backend/app/ingest/sources/` and never touch the database:
 3. Save a few real records as `backend/tests/fixtures/<slug>.json` and add a parser test in `tests/test_ingest.py`.
 
 Data that isn't an event or a place (readings, lines) gets a model + Alembic migration and a `Feed`
-(`app/ingest/conditions.py`, `routes.py`). Never create tables by hand or with `create_all`.
+(`app/ingest/conditions.py`, `routes.py`). Never create tables by hand or with `create_all` on RDS.
 
 ## Don't change AWS resources in the console
 
