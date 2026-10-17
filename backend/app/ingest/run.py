@@ -189,6 +189,16 @@ def main(argv: list[str] | None = None) -> int:
         from app.ingest.routes import ROUTES
 
         failed += run_feeds([ROUTES])
+    # Polish <-> English titles and descriptions for anything new or changed (app/translate.py).
+    # A translation problem never fails the ingest: untranslated events are retried next run.
+    with SessionLocal() as db:
+        try:
+            from app import translate
+
+            translate.run(db)
+        except Exception:
+            db.rollback()
+            print(f"translate: FAILED\n{traceback.format_exc()}", file=sys.stderr)
     return 1 if failed else 0
 
 

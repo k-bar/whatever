@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
-import { createUserEvent } from '../data/api'
+import { createUserEvent, isLoggedIn, onAuthChange } from '../data/api'
 import { AUDIENCES, EVENT_TYPES, categoryColor } from '../data/categories'
 import { CloseButton } from './CloseButton'
 import { Check, Globe, Lock, Photo, Pin, UserCheck, Users } from './Icons'
+import { LoginForm } from './LoginForm'
 import { getLang, useLang } from '../i18n'
 
 const AUDIENCE_ICON = { public: Globe, public_confirm: UserCheck, friends: Users, invite: Lock }
@@ -39,6 +40,7 @@ async function reverseGeocode([lng, lat], signal) {
 /**
  * "+ Create event": full-height panel on the right. The red draggable pin on the map is where it happens.
  * Done -> POST /userevents (backend/app/userevents) -> onCreated(feature) drops it onto the map.
+ * Creating needs an account: logged out, the panel shows "Log in" first (what was typed is kept).
  */
 export function CreateEventPanel({ pin, onClose, onCreated }) {
   const spring = useSpring()
@@ -48,6 +50,9 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
   const [address, setAddress] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [loggedIn, setLoggedIn] = useState(isLoggedIn)
+  const retry = useRef(false) // Done was pressed while logged out: create right after logging in
+  useEffect(() => onAuthChange(() => setLoggedIn(isLoggedIn())), [])
   const fileRef = useRef(null)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e?.target ? e.target.value : e }))
 
@@ -81,19 +86,24 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
       }, photo)
       onCreated(feature, event)
     } catch (e) {
-      setError(e.status ? e.message : t('Could not reach the server. Try again in a moment.'))
       setSaving(false)
+      if (e.loginRequired) { retry.current = true; setLoggedIn(false); return } // session expired: back to "Log in"
+      setError(e.status ? t(e.message) : t('Could not reach the server. Try again in a moment.'))
     }
   }
+  const afterLogin = () => { setLoggedIn(true); if (retry.current) { retry.current = false; submit() } }
 
   return (
     <motion.aside className="create-panel surface" initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }} transition={spring}
       aria-label={t('Create event')}>
       <div className="sp-head">
-        <div><h2>{t('Create event')}</h2><div className="mb-sub">{t('It goes on the map as soon as you tap Done')}</div></div>
+        <div><h2>{t(loggedIn ? 'Create event' : 'Log in')}</h2><div className="mb-sub">{t(loggedIn ? 'It goes on the map as soon as you tap Done' : 'You need an account to create events')}</div></div>
         <CloseButton size={34} onClick={onClose} />
       </div>
 
+      {!loggedIn ? (
+        <div className="sp-scroll ce-scroll"><LoginForm onDone={afterLogin} intro={t('Log in so people know who is hosting. Your event stays filled in.')} /></div>
+      ) : (<>
       <div className="sp-scroll ce-scroll">
         <label className="ce-field">
           <span className="ce-label">{t('Event name')}</span>
@@ -173,6 +183,7 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
           {saving ? t('Creating…') : t('Done')}
         </button>
       </div>
+      </>)}
     </motion.aside>
   )
 }

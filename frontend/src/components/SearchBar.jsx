@@ -16,10 +16,10 @@ export const MODES = [
 
 export const MENU_ITEMS = [
   { id: 'profile', label: 'Profiles', Icon: User, hint: 'you' },
-  { id: 'messages', label: 'Messages', Icon: Message, hint: '3 new' },
+  { id: 'messages', label: 'Messages', Icon: Message, hint: '' },
   { id: 'create', label: 'Create event', Icon: Plus, hint: '', accent: true },
   { id: 'favourites', label: 'Favourite spots', Icon: Star, hint: '' },
-  { id: 'sources', label: "APIs I'm plugged in to", Icon: Database, hint: '5 sources' },
+  { id: 'sources', label: "APIs I'm plugged in to", Icon: Database, hint: '' },
 ]
 
 const SUGGESTED = ['jazz tonight', 'run club', 'Praga nightlife', 'free exhibitions', 'picnic', 'stand-up', 'teatr', 'Mokotów']

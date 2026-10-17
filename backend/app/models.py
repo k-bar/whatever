@@ -63,6 +63,9 @@ class Event(Base):
     contact: Mapped[dict] = mapped_column(JSONB, default=dict)
     audience: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
     raw: Mapped[dict | None] = mapped_column(JSONB)
+    # title + lead in Polish and English, made by Claude (app/translate.py):
+    # {"orig": "pl", "for": "<title>\n<lead>", "pl": {"title", "lead"}, "en": {"title", "lead"}}
+    i18n: Mapped[dict | None] = mapped_column(JSONB)
     host_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     is_public_invite: Mapped[bool] = mapped_column(Boolean, default=False)
     capacity: Mapped[int | None] = mapped_column(Integer)
@@ -143,6 +146,18 @@ class GeocodeCache(Base):
     query: Mapped[str] = mapped_column(Text, primary_key=True)
     lat: Mapped[float | None] = mapped_column(Float)  # null = looked up, not found
     lng: Mapped[float | None] = mapped_column(Float)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class TextTranslation(Base):
+    """Claude's Polish and English versions of one exact text, so repeated titles are translated once."""
+
+    __tablename__ = "text_translations"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)  # sha256 of the text
+    orig: Mapped[str] = mapped_column(String(8))  # detected language of the text: pl / en / ...
+    pl: Mapped[str] = mapped_column(Text)
+    en: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

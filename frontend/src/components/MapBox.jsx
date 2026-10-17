@@ -35,11 +35,8 @@ function Block({ b }) {
       const n = b.attendees || 0
       return (
         <div className="blk social">
-          <div className="avatars">
-            {Array.from({ length: Math.min(3, Math.max(1, n)) }).map((_, i) => (
-              <span className="av" key={i} style={{ background: AV_COLORS[i % AV_COLORS.length] }}>{b.host && i === 0 ? b.host[0] : String.fromCharCode(65 + ((i * 7) % 26))}</span>
-            ))}
-          </div>
+          {/* only real people: the host's initial; attendee avatars come once the API lists them */}
+          {b.host && <div className="avatars"><span className="av" style={{ background: AV_COLORS[0] }}>{b.host[0]}</span></div>}
           <div className="txt">
             {b.host && <><b>{b.host}</b> {t('is hosting')} · </>}
             {n ? <><b>{n}</b> {t('going')}</> : <>{t('Be the first to go')}</>}
@@ -92,6 +89,11 @@ export function MapBox({ data, feature, expanded, journey, onClose, onExpand, st
           <div style={{ flex: 1 }}>
             <h2>{data.title}</h2>
             {data.subtitle && <div className="mb-sub">{data.subtitle}</div>}
+            {feature.properties.translated && (
+              <div className="mb-translated" title={[feature.properties.original?.title, feature.properties.original?.lead].filter(Boolean).join('\n\n')}>
+                {t('Translated automatically · original in {lang}', { lang: t(feature.properties.original?.lang === 'pl' ? 'Polish' : feature.properties.original?.lang === 'en' ? 'English' : 'another language') })}
+              </div>
+            )}
           </div>
         </div>
         <div className="mb-badges">

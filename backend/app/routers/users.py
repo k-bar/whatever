@@ -1,6 +1,3 @@
-import secrets
-import uuid
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -9,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth import create_token, get_current_user, hash_password, verify_password
 from app.db import get_db
 from app.models import User
-from app.schemas import GuestIn, LoginIn, Me, ProfileIn, PublicUser, RegisterIn, TokenOut
+from app.schemas import LoginIn, Me, ProfileIn, PublicUser, RegisterIn, TokenOut
 
 router = APIRouter(tags=["users"])
 
@@ -29,22 +26,6 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
         db.commit()
     except IntegrityError:
         raise HTTPException(409, "Email already registered")
-    return TokenOut(access_token=create_token(user.id))
-
-
-@router.post("/auth/guest", response_model=TokenOut, status_code=201)
-def guest(body: GuestIn, db: Session = Depends(get_db)):
-    """A device account for people who haven't signed up: the app keeps the token, e.g. to create events."""
-    user = User(
-        email=f"guest-{uuid.uuid4().hex}@guest.syrenka.me",
-        password_hash=hash_password(secrets.token_urlsafe(32)),
-        display_name=body.display_name,
-        photos=[],
-        interests=[],
-        links={},
-    )
-    db.add(user)
-    db.commit()
     return TokenOut(access_token=create_token(user.id))
 
 

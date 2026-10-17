@@ -109,6 +109,18 @@ export default function App() {
     if (remote?.blocks) setBoxes((b) => b.map((x) => (x.key === key ? { ...x, remote, data: { ...x.data, ...remote } } : x)))
   }, [mobile, values.maxBoxes])
 
+  // events in the new language after a PL/EN switch (the server sends Claude's translations)
+  const firstLang = useRef(true)
+  useEffect(() => {
+    if (firstLang.current) { firstLang.current = false; return }
+    fetchFeatures().then((fc) => {
+      setFeatures(fc)
+      // open boxes swap to the same event in the new language
+      const byId = new Map(fc.features.map((f) => [String(f.properties.event_id), f]))
+      setBoxes((b) => b.map((x) => { const f = byId.get(x.key); return f ? { ...x, feature: f, data: { ...curate(f), ...x.remote } } : x }))
+    })
+  }, [lang])
+
   // re-curate open boxes so their text follows a language switch
   useEffect(() => {
     setBoxes((b) => b.map((x) => ({ ...x, data: { ...curate(x.feature), ...x.remote } })))

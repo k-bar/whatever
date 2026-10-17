@@ -4,6 +4,7 @@
  * API base: VITE_API_URL (default "/api", proxied by vite to http://localhost:8000).
  */
 import { categoryLabel } from './categories'
+import { getLang } from '../i18n'
 
 const BASE = import.meta.env.VITE_API_URL || '/api'
 export const WARSAW_BBOX = [20.85, 52.1, 21.27, 52.37]
@@ -36,8 +37,9 @@ const withAssets = (f) => (f.properties.image_url?.startsWith('/') ? { ...f, pro
 export async function fetchFeatures() {
   try {
     const [events, places, mine] = await Promise.all([
-      get(`/events?bbox=${WARSAW_BBOX.join(',')}&limit=2000`, { timeout: 15000 }),
-      get(`/places?bbox=${WARSAW_BBOX.join(',')}`, { timeout: 15000 }),
+      // ?lang: titles and descriptions in the UI language (translated by Claude on the server, originals kept)
+      get(`/events?bbox=${WARSAW_BBOX.join(',')}&limit=2000&lang=${getLang()}`, { timeout: 15000 }),
+      get(`/places?bbox=${WARSAW_BBOX.join(',')}&lang=${getLang()}`, { timeout: 15000 }),
       fetchPrivateUserEvents(),
     ])
     dataStatus.source = 'api'
@@ -243,36 +245,64 @@ export async function fetchBusyAreas() {
   }
 }
 
-/* ---------- session + user events (backend/app/userevents) ---------- */
+/* ---------- login + user events (backend/app/userevents) ---------- */
 
 const TOKEN_KEY = 'syrenka.token.v1'
+const AUTH_EVENT = 'syrenka:auth' // fired on window whenever someone logs in or out
 const readToken = () => { try { return localStorage.getItem(TOKEN_KEY) } catch { return null } }
-
-/**
- * The bearer token for everything a person does (create events, …). There's no sign-up screen yet,
- * so the first time it's needed the app opens a guest account (POST /auth/guest) and keeps its token.
- */
-async function session() {
-  const saved = readToken()
-  if (saved) return saved
-  const { access_token } = await get('/auth/guest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}', timeout: 8000 })
-  try { localStorage.setItem(TOKEN_KEY, access_token) } catch { /* private mode: token lives for this page only */ }
-  return access_token
+function writeToken(token) {
+  try { if (token) localStorage.setItem(TOKEN_KEY, token); else localStorage.removeItem(TOKEN_KEY) } catch { /* private mode */ }
+  window.dispatchEvent(new Event(AUTH_EVENT))
 }
 
+export const isLoggedIn = () => Boolean(readToken())
+/** Subscribe to log in / log out. Returns the unsubscribe function. */
+export const onAuthChange = (fn) => { window.addEventListener(AUTH_EVENT, fn); return () => window.removeEventListener(AUTH_EVENT, fn) }
+export const logout = () => writeToken(null)
+
+/** Thrown when an action needs an account: the UI shows "Log in" and the login form. */
+export class LoginRequired extends Error {
+  constructor() { super('Log in to continue'); this.status = 401; this.loginRequired = true }
+}
+
+/** POST /auth/login. Errors carry the API's message ("Wrong email or password"). */
+export async function login(email, password) {
+  const r = await get('/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password }), timeout: 10000 })
+  writeToken(r.access_token)
+}
+
+/** POST /auth/register: a new account, logged in straight away. */
+export async function register(display_name, email, password) {
+  const r = await get('/auth/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ display_name, email, password }), timeout: 10000 })
+  writeToken(r.access_token)
+}
+
+/** A call made as the logged-in user. No token, or an expired one, throws LoginRequired. */
 async function authed(path, { body, ...opts } = {}) {
-  const call = async (token) => get(path, {
-    timeout: 15000, ...opts,
-    headers: { authorization: `Bearer ${token}`, ...(body !== undefined && { 'content-type': 'application/json' }) },
-    ...(body !== undefined && { body: JSON.stringify(body) }),
-  })
+  const token = readToken()
+  if (!token) throw new LoginRequired()
   try {
-    return await call(await session())
+    return await get(path, {
+      timeout: 15000, ...opts,
+      headers: { authorization: `Bearer ${token}`, ...(body !== undefined && { 'content-type': 'application/json' }) },
+      ...(body !== undefined && { body: JSON.stringify(body) }),
+    })
   } catch (e) {
-    if (e.status !== 401) throw e
-    try { localStorage.removeItem(TOKEN_KEY) } catch { /* ignore */ } // stale token (DB reset): open a new guest session
-    return call(await session())
+    if (e.status === 401) { writeToken(null); throw new LoginRequired() }
+    throw e
   }
+}
+
+/** My profile (GET /me) from PostgreSQL. Only when this browser already has a session: looking never creates an account. */
+export async function fetchMe() {
+  if (!readToken()) return null
+  try { return await authed('/me', { timeout: 6000 }) } catch { return null }
+}
+
+/** Join requests to me that are still waiting for an answer (GET /me/join-requests). */
+export async function fetchJoinRequests() {
+  if (!readToken()) return []
+  try { return await authed('/me/join-requests?direction=incoming&status=pending', { timeout: 6000 }) } catch { return [] }
 }
 
 /** Shrink a photo in the browser (longest side 1600 px, JPEG) so uploads stay small. */
@@ -290,10 +320,16 @@ async function shrinkPhoto(file, max = 1600) {
  * (so they're in everyone's GET /events); the returned feature goes straight onto this map.
  */
 export async function createUserEvent(values, photoFile) {
-  let photo_id = null
-  if (photoFile) photo_id = (await authed('/userevents/photos', { method: 'POST', body: { data_url: await shrinkPhoto(photoFile) } })).id
-  const r = await authed('/userevents', { method: 'POST', body: { ...values, photo_id } })
-  return { event: r.event, feature: withAssets(r.feature) }
+  try {
+    let photo_id = null
+    if (photoFile) photo_id = (await authed('/userevents/photos', { method: 'POST', body: { data_url: await shrinkPhoto(photoFile) } })).id
+    const r = await authed('/userevents', { method: 'POST', body: { ...values, photo_id } })
+    return { event: r.event, feature: withAssets(r.feature) }
+  } catch (e) {
+    // a 404 here means the API we talk to is older than backend/app/userevents
+    if (e.status === 404) throw Object.assign(new Error('This server cannot create events yet (its API is not updated).'), { status: 404 })
+    throw e
+  }
 }
 
 /** Friends-only / invitation-only events I can see. Only asked for once this browser has a session. */

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { fetchSources } from '../data/api'
+import { assetUrl, fetchJoinRequests, fetchMe, fetchSources } from '../data/api'
 import { categoryColor, categoryLabel } from '../data/categories'
+import { fmtWhen } from '../mapboxes/curate'
 import { CloseButton } from './CloseButton'
 import { Brand } from './Brand'
 import { Burger, Expand, Shrink, Star } from './Icons'
@@ -74,23 +75,39 @@ function Shell({ title, sub, children }) {
 
 export function ProfilePanel() {
   const { t } = useLang()
+  const [me, setMe] = useState(undefined) // undefined = loading, null = no account in this browser yet
+  const [requests, setRequests] = useState([])
+  useEffect(() => { fetchMe().then(setMe); fetchJoinRequests().then(setRequests) }, [])
+  const name = me?.display_name || t('Guest')
+  const photo = me?.photos?.[0]
   return (
     <Shell title={t('Your profile')} sub={t('What others see when you ask to join')}>
-      <div className="profile-hero">
-        <div className="big">P</div>
-        <h2 style={{ fontSize: 22 }}>Philip</h2>
-        <div className="mb-sub">{t('New in Warsaw · Mokotów · speaks EN / PL')}</div>
-        <div className="chips">{['music', 'running', 'theatre', 'meetups'].map((c) => <span className="badge" key={c} style={{ background: `color-mix(in srgb, ${categoryColor(c)} 15%, transparent)`, color: categoryColor(c) }}>{categoryLabel(c)}</span>)}</div>
-        <p className="mb-text" style={{ marginTop: 12 }}>{t('Looking for people to go to concerts with and a squad for Sunday runs along the Vistula.')}</p>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12 }}>
-          <button className="btn small">Instagram</button><button className="btn small">GitHub</button><button className="btn small primary">{t('Edit profile')}</button>
+      {me === undefined && <div className="res-empty">{t('Loading…')}</div>}
+      {me !== undefined && (
+        <div className="profile-hero">
+          <div className="big" style={photo ? { backgroundImage: `url(${assetUrl(photo)})`, backgroundSize: 'cover' } : {}}>{!photo && name[0]}</div>
+          <h2 style={{ fontSize: 22 }}>{name}</h2>
+          {!me && <p className="mb-text" style={{ marginTop: 8 }}>{t('No profile yet. It is created the first time you post an event or ask to join one.')}</p>}
+          {me?.interests?.length > 0 && (
+            <div className="chips">{me.interests.map((c) => <span className="badge" key={c} style={{ background: `color-mix(in srgb, ${categoryColor(c)} 15%, transparent)`, color: categoryColor(c) }}>{categoryLabel(c)}</span>)}</div>
+          )}
+          {me?.bio && <p className="mb-text" style={{ marginTop: 12 }}>{me.bio}</p>}
+          {me?.links && Object.keys(me.links).length > 0 && (
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
+              {Object.entries(me.links).map(([label, url]) => <a key={label} className="btn small" href={url} target="_blank" rel="noreferrer">{label}</a>)}
+            </div>
+          )}
         </div>
-      </div>
+      )}
       <div className="blk-title" style={{ padding: '0 10px' }}>{t('Join requests')}</div>
-      {[['Ola', 'wants to join your picnic', 'accept'], ['Kamil', 'wants to join your run', 'accept']].map(([n, what], i) => (
-        <div className="sp-row" key={i}><span className="av" style={{ background: AV[i] }}>{n[0]}</span><span><div className="t">{n}</div><div className="s">{t(what)}</div></span>
-          <span className="right" style={{ display: 'flex', gap: 6 }}><button className="btn small primary">{t('Accept')}</button><button className="btn small">{t('Pass')}</button></span></div>
+      {requests.map((r) => (
+        <div className="sp-row" key={r.id}>
+          <span className="av" style={{ background: AV[r.requester.id % AV.length] }}>{r.requester.display_name[0]}</span>
+          <span><div className="t">{r.requester.display_name}</div><div className="s">{t('wants to join · {event}', { event: r.event_title })}</div></span>
+          <span className="right">{fmtWhen(r.starts_at)}</span>
+        </div>
       ))}
+      {!requests.length && <div className="res-empty">{t('No join requests yet.')}</div>}
       <div className="blk-title" style={{ padding: '0 10px', marginTop: 18 }}>{t('Set my location to')}</div>
       <StartPointPicker />
     </Shell>
@@ -99,12 +116,9 @@ export function ProfilePanel() {
 
 export function MessagesPanel() {
   const { t } = useLang()
-  const msgs = [['Ola', 'See you at the boulevards at 18?', '2m'], ['Squad: Jazz Jamboree', 'Marta: I got the tickets 🎷', '1h'], ['Kamil', 'Pace 5:30 ok for you?', '3h'], ['Tomek', 'Board games Friday, bring snacks', 'yday']]
   return (
     <Shell title={t('Messages')} sub={t('Only people you met at an event')}>
-      {msgs.map(([n, text, when], i) => (
-        <div className="sp-row" key={i}><span className="av" style={{ background: AV[i % AV.length] }}>{n[0]}</span><span><div className="t">{n}</div><div className="s">{text}</div></span><span className="right">{when}</span></div>
-      ))}
+      <div className="res-empty">{t('No messages yet. Once someone accepts your join request, you can talk here.')}</div>
     </Shell>
   )
 }

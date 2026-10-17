@@ -29,12 +29,11 @@ def new_event(**over) -> dict:
     return body | over
 
 
-def test_guest_session_can_create(client):
-    r = client.post("/auth/guest", json={})
-    assert r.status_code == 201
-    token = r.json()["access_token"]
-    me = client.get("/me", headers={"Authorization": f"Bearer {token}"}).json()
-    assert me["display_name"] == "Guest"
+def test_creating_needs_a_login(client):
+    r = client.post("/userevents", json=new_event())
+    assert r.status_code == 401
+    assert r.json()["detail"] == "Login required"
+    assert client.post("/auth/guest", json={}).status_code == 404  # no anonymous accounts
 
 
 def test_public_event_goes_onto_syrenka_users(client):
