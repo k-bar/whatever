@@ -46,8 +46,9 @@ export function PinMenu({ counts, cityCounts }) {
                 </button>
               )
             })}
-            {/* Warsaw open data: off by default, fetched the first time they're switched on */}
+            {/* Warsaw open data, fetched the first time it's needed; toilets / AEDs only along your route */}
             <div className="pm-title pm-sub">{t('In the city')}</div>
+            <div className="pm-hint">{t('Toilets and defibrillators show up within 600 m of the route you\'re walking.')}</div>
             {CITY_LAYERS.map((l) => {
               const on = Boolean(values[l.param])
               return (

@@ -418,4 +418,7 @@ export const PL = {
   'Settings': 'Ustawienia',
   'Data sources and the map key': 'Źródła danych i legenda mapy',
   'Places and events you starred': 'Miejsca i wydarzenia z gwiazdką',
+  'Toilets and defibrillators show up within 600 m of the route you\'re walking.': 'Toalety i defibrylatory pojawiają się w promieniu 600 m od trasy, którą idziesz.',
+  'Map: toilets near your route': 'Mapa: toalety przy trasie',
+  'Map: defibrillators (AED) near your route': 'Mapa: defibrylatory (AED) przy trasie',
 }

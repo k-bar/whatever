@@ -98,9 +98,10 @@ export const SECTIONS = [
       { id: 'pinSights', label: 'Pins: Sights', type: 'toggle', default: true },
       { id: 'pinMusic', label: 'Pins: Music', type: 'toggle', default: true },
       { id: 'pinFood', label: 'Pins: Food', type: 'toggle', default: true },
-      // "In the city" layers in the same pin box (components/cityLayers.js); off until asked for
-      { id: 'showToilets', label: 'Map: toilets', type: 'toggle', default: false },
-      { id: 'showAed', label: 'Map: defibrillators (AED)', type: 'toggle', default: false },
+      // "In the city" layers in the same pin box (components/cityLayers.js). Toilets and AEDs only ever
+      // show within 600 m of the route you're walking, so they're on; walking routes stay off until asked for
+      { id: 'showToilets', label: 'Map: toilets near your route', type: 'toggle', default: true },
+      { id: 'showAed', label: 'Map: defibrillators (AED) near your route', type: 'toggle', default: true },
       { id: 'showWalks', label: 'Map: walking routes', type: 'toggle', default: false },
       { id: 'showEvents', label: 'Show events', type: 'toggle', default: true },
       { id: 'showPlaces', label: 'Show venues', type: 'toggle', default: true },
