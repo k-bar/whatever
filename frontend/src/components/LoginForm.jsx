@@ -4,9 +4,10 @@ import { useLang } from '../i18n'
 
 /**
  * Log in / sign up (POST /auth/login, /auth/register). On success the token is stored and
- * onDone() runs; everything listening to onAuthChange() updates too.
+ * onDone() runs; everything listening to onAuthChange() updates too. `compact`: placeholders instead of
+ * labels (the small card under the top-right "Log in" button).
  */
-export function LoginForm({ onDone, intro }) {
+export function LoginForm({ onDone, intro, compact = false }) {
   const { t } = useLang()
   const [mode, setMode] = useState('login') // 'login' | 'register'
   const [name, setName] = useState('')
@@ -32,21 +33,21 @@ export function LoginForm({ onDone, intro }) {
   }
 
   return (
-    <form className="login-form" onSubmit={submit}>
+    <form className={`login-form ${compact ? 'compact' : ''}`} onSubmit={submit}>
       {intro && <p className="login-intro">{intro}</p>}
       {signup && (
         <label className="ce-field">
-          <span className="ce-label">{t('Your name')}</span>
-          <input className="ce-input" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="name" autoFocus />
+          {!compact && <span className="ce-label">{t('Your name')}</span>}
+          <input className="ce-input" placeholder={compact ? t('Your name') : undefined} value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="name" autoFocus />
         </label>
       )}
       <label className="ce-field">
-        <span className="ce-label">{t('Email')}</span>
-        <input className="ce-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" autoFocus={!signup} />
+        {!compact && <span className="ce-label">{t('Email')}</span>}
+        <input className="ce-input" placeholder={compact ? t('Email') : undefined} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" autoFocus={!signup} />
       </label>
       <label className="ce-field">
-        <span className="ce-label">{t('Password')}</span>
-        <input className="ce-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={signup ? 'new-password' : 'current-password'} />
+        {!compact && <span className="ce-label">{t('Password')}</span>}
+        <input className="ce-input" placeholder={compact ? t('Password') : undefined} type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={signup ? 'new-password' : 'current-password'} />
         {signup && <small className="login-note">{t('At least 8 characters')}</small>}
       </label>
       {error && <div className="ce-error" role="alert">{error}</div>}

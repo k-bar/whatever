@@ -13,7 +13,7 @@ export const fromYmd = (s) => { const [y, m, d] = s.split('-').map(Number); retu
 export const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d }
 
 /** "sob., 18 paź" / "Sat 18 Oct": short day label in the UI language. */
-export const fmtDay = (d) => d.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' })
+export const fmtDay = (d) => { const s = d.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' }); return s[0].toUpperCase() + s.slice(1) }
 
 /**
  * The app's calendar (react-day-picker, restyled in global.css under .syr-cal): Monday first,

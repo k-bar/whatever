@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import { categoryColor, categoryLabel } from '../data/categories'
@@ -6,7 +6,7 @@ import { useLang } from '../i18n'
 import { pickSelects, secureImage } from '../landing/selects'
 import { fmtWhen } from '../mapboxes/curate'
 import { Brand } from './Brand'
-import { Search } from './Icons'
+import { LandingSearch } from './LandingSearch'
 import { FlagPL, FlagUK } from './LangSwitch'
 
 const CHIPS = [
@@ -23,12 +23,9 @@ const CHIPS = [
 export function Landing({ features, onEnter }) {
   const { t, lang, setLang } = useLang()
   const spring = useSpring()
-  const [q, setQ] = useState('')
   const scroller = useRef(null)
   const selects = useMemo(() => pickSelects(features), [features])
   const loading = !features
-
-  const submit = (e) => { e?.preventDefault(); onEnter({ q }) }
 
   return (
     <motion.div className="landing" ref={scroller} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.65, ease: 'easeInOut' } }}>
@@ -50,10 +47,7 @@ export function Landing({ features, onEnter }) {
           <motion.h1 initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -24 }} transition={{ ...spring, delay: 0.05 }}>
             {t("What's the plan in Warsaw today?")}
           </motion.h1>
-          <motion.form className="hero-search surface" layoutId="search-pill" onSubmit={submit} transition={spring}>
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("What's the plan today?")} aria-label={t('Search')} autoFocus />
-            <button type="submit" className="hero-go" aria-label={t('Search')}><Search size={22} /></button>
-          </motion.form>
+          <LandingSearch layoutId="search-pill" features={features} onSearch={onEnter} />
           <motion.div className="hero-chips" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ ...spring, delay: 0.12 }}>
             {CHIPS.map((c, i) => (
               <button key={c.label} className={`hero-chip ${i % 2 ? 'warm' : 'cool'}`} onClick={() => onEnter({ window: c.window, category: c.category, label: t(c.label) })}>{t(c.label)}</button>

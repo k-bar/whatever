@@ -6,6 +6,7 @@ import { AUDIENCES, EVENT_TYPES, categoryColor } from '../data/categories'
 import { CloseButton } from './CloseButton'
 import { Check, Globe, Lock, Photo, Pin, UserCheck, Users } from './Icons'
 import { LoginForm } from './LoginForm'
+import { DateField } from './Calendar'
 import { getLang, useLang } from '../i18n'
 
 const AUDIENCE_ICON = { public: Globe, public_confirm: UserCheck, friends: Users, invite: Lock }
@@ -132,7 +133,7 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
         <div className="ce-field">
           <span className="ce-label">{t('Date')}</span>
           <div className="ce-row">
-            <input className="ce-input" type="date" value={form.date} min={ymd(new Date())} onChange={set('date')} aria-label={t('Date')} />
+            <DateField value={form.date} onChange={set('date')} label={t('Date')} />
             <input className="ce-input ce-time" type="time" value={form.start} onChange={set('start')} aria-label={t('Starts')} />
             <span className="ce-dash">–</span>
             <input className="ce-input ce-time" type="time" value={form.end} onChange={set('end')} aria-label={t('Ends (optional)')} />

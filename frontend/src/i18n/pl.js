@@ -268,4 +268,14 @@ export const PL = {
   'Polish': 'polski',
   'English': 'angielski',
   'another language': 'inny język',
+
+  // start page search + account
+  'When': 'Kiedy',
+  'Where': 'Gdzie',
+  'Any time': 'Kiedykolwiek',
+  'Anywhere': 'Gdziekolwiek',
+  'Next 7 days': 'Najbliższe 7 dni',
+  'District': 'Dzielnica',
+  'Venue': 'Lokal',
+  'Address': 'Adres',
 }

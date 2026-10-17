@@ -20,7 +20,9 @@ import { FavouritesPanel, MessagesPanel, ProfilePanel, SlideOver, SourcesPanel }
 import { Landing } from './components/Landing'
 import { SelectsRail } from './components/SelectsRail'
 import { CreateEventPanel } from './components/CreateEventPanel'
+import { AccountButton } from './components/AccountButton'
 import { AUDIENCES } from './data/categories'
+import { landingSearch, windowFor } from './landing/search'
 
 /** Map controls arrive part by part after the start page, never all at once. */
 const Stage = ({ delay = 0, children }) => (
@@ -139,11 +141,14 @@ export default function App() {
     const r = await runSearch(mode, q, featureList, opts)
     setSearching(false)
     if (mode === 'assistant') { setChat((c) => [...c, { role: 'assistant', text: r.answer, results: r.results }]) } else { setResults({ mode, q, ...r }); if (mobile) setSheet('results') }
-    if (r.results?.length && r.results.length <= 40) {
-      const m = mapRef.current?.getMap()
-      const b = r.results.reduce((acc, f) => { const [x, y] = f.geometry.coordinates; return [Math.min(acc[0], x), Math.min(acc[1], y), Math.max(acc[2], x), Math.max(acc[3], y)] }, [999, 999, -999, -999])
-      m?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 100, bottom: window.innerHeight * 0.5, left: 30, right: 30 } : { top: 100, bottom: 100, left: 620, right: 380 }, maxZoom: 15, duration: 900 })
-    }
+    if (r.results?.length && r.results.length <= 40) fitResults(r.results)
+  }
+  const fitResults = (list) => {
+    const pts = list.slice(0, 40).map((f) => f.geometry?.coordinates).filter(Boolean)
+    if (!pts.length) return
+    const m = mapRef.current?.getMap()
+    const b = pts.reduce((acc, [x, y]) => [Math.min(acc[0], x), Math.min(acc[1], y), Math.max(acc[2], x), Math.max(acc[3], y)], [999, 999, -999, -999])
+    m?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 100, bottom: window.innerHeight * 0.5, left: 30, right: 30 } : { top: 100, bottom: 100, left: 620, right: 380 }, maxZoom: 15, duration: 900 })
   }
 
   // the map shows only favourite spots while that section of the slide-over is open
@@ -166,17 +171,27 @@ export default function App() {
   }
 
   // ---------- start page <-> map ----------
-  const enterMap = ({ q = '', window, category, label, feature } = {}) => {
-    setEntryQuery(category ? label : q)
+  const enterMap = ({ q = '', window, category, label, feature, when, where, summary } = {}) => {
+    setEntryQuery(category ? label : summary || q)
     setView('map')
     if (window) set('timeWindow', window)
+    if (when) set('timeWindow', windowFor(when))
     // act once the search pill has landed in its corner, so the scene improves instead of jumping
     setTimeout(() => {
       if (feature) openBox(feature)
       else if (category) onSearch('events', label || category, { category })
+      else if (when || where) showLandingSearch({ q, when, where, summary })
       else if (q.trim()) onSearch('search', q)
       else mapRef.current?.home()
     }, 520)
+  }
+  // start page "what · when · where": filter the loaded pins, list them, frame them on the map
+  const showLandingSearch = ({ q, when, where, summary }) => {
+    const list = landingSearch({ q, when, where }, featureList)
+    setResults({ mode: when ? 'events' : 'search', q: summary, results: list })
+    if (mobile) setSheet('results')
+    if (list.length) fitResults(list)
+    else if (where?.lngLat) mapRef.current?.getMap()?.flyTo({ center: where.lngLat, zoom: 15, duration: 1100 })
   }
   // Escape closes the topmost thing: create panel, then slide-over, then the newest map box / results
   useEffect(() => {
@@ -191,6 +206,8 @@ export default function App() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   })
+  // the account pill (top right, everywhere) opens the profile section of the slide-over
+  const openProfile = () => { setDraftPin(null); if (view !== 'map') setView('map'); setFavOnly(false); setPanel('profile') }
   const goHome = () => { closePanel(); setDraftPin(null); setResults(null); setSheet(null); setView('landing') }
 
   const pickResult = (f) => { openBox(f); if (mobile) setSheet('box') }
@@ -274,6 +291,8 @@ export default function App() {
       <AnimatePresence>
         {view === 'map' && draftPin && <CreateEventPanel key="create" pin={draftPin} onClose={() => setDraftPin(null)} onCreated={onCreated} />}
       </AnimatePresence>
+
+      <AccountButton view={view} onProfile={openProfile} />
 
       {mobile && <BottomSheet open={!!sheet && !!sheetContent} onClose={() => setSheet(null)} initial="half">{sheetContent}</BottomSheet>}
 
