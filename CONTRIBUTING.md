@@ -7,11 +7,12 @@
 | `backend/app/ingest/sources/` | Kamil (@kdzwigal) | One file per data source: fetch records, turn them into `RawEvent`s |
 | `backend/` (everything else) | @JustCodeMeV | Database, loading, API |
 | `frontend/` | Philip (@philpiano) | The map UI |
+| `infra/` | @JustCodeMeV | AWS (CDK, Python): RDS Postgres, API + ingest Lambdas, deploy role |
 | `backend/db/` | Mateusz (@Informatyczek) | `fetch_data.py`: original Warsaw Open Data → SQLite script (ported to `sources/warsaw_open_data.py`); local `events.db`, `sport.db`, `apiKey.txt` live here (gitignored) |
 
 ```
-fetchers (sources/*.py) ── list[RawEvent] ──> ingest/run.py ──> Postgres ──> FastAPI ──> UI
-                    GitHub Actions "Ingest" runs this every hour
+fetchers (sources/*.py) ── list[RawEvent] ──> ingest/run.py ──> RDS Postgres ──> FastAPI ──> UI
+            "Ingest" Lambda runs this every hour      (AWS eu-north-1)   "Api" Lambda
 ```
 
 ## Everyday flow
@@ -20,7 +21,7 @@ fetchers (sources/*.py) ── list[RawEvent] ──> ingest/run.py ──> Post
 2. Branch: `git switch -c <name>/<topic>`, e.g. `kamil/meetup-source`
 3. Commit, push, open a PR to `master`. The template asks three questions.
 4. CI runs. Wait for **ci-ok** to go green. CODEOWNERS asks the right person to review.
-5. Merge. Render redeploys the API automatically.
+5. Merge. The **Deploy** workflow ships the API to AWS once CI passes on `master`.
 
 Never commit `.env`, `apiKey.txt`, tokens or `*.db` files. CI runs gitleaks and fails the PR if it finds a secret.
 
@@ -63,4 +64,16 @@ Rules for `RawEvent`:
 
 ## Running ingestion by hand
 
-GitHub → Actions → **Ingest** → Run workflow. Or: `gh workflow run ingest.yml -f source=warsaw_events`.
+Needs AWS access to account 015454941566 (ask @JustCodeMeV):
+
+```bash
+aws lambda invoke --function-name "$(aws cloudformation describe-stacks --stack-name WarszawaLiveApp \
+  --query "Stacks[0].Outputs[?OutputKey=='IngestFunctionName'].OutputValue" --output text)" \
+  --payload '{"source":"warsaw_events","geocode_limit":50}' --cli-binary-format raw-in-base64-out /dev/stdout
+```
+
+Results show up in `GET /sources` and in the function's CloudWatch logs.
+
+## Deploying by hand
+
+`infra/deploy.sh` builds the Lambda bundle (no Docker), runs `cdk deploy --all` and applies migrations.

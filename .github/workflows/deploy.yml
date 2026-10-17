@@ -1,0 +1,38 @@
+# Deploys to AWS (eu-north-1) after CI passes on master. Auth: GitHub OIDC -> IAM role, no stored keys.
+# The role (infra/stacks/ci_stack.py) only trusts the master branch of k-bar/whatever.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [master]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # OIDC token for AWS
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::015454941566:role/warszawa-live-github-deploy
+          aws-region: eu-north-1
+      - name: Deploy app (DB and CI stacks change rarely; deploy those by hand)
+        run: infra/deploy.sh WarszawaLiveApp
