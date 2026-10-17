@@ -75,7 +75,7 @@ export const SECTIONS = [
       { id: 'cityBoundary', label: 'City boundary line', type: 'toggle', default: true },
       { id: 'busyAreas', label: 'Busy areas (golden outlines)', type: 'toggle', default: true },
       { id: 'showMe', label: 'My position (IP based)', type: 'toggle', default: true },
-      { id: 'meStyle', label: 'My position marker', type: 'select', default: 'person', options: [
+      { id: 'meStyle', label: 'My position marker', type: 'select', default: 'syrenka', options: [
         { value: 'person', label: 'Pin with a person' }, { value: 'tag', label: 'Pin + "You are here" tag' },
         { value: 'syrenka', label: 'Syrenka pin' }, { value: 'avatar', label: 'Round avatar' },
         { value: 'dot', label: 'Dot with halo' }, { value: 'classic', label: 'Classic blue pin' }] },
