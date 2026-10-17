@@ -7,7 +7,7 @@ import {
 } from '../data/api'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { fmtWhenFor } from '../mapboxes/curate'
-import { useLang } from '../i18n'
+import { locale, useLang } from '../i18n'
 import { Check, ChevronL, Photo, Pin, Plus, Search, UserCheck, X } from './Icons'
 import { LoginForm } from './LoginForm'
 
@@ -116,6 +116,8 @@ function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, featu
         </div>
       )}
 
+      {isMe && <PersonalDetails gender={p.gender} />}
+
       {p.can_see_events ? (
         <>
           <div className="pp-tabs" role="tablist">
@@ -129,6 +131,35 @@ function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, featu
         <div className="res-empty">{t('Become friends to see the events {name} goes to.', { name: p.display_name })}</div>
       )}
     </>
+  )
+}
+
+/**
+ * My details, laid out like a row of backend/db/people.db (table ludzie): first / last name, age,
+ * gender, email, member since. Only on my own profile; fields /me does not return yet show "—".
+ */
+function PersonalDetails({ gender }) {
+  const { t } = useLang()
+  const [me, setMe] = useState(null)
+  useEffect(() => { fetchMe().then(setMe) }, [])
+  if (!me) return null
+  const [first, ...rest] = (me.display_name || '').split(' ')
+  const sex = me.gender ?? gender
+  const rows = [
+    ['First name', me.first_name ?? first],
+    ['Last name', me.second_name ?? rest.join(' ')],
+    ['Age', me.age],
+    ['Gender', sex && t({ f: 'Woman', m: 'Man', kobieta: 'Woman', 'mężczyzna': 'Man' }[sex] || sex)],
+    ['Email', me.email],
+    ['Member since', me.created_at && new Date(me.created_at).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' })],
+  ]
+  return (
+    <div className="pp-details">
+      <span className="lbl">{t('Personal details')}</span>
+      <dl>
+        {rows.map(([label, value]) => <div key={label}><dt>{t(label)}</dt><dd>{value || value === 0 ? value : '—'}</dd></div>)}
+      </dl>
+    </div>
   )
 }
 
