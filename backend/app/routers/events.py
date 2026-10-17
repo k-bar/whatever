@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from app import translate, userevents
 from app.auth import get_current_user
 from app.categories import AMENITIES, CATEGORIES
 from app.db import get_db
@@ -50,12 +51,28 @@ def attendance_counts():
     )
 
 
+LANG = Query(None, pattern="^(pl|en)$", description="title and lead in this language when translated")
+
+
+def localize(props: dict, event: Event, lang: str | None) -> None:
+    """?lang=pl|en: title and description in that language (offline model, app/translate.py); original alongside."""
+    i18n = event.i18n or {}
+    if not lang or lang not in i18n or i18n.get("for") != translate.source_text(event):
+        return  # not translated yet, or the text changed since: serve the original
+    props["original"] = {"lang": i18n["orig"], "title": event.title, "lead": event.lead}
+    props["translated"] = i18n["orig"] != lang
+    props["title"] = i18n[lang]["title"]
+    if event.lead:
+        props["lead"] = i18n[lang]["lead"]
+
+
 def feature(
     event: Event,
     occ: Occurrence | None,
     attendees: int = 0,
     wanting: int = 0,
     distance_m: float | None = None,
+    lang: str | None = None,
 ) -> GeoJSONFeature:
     props = {
         "event_id": event.id,
@@ -83,8 +100,11 @@ def feature(
         }
     if event.opening_hours is not None:
         props["opening_hours"] = event.opening_hours
+    if event.source.slug == userevents.SOURCE_SLUG and event.raw:
+        props |= event.raw  # subtitle, audience, event_type, host (see app/userevents)
     if distance_m is not None:
         props["distance_m"] = round(distance_m)
+    localize(props, event, lang)
     geometry = {"type": "Point", "coordinates": [event.lng, event.lat]} if event.lat is not None else None
     return GeoJSONFeature(id=occ.id if occ is not None else event.id, geometry=geometry, properties=props)
 
@@ -115,6 +135,7 @@ def list_events(
     q: str | None = Query(None, max_length=100),
     include_unlocated: bool = Query(False, description="also return events with geometry=null"),
     limit: int = Query(500, ge=1, le=MAX_FEATURES),
+    lang: str | None = LANG,
     db: Session = Depends(get_db),
 ):
     """Map data: one GeoJSON feature per occurrence that overlaps [from, to]."""
@@ -137,7 +158,7 @@ def list_events(
     )
     stmt = event_filters(stmt, parse_bbox(bbox), category, kind, q, include_unlocated)
     rows = db.execute(stmt).all()
-    return FeatureCollection(features=[feature(e, o, a, w) for e, o, a, w in rows])
+    return FeatureCollection(features=[feature(e, o, a, w, lang=lang) for e, o, a, w in rows])
 
 
 @router.get("/events/now", response_model=FeatureCollection)
@@ -146,6 +167,7 @@ def events_now(
     lng: float = Query(..., ge=20.7, le=21.4),
     radius_m: int = Query(3000, ge=100, le=30000),
     hours: int = Query(3, ge=1, le=12),
+    lang: str | None = LANG,
     db: Session = Depends(get_db),
 ):
     """'Right now': occurrences starting within the next few hours, nearest first."""
@@ -173,7 +195,7 @@ def events_now(
         .limit(200)
     )
     rows = db.execute(stmt).all()
-    return FeatureCollection(features=[feature(e, o, a, w, d) for e, o, a, w, d in rows])
+    return FeatureCollection(features=[feature(e, o, a, w, d, lang=lang) for e, o, a, w, d in rows])
 
 
 def is_open(hours: str | None, at: datetime) -> bool:
@@ -197,6 +219,7 @@ def list_places(
     q: str | None = Query(None, max_length=100),
     open_now: bool = False,
     include_unlocated: bool = True,
+    lang: str | None = LANG,
     db: Session = Depends(get_db),
 ):
     """Places with opening hours instead of dates (open school pitches, toilets, defibrillators)."""
@@ -211,7 +234,7 @@ def list_places(
         now = datetime.now(WARSAW)
         day = now.strftime("%A").lower()
         places = [p for p in places if is_open((p.opening_hours or {}).get(day), now)]
-    return FeatureCollection(features=[feature(p, None) for p in places])
+    return FeatureCollection(features=[feature(p, None, lang=lang) for p in places])
 
 
 def event_out(db: Session, event: Event, upcoming_only: bool = True) -> EventOut:
