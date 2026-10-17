@@ -416,13 +416,36 @@ h2 { font-size: var(--titleSize); }
 .typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
 @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
 
-.me-marker { position: relative; width: 44px; height: 44px; pointer-events: none; }
-.me-marker .ring { position: absolute; inset: 0; border-radius: 50%; background: rgba(79,179,255,.35); animation: me-pulse 2.6s ease-out infinite; }
+/* "you are here" (components/meMarker.js; look picked in the editor: Map design -> My position marker) */
+.me-marker { --me-c: var(--accent); position: relative; width: 44px; height: 44px; pointer-events: none; }
+.me-marker.me-classic { --me-c: #4fb3ff; }
+.me-marker .ring { position: absolute; inset: 0; border-radius: 50%; background: color-mix(in srgb, var(--me-c) 35%, transparent); animation: me-pulse 2.6s ease-out infinite; }
 .me-marker .ring.r2 { animation-delay: 1.3s; }
 @keyframes me-pulse { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(4.2); opacity: 0; } }
 /* the pin's tip sits exactly on the position (marker centre); a soft shadow where it touches the map */
 .me-marker .ground { position: absolute; left: 50%; top: 50%; width: 16px; height: 6px; margin: -3px 0 0 -8px; border-radius: 50%; background: rgba(20,60,100,.28); filter: blur(1px); }
 .me-marker .pin { position: absolute; left: 50%; bottom: 50%; width: 33px; height: 44px; transform: translateX(-50%); filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
+.me-marker:not(.me-classic) .ring { inset: 9px; }
+/* teardrop like the start page's people bubbles: accent body, white rim, white face */
+.me-pin { position: absolute; left: 50%; bottom: 50%; width: 40px; height: 52px; transform: translateX(-50%); filter: drop-shadow(0 3px 4px rgba(0,0,0,.28)); }
+.me-shape { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.me-shape path { fill: var(--me-c); stroke: #fff; stroke-width: 2.5; }
+.me-marker .me-face { position: absolute; display: grid; place-items: center; overflow: hidden; border-radius: 50%; background: #fff; color: var(--me-c); }
+.me-pin .me-face { left: 17.5%; top: 13.5%; width: 65%; height: 50%; }
+.me-face svg { width: 80%; height: 80%; margin-top: 26%; fill: currentColor; }
+.me-face img { width: 86%; height: 86%; object-fit: contain; }
+.me-syrenka .me-shape path { fill: #fff; stroke: var(--me-c); stroke-width: 3; }
+.me-syrenka .me-face { background: none; }
+/* white tag beside the pin, like the bubbles' name tiles */
+.me-label { position: absolute; left: calc(50% + 23px); bottom: calc(50% + 26px); white-space: nowrap; padding: 4px 8px; border-radius: 9px; background: #fff; color: var(--fg, #111); font-size: 12px; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+.me-label::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--me-c); vertical-align: 1px; }
+/* round avatar sitting on the spot */
+.me-avatar .me-face { inset: 6px; border: 3px solid var(--me-c); box-shadow: 0 0 0 2px #fff, 0 3px 8px rgba(0,0,0,.28); }
+.me-avatar .me-face svg { width: 74%; height: 74%; margin-top: 30%; }
+.me-marker .halo { position: absolute; inset: -14px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--me-c) 30%, transparent) 0 40%, transparent 70%); animation: me-breathe 3.2s ease-in-out infinite; }
+@keyframes me-breathe { 0%, 100% { transform: scale(.8); opacity: .7; } 50% { transform: scale(1.15); opacity: 1; } }
+/* small dot, thick white rim */
+.me-spot { position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--me-c); border: 3.5px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
 
 .journey { display: flex; align-items: center; gap: 14px; padding: 10px 12px; border-radius: calc(var(--radius) - 8px); background: color-mix(in srgb, #4fb3ff 12%, transparent); font-weight: 700; font-size: 13.5px; }
 .journey .j { display: inline-flex; align-items: center; gap: 6px; }
@@ -1030,3 +1053,4 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .close-all { position: fixed; top: 66px; right: 16px; z-index: 89; padding: 5px 12px; border-radius: 999px; background: var(--surface-solid); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--fg-2); transition: opacity .2s, color .15s, transform .15s; }
 .close-all:hover { color: var(--fg); transform: translateY(-1px); }
 .close-all.idle { opacity: .55; }
+.pm-title.pm-sub { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); } /* "In the city" section of the pin box */

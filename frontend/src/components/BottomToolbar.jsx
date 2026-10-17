@@ -8,7 +8,7 @@ import { PinMenu } from './PinMenu'
 const WINDOWS = [['today', 'Today'], ['weekend', 'Weekend'], ['week', 'Week'], ['month', 'Month']]
 
 /** Centred, symmetrical: [pins] [busy areas] | [-] [home] [+] | [dark] [Today·Weekend·Week·Month] | [language] */
-export function BottomToolbar({ busy, onBusy, onZoom, onHome, pinCounts }) {
+export function BottomToolbar({ busy, onBusy, onZoom, onHome, pinCounts, cityCounts }) {
   const { values, set } = useConfig()
   const spring = useSpring()
   const { t } = useLang()
@@ -17,7 +17,7 @@ export function BottomToolbar({ busy, onBusy, onZoom, onHome, pinCounts }) {
   return (
     <motion.div className="toolbar-wrap" initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ ...spring, delay: 0.2 }}>
       <div className="toolbar surface">
-        <PinMenu counts={pinCounts} />
+        <PinMenu counts={pinCounts} cityCounts={cityCounts} />
         <button className={`tb busy ${busy ? 'on' : ''}`} onClick={onBusy} title={t('Busy areas')}><Flame size={20} /><small>{t('Busy')}</small></button>
         <span className="sep" />
         <button className="tb" onClick={() => onZoom(-1)} title={t('Zoom out')}><Minus size={20} /><small>{t('Out')}</small></button>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from '../config/store'
 import { PIN_GROUPS } from '../data/pinGroups'
+import { CITY_LAYERS } from './cityLayers'
 import { useLang } from '../i18n'
 import { Pin } from './Icons'
 
@@ -10,7 +11,7 @@ import { Pin } from './Icons'
  * Tap a row to switch that kind on or off; tap outside the box or the pin button again to close it.
  * The badge on the button says how many kinds are on when some are switched off.
  */
-export function PinMenu({ counts }) {
+export function PinMenu({ counts, cityCounts }) {
   const { values, set } = useConfig()
   const { t } = useLang()
   const spring = useSpring()
@@ -41,6 +42,19 @@ export function PinMenu({ counts }) {
                   <span className="pm-emoji" aria-hidden="true">{g.emoji}</span>
                   <span className="pm-label">{t(g.label)}</span>
                   <span className="pm-count">{counts?.[g.id] ?? ''}</span>
+                  <span className={`ctl-toggle ${on ? 'on' : ''}`} aria-hidden="true"><span className="ctl-knob" /></span>
+                </button>
+              )
+            })}
+            {/* Warsaw open data: off by default, fetched the first time they're switched on */}
+            <div className="pm-title pm-sub">{t('In the city')}</div>
+            {CITY_LAYERS.map((l) => {
+              const on = Boolean(values[l.param])
+              return (
+                <button key={l.id} role="menuitemcheckbox" aria-checked={on} className={`pm-opt ${on ? 'on' : ''}`} onClick={() => set(l.param, !on)}>
+                  <span className="pm-emoji" aria-hidden="true">{l.emoji}</span>
+                  <span className="pm-label">{t(l.label)}</span>
+                  <span className="pm-count">{cityCounts?.[l.id] ?? ''}</span>
                   <span className={`ctl-toggle ${on ? 'on' : ''}`} aria-hidden="true"><span className="ctl-knob" /></span>
                 </button>
               )
