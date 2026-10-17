@@ -58,6 +58,9 @@ class ProfileIn(BaseModel):
     display_name: str | None = Field(None, min_length=1, max_length=80)
     username: str | None = Field(None, max_length=31)  # checked in app/usernames.py; 409 when taken
     gender: Literal["f", "m", ""] | None = None  # "" clears it
+    first_name: str | None = Field(None, max_length=40)  # null or "" clears these three
+    last_name: str | None = Field(None, max_length=60)
+    age: int | None = Field(None, ge=13, le=120)
     hangouts: list[Hangout] | None = Field(None, max_length=5)
     bio: str | None = Field(None, max_length=2000)
     photos: list[PhotoRef] | None = Field(None, max_length=10)  # photos[0] is the profile picture
@@ -86,6 +89,9 @@ class ContactUser(PublicUser):
 
 class Me(ContactUser):
     email: str
+    first_name: str | None
+    last_name: str | None
+    age: int | None
     created_at: datetime
     favourite_ids: list[int]
 
