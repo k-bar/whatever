@@ -35,7 +35,10 @@ export const Database = (p) => <S {...p}><ellipse cx="12" cy="5.5" rx="8" ry="3"
 export const Check = (p) => <S {...p}><path d="m5 12 5 5L20 7" /></S>
 export const Ticket = (p) => <S {...p}><path d="M3 9a2 2 0 0 0 0 6v3h18v-3a2 2 0 0 1 0-6V6H3Z" /><path d="M13 6v12" strokeDasharray="2 2" /></S>
 
-export const Undo = (p) => <S {...p}><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" /></S>
+export const Expand = (p) => <S {...p}><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" /></S>
+export const Shrink = (p) => <S {...p}><path d="M20 10h-6V4M4 14h6v6M14 10l7-7M10 14l-7 7" /></S>
+
+export const Undo =(p) => <S {...p}><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" /></S>
 export const Redo = (p) => <S {...p}><path d="m15 14 5-5-5-5" /><path d="M20 9H10a6 6 0 0 0 0 12h3" /></S>
 export const Walk = (p) => <S {...p}><circle cx="13" cy="4" r="1.8" /><path d="M10 21l2-6 3 2 1 4" /><path d="M9 12l2-4 3 1 2 3h2" /><path d="M11 8 8 13" /></S>
 export const Bike = (p) => <S {...p}><circle cx="5.5" cy="17" r="3.5" /><circle cx="18.5" cy="17" r="3.5" /><path d="M5.5 17 10 9h5l3.5 8" /><path d="M10 9l3 8" /><path d="M13 6h3" /></S>
@@ -47,3 +50,7 @@ export const FACT_ICON = { clock: Clock, pin: Pin, map: MapIcon, repeat: Repeat,
 export const Mermaid = ({ size = 26, className }) => (
   <img src={mermaidSvg} width={size} height={size} alt="Warsaw mermaid" className={className} draggable={false} />
 )
+export const Globe = (p) => <S {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></S>
+export const UserCheck = (p) => <S {...p}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><path d="m16 11 2 2 4-4" /></S>
+export const Lock = (p) => <S {...p}><rect x="5" y="11" width="14" height="10" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></S>
+export const Photo = (p) => <S {...p}><rect x="3" y="5" width="18" height="15" rx="3" /><circle cx="9" cy="10.5" r="1.8" /><path d="m21 16-5-5-9 9" /></S>

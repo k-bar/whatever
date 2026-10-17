@@ -51,7 +51,7 @@ export const SECTIONS = [
       { id: 'searchWidth', label: 'Search bar width', type: 'range', min: 380, max: 780, step: 10, unit: 'px', default: 560 },
       { id: 'searchHeight', label: 'Search bar height', type: 'range', min: 46, max: 72, step: 2, unit: 'px', default: 58 },
       { id: 'searchPanel', label: 'Focus panel (recents / categories / chat)', type: 'toggle', default: true },
-      { id: 'searchPlaceholder', label: 'Placeholder text', type: 'text', default: 'Search Warsaw tonight…' },
+      { id: 'searchPlaceholder', label: 'Placeholder text', type: 'text', default: "What's the plan today?" },
       { id: 'menuStyle', label: 'Burger menu style', type: 'select', default: 'liquid', options: [
         { value: 'liquid', label: 'Liquid glass' }, { value: 'sheet', label: 'Flat sheet' }, { value: 'bubbles', label: 'Bubbles' }] },
     ],
@@ -62,6 +62,8 @@ export const SECTIONS = [
       { id: 'mapPalette', label: 'Map palette', type: 'select', default: 'colour', options: [
         { value: 'colour', label: 'Colour (parks, water, paths)' }, { value: 'grey', label: 'Grey (Positron)' }, { value: 'pastel', label: 'Pastel' }, { value: 'paper', label: 'Warm paper' },
         { value: 'bright', label: 'Bright colours' }, { value: 'liberty', label: 'Liberty' }, { value: 'fiord', label: 'Fiord (blue dark)' }, { value: 'dark', label: 'Dark matter' }] },
+      { id: 'landuse', label: 'Land-use colours (residential, commercial…)', type: 'toggle', default: true },
+      { id: 'landuseLegend', label: 'Land-use key (bottom right)', type: 'toggle', default: true },
       { id: 'streetLabels', label: 'Street names', type: 'select', default: 'normal', options: [
         { value: 'none', label: 'Hidden' }, { value: 'small', label: 'Small' }, { value: 'normal', label: 'Normal' }, { value: 'large', label: 'Large' }] },
       { id: 'poiLabels', label: 'Place labels (POI)', type: 'toggle', default: false },
@@ -119,7 +121,7 @@ export const SECTIONS = [
   {
     id: 'branding', label: 'Branding',
     params: [
-      { id: 'appTitle', label: 'App title', type: 'text', default: 'Warszawa Live' },
+      { id: 'appTitle', label: 'App title', type: 'text', default: 'Syrenka.me' },
       { id: 'showTitle', label: 'Show title under search', type: 'toggle', default: false },
     ],
   },

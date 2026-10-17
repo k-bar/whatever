@@ -26,3 +26,6 @@ backend/db/zdjecia/
 # CDK
 infra/cdk.out/
 infra/*outputs.json
+
+# personal editor / agent config
+.claude/

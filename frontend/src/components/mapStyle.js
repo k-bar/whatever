@@ -38,6 +38,59 @@ const PALETTES = {
 }
 const WATER = { azure: '#7fc4f0', ink: '#1b2a4a', mint: '#9fe3cf' }
 
+// Land use, coloured by OpenMapTiles `landuse.class` (from OpenStreetMap). Positron only paints
+// residential, so on the light positron palettes we draw every class ourselves.
+export const LANDUSE = [
+  { key: 'residential', label: 'Residential', color: '#ece3d6', classes: ['residential', 'garages'] },
+  { key: 'commercial', label: 'Commercial & retail', color: '#f7dccb', classes: ['commercial', 'retail'] },
+  { key: 'industrial', label: 'Industrial & rail', color: '#e3dfeb', classes: ['industrial', 'railway', 'bus_station'] },
+  { key: 'education', label: 'Schools & universities', color: '#f3e8c4', classes: ['school', 'university', 'college', 'kindergarten', 'library'] },
+  { key: 'health', label: 'Hospitals', color: '#f5d8da', classes: ['hospital'] },
+  { key: 'sport', label: 'Sport & stadiums', color: '#cfe9da', classes: ['stadium', 'pitch', 'track', 'playground'] },
+  { key: 'leisure', label: 'Zoo & theme parks', color: '#d8ecc4', classes: ['zoo', 'theme_park'] },
+  { key: 'cemetery', label: 'Cemeteries', color: '#d9e0d1', classes: ['cemetery'] },
+  { key: 'military', label: 'Military', color: '#e2ddd6', classes: ['military'] },
+]
+const LANDUSE_PALETTES = new Set(['colour', 'pastel', 'paper'])
+const RESIDENTIAL = ['residential', 'garages']
+const LANDUSE_HIDDEN_KEY = 'warszawa-live.landuse-hidden.v1'
+let landuseHidden = new Set((() => { try { return JSON.parse(localStorage.getItem(LANDUSE_HIDDEN_KEY) || '[]') } catch { return [] } })())
+
+export const landuseActive = (v) => v.landuse !== false && !v.darkMode && LANDUSE_PALETTES.has(v.mapPalette)
+export const getLanduseHidden = () => new Set(landuseHidden)
+
+function landuseColorExpr() {
+  const m = ['match', ['get', 'class']]
+  for (const c of LANDUSE) if (!landuseHidden.has(c.key)) m.push(c.classes, c.color)
+  return m.length > 2 ? [...m, 'rgba(0,0,0,0)'] : 'rgba(0,0,0,0)'
+}
+
+/** Show/hide land-use classes from the map key (remembered per browser). */
+export function setLanduseHidden(map, hidden) {
+  landuseHidden = new Set(hidden)
+  try { localStorage.setItem(LANDUSE_HIDDEN_KEY, JSON.stringify([...landuseHidden])) } catch { /* private mode */ }
+  for (const id of ['wl-landuse-res', 'wl-landuse']) if (map?.getLayer(id)) map.setPaintProperty(id, 'fill-color', landuseColorExpr())
+}
+
+function applyLanduse(map, v, layers) {
+  const on = landuseActive(v)
+  if (map.getLayer('landuse_residential')) map.setLayoutProperty('landuse_residential', 'visibility', on ? 'none' : 'visible')
+  if (!on) {
+    for (const id of ['wl-landuse', 'wl-landuse-res']) if (map.getLayer(id)) map.removeLayer(id)
+    return
+  }
+  if (!map.getLayer('wl-landuse-res')) {
+    const src = layers.find((l) => l['source-layer'] === 'landuse')?.source || 'openmaptiles'
+    // straight above the background: parks, woods and water still draw on top
+    const beforeId = layers.find((l) => l.type !== 'background')?.id
+    map.addLayer({ id: 'wl-landuse-res', type: 'fill', source: src, 'source-layer': 'landuse',
+      filter: ['in', ['get', 'class'], ['literal', RESIDENTIAL]], paint: { 'fill-opacity': 1 } }, beforeId)
+    map.addLayer({ id: 'wl-landuse', type: 'fill', source: src, 'source-layer': 'landuse',
+      filter: ['!', ['in', ['get', 'class'], ['literal', RESIDENTIAL]]], paint: { 'fill-opacity': 1, 'fill-outline-color': 'rgba(90,80,70,0.12)' } }, beforeId)
+  }
+  for (const id of ['wl-landuse-res', 'wl-landuse']) map.setPaintProperty(id, 'fill-color', landuseColorExpr())
+}
+
 export function applyMapDesign(map, v) {
   if (!map.isStyleLoaded()) return
   const layers = map.getStyle().layers || []
@@ -92,6 +145,8 @@ export function applyMapDesign(map, v) {
     // --- Vistula tint ---
     if (l.type === 'fill' && sl === 'water' && v.waterTint !== 'default') set(() => map.setPaintProperty(l.id, 'fill-color', WATER[v.waterTint]))
   }
+
+  set(() => applyLanduse(map, v, layers))
 
   // --- 3D buildings ---
   if (v.buildings === '3d') {

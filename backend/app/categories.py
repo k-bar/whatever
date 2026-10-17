@@ -56,6 +56,19 @@ LABEL_MAP = {
     "boisko": "sports",
     "toaleta": "toilets",
     "defibrylator": "aed",
+    # OpenStreetMap venue types (app/ingest/sources/osm_venues.py)
+    "osm:theatre": "theatre",
+    "osm:cinema": "film",
+    "osm:arts_centre": "culture",
+    "osm:concert_hall": "music",
+    "osm:music_venue": "music",
+    "osm:events_venue": "culture",
+    "osm:nightclub": "nightlife",
+    "osm:conference_centre": "business",
+    "osm:exhibition_centre": "exhibitions",
+    "osm:stadium": "sports",
+    "osm:museum": "exhibitions",
+    "osm:gallery": "exhibitions",
 }
 
 # Title keywords refine broad labels like "Kultura".

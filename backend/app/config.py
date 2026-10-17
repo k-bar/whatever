@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     # with a Polish IP (X-Relay-Target protocol). Unset = call the API directly.
     warsaw_relay_url: str | None = None
     warsaw_relay_token: str | None = None
+    # Offline PL -> EN model for event titles/descriptions (app/translate.py); downloaded by deploy/deploy.sh.
+    translation_model_dir: str = "/opt/warszawa/models/translate-pl_en-1_9"
     nominatim_user_agent: str = "warszawa-live-hackathon (github.com/k-bar/whatever)"
     db_pool_size: int = 5
     # Postgres schema for this environment ("dev" on the dev box). Tables live there;

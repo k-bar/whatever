@@ -19,6 +19,19 @@ chmod -R a+rX /opt/uv/python
 log "backend: migrations (schema ${DB_SCHEMA:-public})"
 (cd backend && .venv/bin/alembic upgrade head)
 
+# --- offline translation model (app/translate.py): PL -> EN, Argos Translate / OPUS-MT, ~70 MB -----
+MODEL_DIR=/opt/warszawa/models
+if [ ! -f "$MODEL_DIR/translate-pl_en-1_9/model/model.bin" ]; then
+  log "translate: downloading the PL -> EN model"
+  mkdir -p "$MODEL_DIR"
+  tmp=$(mktemp)
+  curl -fsSL https://argos-net.com/v1/translate-pl_en-1_9.argosmodel -o "$tmp"
+  echo "07eda9edbd6ae5121df7c1d7bd847030423269b8c5056f1c222495c4a81e1721  $tmp" | sha256sum -c --quiet
+  "$ROOT/backend/.venv/bin/python" -m zipfile -e "$tmp" "$MODEL_DIR"
+  rm -f "$tmp"
+  chmod -R a+rX "$MODEL_DIR"
+fi
+
 # --- systemd units ----------------------------------------------------------------------------
 for unit in deploy/systemd/*.service deploy/systemd/*.timer; do
   sed -e "s|@ROOT@|$ROOT|g" -e "s|@INGEST_SCHEDULE@|$INGEST_SCHEDULE|g" "$unit" \
