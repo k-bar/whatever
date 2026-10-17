@@ -4,7 +4,7 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.db import engine
-from app.routers import events, map, social, users
+from app.routers import events, map, profiles, social, users
 from app.userevents.router import router as userevents_router
 
 app = FastAPI(
@@ -21,6 +21,7 @@ app.add_middleware(
 app.include_router(events.router)
 app.include_router(users.router)
 app.include_router(social.router)
+app.include_router(profiles.router)
 app.include_router(map.router)
 app.include_router(userevents_router)
 

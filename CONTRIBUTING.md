@@ -98,7 +98,7 @@ The API runs on EC2 next to RDS (`eu-north-1`) and reads the environment's schem
 ## On the box (needs AWS access to account 015454941566, ask @JustCodeMeV)
 
 `deploy/deploy.sh` does everything on each merge: `alembic upgrade head` in the box's schema (including
-Kamil's raw tables from `src/models.py`, migration `0006`), then the systemd units:
+Kamil's raw tables from `src/models.py`, migration `0007`), then the systemd units:
 
 | Unit | What |
 |---|---|
@@ -148,7 +148,7 @@ only open a tunnel through the dev box. Ask @JustCodeMeV to add you to `DEV_DB_U
 Kamil owns the database schema and the data sources; the backend adapts to them. Two places:
 
 - `src/` (Kamil): raw Open Data tables, defined in `src/models.py`. New or changed tables need a backend
-  migration that creates them in the right schema (see `0006_kamil_tables.py`); ping @JustCodeMeV.
+  migration that creates them in the right schema (see `0007_kamil_tables.py`); ping @JustCodeMeV.
 - `backend/app/ingest/sources/`: fetchers that feed `events`. They return RawEvents; they may read
   Kamil's raw tables as a fallback (see `kupbilecik.py`) but never write:
 

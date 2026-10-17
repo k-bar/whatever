@@ -84,9 +84,23 @@ def list_attendees(
 
 @router.get("/me/attending", response_model=list[AttendanceOut])
 def my_attendance(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.scalars(
-        select(Attendance).where(Attendance.user_id == user.id).order_by(Attendance.created_at.desc())
+    rows = db.scalars(
+        select(Attendance)
+        .where(Attendance.user_id == user.id)
+        .options(selectinload(Attendance.occurrence).selectinload(Occurrence.event))
+        .order_by(Attendance.created_at.desc())
     ).all()
+    return [
+        AttendanceOut.model_validate(a).model_copy(
+            update={
+                "event_id": a.occurrence.event_id,
+                "title": a.occurrence.event.title,
+                "starts_at": a.occurrence.starts_at,
+                "ends_at": a.occurrence.ends_at,
+            }
+        )
+        for a in rows
+    ]
 
 
 def join_request_out(jr: JoinRequest, viewer: User) -> JoinRequestOut:

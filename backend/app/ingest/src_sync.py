@@ -2,7 +2,7 @@
 
 src/ is Kamil's code and stays untouched. This launcher only hands it what the box already has:
 - the backend's engine: Secrets Manager credentials and the "<DB_SCHEMA>, public" search_path,
-  so dev writes into the dev schema (the tables come from alembic 0006);
+  so dev writes into the dev schema (the tables come from alembic 0007);
 - a requests.Session that sends dane.um.warszawa.pl calls through the relay (config.py),
   because the API drops connections from AWS IPs.
 

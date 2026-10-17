@@ -4,8 +4,8 @@ Kamil owns these tables: src/models.py is the definition, this migration only cr
 this environment's schema (search_path is "<DB_SCHEMA>, public"), so src/ never lands in public
 by accident. tourist_routes switches from path/points to his traces/tourist_points columns.
 
-Revision ID: 0006
-Revises: 0005
+Revision ID: 0007
+Revises: 0006
 Create Date: 2026-10-17 23:30:00
 
 """
@@ -19,8 +19,8 @@ import geoalchemy2
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0006"
-down_revision: Union[str, Sequence[str], None] = "0005"
+revision: str = "0007"
+down_revision: Union[str, Sequence[str], None] = "0006"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

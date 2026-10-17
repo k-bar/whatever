@@ -1,8 +1,7 @@
 import { locale, translate } from '../i18n'
 /**
  * Map box curation: decide what the small info box shows for a clicked feature.
- * Returns an ordered list of blocks. GET /mapboxes/{id} (backend/UI_CONTRACT.md) is the server-side twin;
- * when it answers (fetchMapbox), its `blocks` replace these.
+ * Returns an ordered list of blocks. Curation is client-side only: the backend has no /mapboxes endpoint.
  *
  * Block types rendered by <MapBox>: posters, hours, pitch, live, social, text, facts, tickets
  */

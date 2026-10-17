@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { assetUrl, fetchJoinRequests, fetchMe, fetchSources } from '../data/api'
-import { categoryColor, categoryLabel } from '../data/categories'
+import { dataStatus, fetchJoinRequests, fetchSources } from '../data/api'
+import { categoryColor } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 import { CloseButton } from './CloseButton'
 import { Brand } from './Brand'
 import { Burger, Expand, Shrink, Star } from './Icons'
 import { MENU_ITEMS } from './SearchBar'
 import { StartPointPicker } from './StartPointPicker'
+import { ProfilePage } from './ProfilePage'
+import { LanduseLegend } from './LanduseLegend'
+import { useConfig } from '../config/store'
+import { DEV_TOOLS } from '../config/env'
 import { locale, useLang } from '../i18n'
 
 const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
@@ -64,41 +68,23 @@ export function SlideOver({ section, onSection, onClose, full, onFull, onHome, m
 }
 
 /** One section's title + scrolling content inside the slide-over. */
-function Shell({ title, sub, children }) {
+function Shell({ title, sub, children, footer }) {
   return (
     <>
       <div className="sp-head"><div><h2>{title}</h2>{sub && <div className="mb-sub">{sub}</div>}</div></div>
       <div className="sp-scroll">{children}</div>
+      {footer && <div className="sp-foot">{footer}</div>}
     </>
   )
 }
 
-export function ProfilePanel() {
+export function ProfilePanel({ features, onPick }) {
   const { t } = useLang()
-  const [me, setMe] = useState(undefined) // undefined = loading, null = no account in this browser yet
   const [requests, setRequests] = useState([])
-  useEffect(() => { fetchMe().then(setMe); fetchJoinRequests().then(setRequests) }, [])
-  const name = me?.display_name || t('Guest')
-  const photo = me?.photos?.[0]
+  useEffect(() => { fetchJoinRequests().then(setRequests) }, [])
   return (
     <Shell title={t('Your profile')} sub={t('What others see when you ask to join')}>
-      {me === undefined && <div className="res-empty">{t('Loading…')}</div>}
-      {me !== undefined && (
-        <div className="profile-hero">
-          <div className="big" style={photo ? { backgroundImage: `url(${assetUrl(photo)})`, backgroundSize: 'cover' } : {}}>{!photo && name[0]}</div>
-          <h2 style={{ fontSize: 22 }}>{name}</h2>
-          {!me && <p className="mb-text" style={{ marginTop: 8 }}>{t('No profile yet. It is created the first time you post an event or ask to join one.')}</p>}
-          {me?.interests?.length > 0 && (
-            <div className="chips">{me.interests.map((c) => <span className="badge" key={c} style={{ background: `color-mix(in srgb, ${categoryColor(c)} 15%, transparent)`, color: categoryColor(c) }}>{categoryLabel(c)}</span>)}</div>
-          )}
-          {me?.bio && <p className="mb-text" style={{ marginTop: 12 }}>{me.bio}</p>}
-          {me?.links && Object.keys(me.links).length > 0 && (
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
-              {Object.entries(me.links).map(([label, url]) => <a key={label} className="btn small" href={url} target="_blank" rel="noreferrer">{label}</a>)}
-            </div>
-          )}
-        </div>
-      )}
+      <ProfilePage features={features} onPick={onPick} />
       <div className="blk-title" style={{ padding: '0 10px' }}>{t('Join requests')}</div>
       {requests.map((r) => (
         <div className="sp-row" key={r.id}>
@@ -142,13 +128,26 @@ export function FavouritesPanel({ features, favourites, onPick }) {
   )
 }
 
-export function SourcesPanel() {
+/** Live / offline status of the API and how many pins are loaded (was the bottom-left map badge). */
+function DataStatus({ pins }) {
   const { t } = useLang()
+  return (
+    <div className={`data-status ${dataStatus.source}`}>
+      <i />{t(dataStatus.source === 'api' ? 'live API' : dataStatus.source === 'offline' ? 'API offline' : 'loading…')} · {pins.toLocaleString(locale())} {t('pins')}
+    </div>
+  )
+}
+
+/** Data sources: where every pin comes from; its footer holds the live status and the map key. */
+export function SourcesPanel({ pins = 0, getMap, mobile }) {
+  const { t } = useLang()
+  const { values } = useConfig()
   const [sources, setSources] = useState([])
   useEffect(() => { fetchSources().then(setSources) }, [])
   const max = Math.max(1, ...sources.map((s) => s.item_count))
   return (
-    <Shell title={t("APIs I'm plugged in to")} sub={t('Where every pin comes from')}>
+    <Shell title={t('Data sources')} sub={t('Where every pin comes from')}
+      footer={<>{DEV_TOOLS && values.apiBadge && <DataStatus pins={pins} />}<LanduseLegend embedded getMap={getMap} mobile={mobile} /></>}>
       {sources.map((s) => (
         <div className="sp-row" key={s.slug} style={{ display: 'block' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
