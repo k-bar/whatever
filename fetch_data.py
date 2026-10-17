@@ -18,6 +18,7 @@ import re
 import sqlite3
 import sys
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 
 API = "https://dane.um.warszawa.pl/api/action/"
@@ -34,23 +35,67 @@ CREATE TABLE IF NOT EXISTS events (
     image_url   TEXT,
     text_html   TEXT,
     text_plain  TEXT,
+    kiedy       TEXT,   -- np. "29.01.2027 19:00–21:00"; najbliższe terminy
+    gdzie       TEXT,   -- np. "OCH-Teatr, ul. Grójecka 65, Ochota"
+    data        TEXT,   -- data najbliższego terminu, YYYY-MM-DD
+    czas        TEXT,   -- godziny najbliższego terminu, np. "19:00–21:00" albo "cały dzień"
     starts_at   TEXT,   -- najwcześniejsze occurrence.from
     ends_at     TEXT,   -- najpóźniejsze occurrence.to
+    next_starts_at TEXT, -- najbliższy termin, który jeszcze się nie skończył
+    place_name  TEXT,
+    street      TEXT,
+    postcode    TEXT,
     lat         REAL,   -- pierwsza lokalizacja z mapy
     lon         REAL,
     district    TEXT,
+    -- miejsce
+    full_address      TEXT,    -- "ul. Lucerny 13, 04-687 Warszawa"
+    map_street        TEXT,    -- pełna nazwa ulicy z mapy, np. "ulica Targowa"
+    map_street_number TEXT,
+    place_phone       TEXT,
+    place_email       TEXT,
+    place_www         TEXT,
+    location_count    INTEGER, -- liczba punktów na mapie
+    all_districts     TEXT,    -- dzielnice wszystkich punktów
+    has_coordinates   INTEGER,
+    is_online         INTEGER,
+    -- czas
+    start_date        TEXT,    -- pierwszy termin (YYYY-MM-DD)
+    start_time        TEXT,    -- HH:MM
+    end_date          TEXT,    -- ostatni termin
+    end_time          TEXT,
+    next_date         TEXT,    -- najbliższy (jeszcze trwający) termin
+    next_start_time   TEXT,
+    next_end_time     TEXT,
+    duration_min      INTEGER, -- długość najbliższego terminu w minutach
+    occurrence_count  INTEGER,
+    is_recurring      INTEGER, -- więcej niż jeden termin
+    is_multi_day      INTEGER, -- najbliższy termin trwa kilka dni
+    is_all_day        INTEGER,
+    weekdays          TEXT,    -- dni tygodnia terminów, np. "wtorek; czwartek"
+    time_of_day       TEXT,    -- rano / popołudnie / wieczór / cały dzień
+    is_finished       INTEGER, -- wszystkie terminy już minęły (w chwili pobrania)
     raw_json    TEXT
 );
 CREATE TABLE IF NOT EXISTS event_occurrences (
     event_id    INTEGER REFERENCES events(id) ON DELETE CASCADE,
     starts_at   TEXT,
     ends_at     TEXT,
-    daily       INTEGER
+    daily       INTEGER,
+    date        TEXT,   -- YYYY-MM-DD
+    start_time  TEXT,   -- HH:MM
+    end_date    TEXT,
+    end_time    TEXT,
+    all_day     INTEGER
 );
 CREATE TABLE IF NOT EXISTS event_addresses (
     event_id    INTEGER REFERENCES events(id) ON DELETE CASCADE,
     name        TEXT,
-    street      TEXT
+    street      TEXT,
+    postcode    TEXT,
+    title       TEXT,   -- tytuł wydarzenia
+    data        TEXT,   -- jak events.data
+    czas        TEXT    -- jak events.czas
 );
 CREATE TABLE IF NOT EXISTS event_locations (
     event_id      INTEGER REFERENCES events(id) ON DELETE CASCADE,
@@ -60,6 +105,11 @@ CREATE TABLE IF NOT EXISTS event_locations (
     street        TEXT,
     street_number TEXT
 );
+CREATE VIEW IF NOT EXISTS event_schedule AS   -- jeden wiersz = jeden termin
+    SELECT o.event_id, e.title, o.date, o.start_time, o.end_date, o.end_time, o.all_day,
+           o.starts_at, o.ends_at, e.gdzie, e.place_name, e.district, e.lat, e.lon,
+           e.categories, e.url
+    FROM event_occurrences o JOIN events e ON e.id = o.event_id;
 CREATE INDEX IF NOT EXISTS ix_occ_event ON event_occurrences(event_id);
 CREATE INDEX IF NOT EXISTS ix_occ_start ON event_occurrences(starts_at);
 CREATE INDEX IF NOT EXISTS ix_loc_event ON event_locations(event_id);
@@ -171,37 +221,162 @@ def image_url(rec):
     return path or None
 
 
+def fmt_date(s):
+    return f"{s[8:10]}.{s[5:7]}.{s[:4]}"
+
+
+def is_all_day(o):
+    return (o.get("from") or "")[11:16] == "00:00" and (o.get("to") or "")[11:16] == "23:59"
+
+
+def fmt_occurrence(o):
+    f, t = o.get("from") or "", o.get("to") or ""
+    if not f:
+        return None
+    if not t or t[:10] == f[:10]:
+        if is_all_day(o):
+            return f"{fmt_date(f)} (cały dzień)"
+        return f"{fmt_date(f)} {f[11:16]}–{t[11:16]}" if t else f"{fmt_date(f)} {f[11:16]}"
+    if is_all_day(o):
+        return f"{fmt_date(f)} – {fmt_date(t)}"
+    return f"{fmt_date(f)} {f[11:16]} – {fmt_date(t)} {t[11:16]}"
+
+
+def kiedy(occ, now):
+    """Najbliższe (jeszcze trwające) terminy; gdy wszystkie minęły, pierwsze terminy."""
+    occ = sorted((o for o in occ if o.get("from")), key=lambda o: o["from"])
+    pick = [o for o in occ if (o.get("to") or o["from"]) >= now] or occ
+    text = "; ".join(fmt_occurrence(o) for o in pick[:3])
+    if len(pick) > 3:
+        text += f" i {len(pick) - 3} więcej"
+    return text or None, (pick[0]["from"] if pick else None)
+
+
+WEEKDAYS = ["poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela"]
+
+
+def parse_ts(s):
+    return datetime.strptime(s[:16], "%Y-%m-%dT%H:%M") if s and len(s) >= 16 else None
+
+
+def first_value(v):
+    if isinstance(v, list):
+        return "; ".join(str(x) for x in v if x) or None
+    return v or None
+
+
+def time_fields(occ, now):
+    occ = sorted((o for o in occ if o.get("from")), key=lambda o: o["from"])
+    upcoming = [o for o in occ if (o.get("to") or o["from"]) >= now]
+    nxt = (upcoming or occ or [{}])[0]
+    f, t = nxt.get("from") or "", nxt.get("to") or ""
+    start, end = parse_ts(f), parse_ts(t)
+    days = {parse_ts(o["from"]).weekday() for o in occ if parse_ts(o["from"])}
+    if not f:
+        tod = None
+    elif is_all_day(nxt):
+        tod = "cały dzień"
+    else:
+        tod = "rano" if f[11:13] < "12" else "popołudnie" if f[11:13] < "17" else "wieczór"
+    last_to = max((o.get("to") or o["from"] for o in occ), default="")
+    if not f:
+        czas = None
+    elif is_all_day(nxt):
+        czas = "cały dzień"
+    else:
+        czas = f"{f[11:16]}–{t[11:16]}" if t else f[11:16]
+    return {
+        "data": f[:10] or None,
+        "czas": czas,
+        "start_date": occ[0]["from"][:10] if occ else None,
+        "start_time": occ[0]["from"][11:16] if occ else None,
+        "end_date": last_to[:10] or None,
+        "end_time": last_to[11:16] or None,
+        "next_date": f[:10] or None,
+        "next_start_time": f[11:16] or None,
+        "next_end_time": t[11:16] or None,
+        "duration_min": int((end - start).total_seconds() // 60) if start and end else None,
+        "occurrence_count": len(occ),
+        "is_recurring": int(len(occ) > 1),
+        "is_multi_day": int(bool(t) and t[:10] != f[:10]),
+        "is_all_day": int(bool(f) and is_all_day(nxt)),
+        "weekdays": "; ".join(WEEKDAYS[d] for d in sorted(days)) or None,
+        "time_of_day": tod,
+        "is_finished": int(bool(occ) and not upcoming),
+    }
+
+
+def gdzie(address, locs, district):
+    name = address.get("name")
+    street = address.get("street")
+    if not street and locs and locs[0][3]:
+        street = " ".join(x for x in locs[0][3:5] if x)
+    parts = [name, street]
+    if district and not any(district in (p or "") for p in parts):
+        parts.append(district)
+    return ", ".join(p for p in parts if p) or None
+
+
 def build_events(path, records):
     con = sqlite3.connect(path)
+    con.executescript("DROP VIEW IF EXISTS event_schedule; DROP TABLE IF EXISTS event_occurrences; "
+                      "DROP TABLE IF EXISTS event_addresses; DROP TABLE IF EXISTS event_locations; "
+                      "DROP TABLE IF EXISTS events;")
     con.executescript(EVENTS_SCHEMA)
-    con.executescript("DELETE FROM event_occurrences; DELETE FROM event_addresses; "
-                      "DELETE FROM event_locations; DELETE FROM events;")
+    now = datetime.now().strftime("%Y-%m-%dT%H:%M")
     for rec in records:
         occ = rec.get("occurrence") or rec.get("occurence") or []
         feats = ((rec.get("map") or {}).get("features")) or []
-        locs = []
+        locs, full_streets = [], []
         for f in feats:
             coords = (f.get("geometry") or {}).get("coordinates") or [None, None]
             p = f.get("properties") or {}
             locs.append((coords[1], coords[0], p.get("district"),
                          p.get("shortStreetName") or p.get("fullStreetName"),
                          p.get("streetNumber") or p.get("street number")))
+            full_streets.append(p.get("fullStreetName"))
         starts = [o.get("from") for o in occ if o.get("from")]
         ends = [o.get("to") for o in occ if o.get("to")]
-        first = locs[0] if locs else (None, None, None)
-        cur = con.execute(
-            "INSERT OR REPLACE INTO events (title, url, language, categories, lead, image_url, text_html,"
-            " text_plain, starts_at, ends_at, lat, lon, district, raw_json)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (rec.get("title"), rec.get("url"), rec.get("language"), names(rec.get("category")),
-             rec.get("lead"), image_url(rec), rec.get("text"), strip_html(rec.get("text")),
-             min(starts, default=None), max(ends, default=None), first[0], first[1],
-             names(rec.get("localization")) or first[2], json.dumps(rec, ensure_ascii=False)))
+        first = locs[0] if locs else (None, None, None, None, None)
+        district = names(rec.get("localization")) or first[2]
+        addresses = [a for a in rec.get("address") or [] if isinstance(a, dict)]
+        addr = addresses[0] if addresses else {}
+        when, next_start = kiedy(occ, now)
+        where = gdzie(addr, locs, district)
+        street = addr.get("street") or (" ".join(x for x in first[3:5] if x) or None)
+        row = {
+            "title": rec.get("title"), "url": rec.get("url"), "language": rec.get("language"),
+            "categories": names(rec.get("category")), "lead": rec.get("lead"), "image_url": image_url(rec),
+            "text_html": rec.get("text"), "text_plain": strip_html(rec.get("text")),
+            "kiedy": when, "gdzie": where,
+            "starts_at": min(starts, default=None), "ends_at": max(ends, default=None),
+            "next_starts_at": next_start,
+            "place_name": addr.get("name"), "street": addr.get("street"),
+            "postcode": addr.get("postCodeAndOffice"),
+            "lat": first[0], "lon": first[1], "district": district,
+            "full_address": ", ".join(x for x in (street, addr.get("postCodeAndOffice")) if x) or None,
+            "map_street": full_streets[0] if full_streets else None, "map_street_number": first[4],
+            "place_phone": first_value(addr.get("phone")), "place_email": first_value(addr.get("email")),
+            "place_www": first_value(addr.get("www")),
+            "location_count": len(locs),
+            "all_districts": "; ".join(dict.fromkeys(l[2] for l in locs if l[2])) or district,
+            "has_coordinates": int(first[0] is not None),
+            "is_online": int("online" in " ".join(filter(None, (where, rec.get("title")))).lower()),
+            **time_fields(occ, now),
+            "raw_json": json.dumps(rec, ensure_ascii=False),
+        }
+        cur = con.execute(f"INSERT OR REPLACE INTO events ({', '.join(row)}) VALUES ({', '.join('?' * len(row))})",
+                          tuple(row.values()))
         eid = cur.lastrowid
-        con.executemany("INSERT INTO event_occurrences VALUES (?,?,?,?)",
-                        [(eid, o.get("from"), o.get("to"), int(bool(o.get("daily")))) for o in occ])
-        con.executemany("INSERT INTO event_addresses VALUES (?,?,?)",
-                        [(eid, a.get("name"), a.get("street")) for a in rec.get("address") or []])
+        con.executemany(
+            "INSERT INTO event_occurrences VALUES (?,?,?,?,?,?,?,?,?)",
+            [(eid, o.get("from"), o.get("to"), int(bool(o.get("daily"))),
+              (o.get("from") or "")[:10] or None, (o.get("from") or "")[11:16] or None,
+              (o.get("to") or "")[:10] or None, (o.get("to") or "")[11:16] or None, int(is_all_day(o)))
+             for o in occ])
+        con.executemany("INSERT INTO event_addresses VALUES (?,?,?,?,?,?,?)",
+                        [(eid, a.get("name"), a.get("street"), a.get("postCodeAndOffice"),
+                          row["title"], row["data"], row["czas"]) for a in addresses])
         con.executemany("INSERT INTO event_locations VALUES (?,?,?,?,?,?)", [(eid, *l) for l in locs])
     con.commit()
     con.close()
