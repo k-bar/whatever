@@ -20,7 +20,7 @@ export const MENU_ITEMS = [
   { id: 'messages', label: 'Messages', Icon: Message, hint: '' },
   { id: 'create', label: 'Create event', Icon: Plus, hint: '', accent: true },
   { id: 'favourites', label: 'Favourite spots', Icon: Star, hint: '' },
-  { id: 'sources', label: "APIs I'm plugged in to", Icon: Database, hint: '' },
+  { id: 'sources', label: 'Data sources', Icon: Database, hint: '' },
 ]
 
 const SUGGESTED = ['jazz tonight', 'run club', 'Praga nightlife', 'free exhibitions', 'picnic', 'stand-up', 'teatr', 'Mokotów']
