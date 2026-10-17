@@ -2,7 +2,7 @@
 
 Uses the stored raw_json with the same parsers as the live fetchers, so no API token is needed.
 
-    python scripts/import_sqlite.py db/db/events.db db/db/sport.db [--geocode-limit 0]
+    python scripts/import_sqlite.py db/events.db db/sport.db [--geocode-limit 0]
 """
 
 import argparse
