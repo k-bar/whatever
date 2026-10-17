@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from '../config/store'
-import { Burger, Calendar, Chevron, History, Search, Sparkle, X, Minus } from './Icons'
+import { Burger, Calendar, Chevron, History, Plus, Search, Sparkle, X, Minus } from './Icons'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { fmtWhenFor } from '../mapboxes/curate'
 import { CloseButton } from './CloseButton'
