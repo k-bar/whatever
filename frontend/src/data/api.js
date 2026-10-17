@@ -85,15 +85,24 @@ export async function saveSettings(values) {
   }
 }
 
+/* ---------- past events: stored, never searched ---------- */
+
+const toDate = (iso) => new Date(String(iso).replace(/([+-]\d{2})$/, '$1:00'))
+/** An event is past once it has ended (or started, when it has no end). Undated places never are. */
+export const isPast = (p, now = Date.now()) => !!p?.starts_at && toDate(p.ends_at || p.starts_at).getTime() < now
+/** Search shows only upcoming and ongoing things; past events stay stored (backend keeps them as history). */
+export const upcoming = (features) => (features || []).filter((f) => !isPast(f.properties))
+
 /**
  * Search. mode ∈ search | events | assistant. Tries backend/search/<mode> first, then
  * filters the already-loaded features client-side.
  */
 export async function runSearch(mode, q, features, opts = {}) {
   try {
-    return await get(`/search/${mode}?q=${encodeURIComponent(q)}${opts.category ? `&category=${opts.category}` : ''}`, { timeout: 1500 })
+    const r = await get(`/search/${mode}?q=${encodeURIComponent(q)}${opts.category ? `&category=${opts.category}` : ''}`, { timeout: 1500 })
+    return { ...r, results: upcoming(r.results) }
   } catch {
-    return localSearch(mode, q, features, opts)
+    return localSearch(mode, q, upcoming(features), opts)
   }
 }
 

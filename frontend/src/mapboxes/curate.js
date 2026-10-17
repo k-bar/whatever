@@ -23,6 +23,18 @@ export function fmtWhen(iso) {
   return time ? `${day} · ${time}` : day
 }
 
+/** Like fmtWhen(starts_at), but something already running shows when it ends: "Now · until 22:00" / "On until Sun 30 Nov". */
+export function fmtWhenFor(p) {
+  if (!p?.starts_at) return null
+  const parse = (iso) => new Date(String(iso).replace(/([+-]\d{2})$/, '$1:00'))
+  const now = new Date(), s = parse(p.starts_at), e = p.ends_at && parse(p.ends_at)
+  if (e && s < now && e >= now) {
+    if (e.toDateString() === now.toDateString()) return translate('Now · until {time}', { time: e.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }) })
+    return translate('On until {date}', { date: e.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' }) })
+  }
+  return fmtWhen(p.starts_at)
+}
+
 export function curate(feature, ctx = {}) {
   const p = feature.properties
   const blocks = []
