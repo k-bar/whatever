@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.auth import create_token, get_current_user, hash_password, verify_password
 from app.db import get_db
-from app.models import User
-from app.schemas import LoginIn, Me, ProfileIn, PublicUser, RegisterIn, TokenOut
+from app.models import Event, User
+from app.schemas import FavouritesIO, LoginIn, Me, ProfileIn, PublicUser, RegisterIn, TokenOut
 
 router = APIRouter(tags=["users"])
 
@@ -50,6 +50,21 @@ def update_me(body: ProfileIn, user: User = Depends(get_current_user), db: Sessi
             setattr(user, field, value)
     db.commit()
     return user
+
+
+@router.get("/me/favourites", response_model=FavouritesIO)
+def my_favourites(user: User = Depends(get_current_user)):
+    return FavouritesIO(ids=user.favourite_ids or [])
+
+
+@router.put("/me/favourites", response_model=FavouritesIO)
+def set_favourites(body: FavouritesIO, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Replace my favourited events/venues. Unknown IDs are dropped; order kept, duplicates removed."""
+    wanted = list(dict.fromkeys(body.ids))
+    known = set(db.scalars(select(Event.id).where(Event.id.in_(wanted)))) if wanted else set()
+    user.favourite_ids = [i for i in wanted if i in known]
+    db.commit()
+    return FavouritesIO(ids=user.favourite_ids)
 
 
 @router.get("/users/{user_id}", response_model=PublicUser)
