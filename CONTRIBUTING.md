@@ -110,6 +110,12 @@ only open a tunnel through the dev box. Ask @JustCodeMeV to add you to `DEV_DB_U
 4. DataGrip: host `localhost`, port `15432`, database `warszawa`, user = your name, SSL mode `require`.
    Your tables live in schema `dev`.
 
+## Don't change AWS resources in the console
+
+Everything in AWS is defined in `infra/` (CDK). Console changes drift from it and can break deploys. Example:
+turning on "Manage master credentials in Secrets Manager" on the RDS instance rotated the master password
+and took both boxes offline. Need DB access? Use your own login (above), never the master user.
+
 ## Infrastructure changes
 
 `infra/deploy.sh` (CDK). App code never goes through it: merging is the deploy.
