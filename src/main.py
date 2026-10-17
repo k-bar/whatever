@@ -24,11 +24,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--group",
-        choices=["fast", "slow", "all"],
+        choices=["fast", "slow", "external", "all"],
         default="all",
         help=(
             "Synchronize dataset group: 'fast' (weather, air_quality - 10m), "
-            "'slow' (other 6 datasets - 2h), or 'all'."
+            "'slow' (other 6 Warsaw datasets - 2h), "
+            "'external' (kupbilecik, streets_gl), or 'all'."
         ),
     )
     parser.add_argument(

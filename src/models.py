@@ -382,3 +382,78 @@ class SyncLog(Base):
         DateTime(timezone=True), nullable=True
     )
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+
+class KupbilecikEvent(Base):
+    """Ticketed cultural/entertainment event scraped from kupbilecik.pl."""
+
+    __tablename__ = "kupbilecik_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(500), nullable=False)
+    date: Mapped[Optional[str]] = mapped_column(
+        String(32), nullable=True, index=True
+    )
+    time: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    end_date: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    end_time: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    location: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(
+        String(120), nullable=True, index=True
+    )
+    postcode: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    region: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    category: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    event_type: Mapped[Optional[str]] = mapped_column(
+        String(120), nullable=True
+    )
+    price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    currency: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    availability: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+    status: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    url: Mapped[str] = mapped_column(String(500), unique=True, nullable=False)
+    image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class StreetsGlVenue(Base):
+    """Event venue in Warsaw from OpenStreetMap (used by streets.gl)."""
+
+    __tablename__ = "streets_gl_venues"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    category: Mapped[Optional[str]] = mapped_column(
+        String(120), nullable=True, index=True
+    )
+    location: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    street: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    housenumber: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+    postcode: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    lon: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    opening_hours: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    website: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    wheelchair: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+    capacity: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    osm_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    streets_gl_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tags: Mapped[Optional[dict[str, Any]]] = mapped_column(
+        JSONB, nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )

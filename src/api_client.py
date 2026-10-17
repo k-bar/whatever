@@ -10,6 +10,10 @@ import requests
 from requests.exceptions import SSLError
 
 from src.config import DANE_FILE, get_api_token
+from src.external_sources import (
+    fetch_kupbilecik_events,
+    fetch_streets_gl_venues,
+)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -18,7 +22,7 @@ API_BASE_URL = "https://dane.um.warszawa.pl/api/action"
 
 @dataclass(frozen=True)
 class DatasetSpec:
-    """Specification of a Warsaw Open Data service endpoint."""
+    """Specification of a Warsaw Open Data or external service endpoint."""
 
     catalogue_id: str
     key: str
@@ -28,6 +32,8 @@ class DatasetSpec:
     @property
     def endpoint_url(self) -> str:
         """Return full POST endpoint URL."""
+        if self.action_name.startswith("http"):
+            return self.action_name
         return f"{API_BASE_URL}/{self.action_name}"
 
 
@@ -82,8 +88,24 @@ CATALOGUE_DATASETS: dict[str, DatasetSpec] = {
     ),
 }
 
+EXTERNAL_DATASETS: dict[str, DatasetSpec] = {
+    "kupbilecik": DatasetSpec(
+        catalogue_id="external-kupbilecik",
+        key="kupbilecik",
+        title="Wydarzenia biletowane (kupbilecik.pl)",
+        action_name="https://www.kupbilecik.pl/pl/",
+    ),
+    "streets_gl": DatasetSpec(
+        catalogue_id="external-streets-gl",
+        key="streets_gl",
+        title="Miejsca wydarzeń (OpenStreetMap / streets.gl)",
+        action_name="https://overpass-api.de/api/interpreter",
+    ),
+}
+
 DATASETS_BY_KEY: dict[str, DatasetSpec] = {
-    spec.key: spec for spec in CATALOGUE_DATASETS.values()
+    **{spec.key: spec for spec in CATALOGUE_DATASETS.values()},
+    **EXTERNAL_DATASETS,
 }
 
 CATALOGUE_SLUG_PATTERN = re.compile(r"/catalogue/([0-9a-fA-F-]+)")
@@ -128,7 +150,7 @@ def parse_dane_file(dane_path: Path = DANE_FILE) -> list[DatasetSpec]:
 
 
 class WarszawaApiClient:
-    """Client for fetching datasets from dane.um.warszawa.pl."""
+    """Client for fetching datasets from dane.um.warszawa.pl and externals."""
 
     def __init__(
         self,
@@ -153,7 +175,14 @@ class WarszawaApiClient:
         spec: DatasetSpec,
         payload: Optional[dict[str, Any]] = None,
     ) -> list[dict[str, Any]]:
-        """Fetch records for a given DatasetSpec via POST."""
+        """Fetch records for a given DatasetSpec."""
+        if spec.key == "kupbilecik":
+            return fetch_kupbilecik_events(
+                session=self.session, timeout=self.timeout
+            )
+        if spec.key == "streets_gl":
+            return fetch_streets_gl_venues(session=self.session)
+
         url = spec.endpoint_url
         headers = self._headers()
         try:

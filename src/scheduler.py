@@ -8,7 +8,12 @@ from typing import Any, Optional
 
 from sqlalchemy import create_engine
 
-from src.api_client import DATASETS_BY_KEY, DatasetSpec, parse_dane_file
+from src.api_client import (
+    DATASETS_BY_KEY,
+    EXTERNAL_DATASETS,
+    DatasetSpec,
+    parse_dane_file,
+)
 from src.config import get_database_url
 from src.ingestor import DatabaseIngestor
 
@@ -29,10 +34,12 @@ def get_specs_for_group(
     group: str,
     specs: Optional[list[DatasetSpec]] = None,
 ) -> list[DatasetSpec]:
-    """Filter dataset specs by schedule group ('fast', 'slow', or 'all')."""
+    """Filter dataset specs by schedule group ('fast', 'slow', 'external')."""
+    if group == "external":
+        return list(EXTERNAL_DATASETS.values())
     all_specs = specs if specs is not None else parse_dane_file()
     if group == "all":
-        return list(all_specs)
+        return list(all_specs) + list(EXTERNAL_DATASETS.values())
     if group == "fast":
         return [s for s in all_specs if s.key in FAST_DATASET_KEYS]
     if group == "slow":
@@ -49,7 +56,11 @@ class DatasetScheduler:
         specs: Optional[list[DatasetSpec]] = None,
     ) -> None:
         self.ingestor = ingestor
-        self.specs = specs if specs is not None else parse_dane_file()
+        self.specs = (
+            specs
+            if specs is not None
+            else parse_dane_file() + list(EXTERNAL_DATASETS.values())
+        )
         self.last_run: dict[str, float] = {}
         self._stop_requested = False
 
