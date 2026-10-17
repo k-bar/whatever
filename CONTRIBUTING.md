@@ -89,7 +89,7 @@ The entire backend runs on EC2 in the same AWS VPC (`eu-north-1`) as the Postgre
 | `GET /places` | GeoJSON `FeatureCollection` of static places & amenities (AEDs, public toilets, open pitches, OSM venues) | `bbox=west,south,east,north`, `category=sport,utility,culture,...`, `q=<search>`, `district=<name>`, `lang=pl\|en` |
 | `GET /conditions` | Latest weather (`weather_stations`) and air quality (`air_stations`) readings from RDS as GeoJSON points + summary | — |
 | `GET /routes` | Tourist routes (`tourist_routes` LineStrings) from RDS as GeoJSON `FeatureCollection` | `lang=pl\|en` |
-| `GET /sources` | Ingestion status (`last_status`, `last_run_at`, `item_count`) for all registered RDS data sources (`warsaw_events`, `kupbilecik`, `osm_venues`, `warsaw_sport`, `warsaw_pitches`, `warsaw_aed`, `warsaw_toilets`, `warsaw_air`, `warsaw_weather`, `warsaw_routes`) | — |
+| `GET /sources` | Ingestion status (`last_status`, `last_run_at`, `item_count`) for all registered RDS data sources (`warsaw_events`, `osm_venues`, `warsaw_sport`, `warsaw_pitches`, `warsaw_aed`, `warsaw_toilets`, `warsaw_air`, `warsaw_weather`, `warsaw_routes`) | — |
 | `GET /categories` | Available map categories (`music`, `art`, `film`, `theatre`, `sport`, `science`, `kids`, `food`, `market`, `tour`, `workshop`, `party`, `talks`, `outdoor`, `community`, `utility`, `other`) | `lang=pl\|en` |
 | `GET /busy-areas` | GeoJSON polygons of busy areas in Warsaw | — |
 
@@ -132,9 +132,9 @@ curl -s https://api-dev.syrenka.me/routes | jq
    ```
 2. **Database migrations & systemd services (`deploy/deploy.sh`)** — when deploying on EC2, ensure:
    - Alembic migrations are applied to the target RDS schema: `cd backend && .venv/bin/alembic upgrade head`
-   - All 13 raw/historical tables in RDS (`tourist_routes`, `tourist_points`, `toilets`, `weather_measurements`, `defibrillators`, `sports_activities`, `open_sports_fields`, `city_events`, `air_quality_stations`, `air_quality_measurements`, `kupbilecik_events`, `streets_gl_venues`, `sync_logs`) are initialized and synced:
+   - All 12 raw/historical tables in RDS (`tourist_routes`, `tourist_points`, `toilets`, `weather_measurements`, `defibrillators`, `sports_activities`, `open_sports_fields`, `city_events`, `air_quality_stations`, `air_quality_measurements`, `streets_gl_venues`, `sync_logs`) are initialized and synced in `DB_SCHEMA`:
      ```bash
-     DB_SCHEMA=dev DATABASE_URL="..." WARSAW_API_KEY="..." python -m src.main
+     DB_SCHEMA=dev DATABASE_URL="..." WARSAW_API_TOKEN="..." python -m src.main
      ```
    - The systemd services and timers are enabled and running so `events`, `event_occurrences`, `sources`, `weather_stations`, `air_stations`, and `tourist_routes` in RDS stay populated for FastAPI:
      ```bash
@@ -148,7 +148,7 @@ No SSH: use Session Manager (`aws ssm start-session --target <instance from depl
 ```bash
 journalctl -u warszawa-agent -f        # deploys
 journalctl -u warszawa-api -f          # API
-sudo systemctl start warszawa-ingest   # run ingestion now (including kupbilecik, osm_venues, warsaw_*); results in GET /sources
+sudo systemctl start warszawa-ingest   # run ingestion now (including osm_venues, warsaw_*); results in GET /sources
 sudo systemctl start warszawa-conditions  # refresh weather + air quality now
 ```
 

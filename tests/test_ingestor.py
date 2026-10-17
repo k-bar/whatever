@@ -5,14 +5,15 @@ from typing import Any, Iterator
 import sys
 
 import pytest
-from sqlalchemy import create_engine, func, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.api_client import parse_dane_file  # noqa: E402
-from src.config import get_database_url  # noqa: E402
+from src.config import create_db_engine  # noqa: E402
 from src.ingestor import (  # noqa: E402
+    DatabaseIngestor,
     _extract_event_geo,
     _extract_lon_lat,
     _parse_dt,
@@ -28,7 +29,6 @@ from src.ingestor import (  # noqa: E402
 from src.models import (  # noqa: E402
     AirQualityMeasurement,
     AirQualityStation,
-    Base,
     CityEvent,
     Defibrillator,
     OpenSportsField,
@@ -43,8 +43,8 @@ from src.models import (  # noqa: E402
 @pytest.fixture()
 def db_session() -> Iterator[Session]:
     """Provide a transactional PostgreSQL session that rolls back on exit."""
-    engine = create_engine(get_database_url())
-    Base.metadata.create_all(engine)
+    engine = create_db_engine()
+    DatabaseIngestor(engine=engine).init_schema()
     connection = engine.connect()
     transaction = connection.begin()
     session = Session(bind=connection)
