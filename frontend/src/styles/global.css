@@ -969,6 +969,11 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .pp-bio { margin: 4px 6px 10px; color: var(--fg); line-height: 1.45; }
 .pp-chips { justify-content: flex-start; margin: 0 6px 10px; }
 .pp-hangouts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 6px 14px; }
+.pp-details { margin: 0 6px 14px; }
+.pp-details .lbl { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3); font-weight: 700; margin-bottom: 8px; }
+.pp-details dl { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin: 0; }
+.pp-details dt { font-size: 11.5px; color: var(--fg-3); }
+.pp-details dd { margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
 .pp-hangouts .lbl { font-size: 13px; color: var(--fg-2); font-weight: 600; margin-right: 2px; }
 .pp-hangouts.edit { margin: 0 0 6px; }
 .pp-place { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 11px 0 9px; border-radius: 999px; font-size: 13px; font-weight: 600; background: color-mix(in srgb, #4fb3ff 13%, transparent); color: #1f7fd0; }
@@ -1018,6 +1023,9 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .pp-edit .pill-cat { height: 32px; font-size: 12.5px; }
 .pp-error { color: var(--accent); font-weight: 600; font-size: 13px; }
 .pp-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.pp-actions .pp-logout { margin-right: auto; color: var(--accent); }
+.pp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pp-age input { max-width: 120px; }
 
 /* ---------- Data sources panel footer: live API status (left) + land-use key (right) ---------- */
 .sp-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; flex: none; padding: 10px 12px 12px; border-top: 1px solid var(--line); }

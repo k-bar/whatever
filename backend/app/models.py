@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    SmallInteger,
     String,
     Text,
     UniqueConstraint,
@@ -107,6 +108,10 @@ class User(Base):
     # @username, Instagram style: unique, lowercase, chosen by the user (app/usernames.py)
     username: Mapped[str] = mapped_column(String(30), unique=True)
     gender: Mapped[str | None] = mapped_column(String(1))  # f / m / null; Polish labels: Byłam / Byłem
+    # Personal details: only the user sees them (Me), never in public profiles
+    first_name: Mapped[str | None] = mapped_column(String(40))
+    last_name: Mapped[str | None] = mapped_column(String(60))
+    age: Mapped[int | None] = mapped_column(SmallInteger)
     # "You can find me at": [{"name": "Spatif", "place_id": 123 | null}], up to 5
     hangouts: Mapped[list[dict]] = mapped_column(JSONB, default=list, server_default="[]")
     bio: Mapped[str | None] = mapped_column(Text)

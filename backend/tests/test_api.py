@@ -212,3 +212,15 @@ def test_conditions_and_routes(client, db):
 
     sources = {s["slug"]: s for s in client.get("/sources").json()}
     assert sources["warsaw_weather"]["last_status"] == "ok"
+
+
+def test_personal_details_are_private(client, alice):
+    r = client.patch("/me", headers=alice, json={"first_name": " Alicja ", "last_name": "Nowak", "age": 24})
+    assert r.status_code == 200
+    me = r.json()
+    assert (me["first_name"], me["last_name"], me["age"]) == ("Alicja", "Nowak", 24)
+    public = client.get(f"/users/{me['id']}").json()
+    assert "first_name" not in public and "age" not in public
+    assert client.patch("/me", headers=alice, json={"age": 7}).status_code == 422
+    cleared = client.patch("/me", headers=alice, json={"first_name": "", "age": None}).json()
+    assert cleared["first_name"] is None and cleared["age"] is None and cleared["last_name"] == "Nowak"

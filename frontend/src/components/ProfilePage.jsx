@@ -7,7 +7,7 @@ import {
 } from '../data/api'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { fmtWhenFor } from '../mapboxes/curate'
-import { useLang } from '../i18n'
+import { locale, useLang } from '../i18n'
 import { Check, ChevronL, Photo, Pin, Plus, Search, UserCheck, X } from './Icons'
 import { LoginForm } from './LoginForm'
 
@@ -116,6 +116,8 @@ function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, featu
         </div>
       )}
 
+      {isMe && <PersonalDetails gender={p.gender} />}
+
       {p.can_see_events ? (
         <>
           <div className="pp-tabs" role="tablist">
@@ -129,6 +131,31 @@ function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, featu
         <div className="res-empty">{t('Become friends to see the events {name} goes to.', { name: p.display_name })}</div>
       )}
     </>
+  )
+}
+
+/** My private details from GET /me: first / last name, age, gender, email, member since. Only on my own profile. */
+function PersonalDetails({ gender }) {
+  const { t } = useLang()
+  const [me, setMe] = useState(null)
+  useEffect(() => { fetchMe().then(setMe) }, [])
+  if (!me) return null
+  const sex = me.gender ?? gender
+  const rows = [
+    ['First name', me.first_name],
+    ['Last name', me.last_name],
+    ['Age', me.age],
+    ['Gender', sex && t({ f: 'Woman', m: 'Man' }[sex])],
+    ['Email', me.email],
+    ['Member since', me.created_at && new Date(me.created_at).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' })],
+  ]
+  return (
+    <div className="pp-details">
+      <span className="lbl">{t('Personal details')}</span>
+      <dl>
+        {rows.map(([label, value]) => <div key={label}><dt>{t(label)}</dt><dd>{value || value === 0 ? value : '—'}</dd></div>)}
+      </dl>
+    </div>
   )
 }
 
@@ -246,7 +273,7 @@ function EditProfile({ features, onDone }) {
   const [name, setName] = useState({ state: 'same' }) // same | checking | ok | bad
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-  useEffect(() => { fetchMe().then((m) => { setMe(m); setV({ display_name: m.display_name, username: m.username, gender: m.gender || '', bio: m.bio || '', interests: m.interests || [], hangouts: m.hangouts || [], photos: m.photos || [] }) }) }, [])
+  useEffect(() => { fetchMe().then((m) => { setMe(m); setV({ display_name: m.display_name, username: m.username, gender: m.gender || '', first_name: m.first_name || '', last_name: m.last_name || '', age: m.age ?? '', bio: m.bio || '', interests: m.interests || [], hangouts: m.hangouts || [], photos: m.photos || [] }) }) }, [])
 
   useEffect(() => {
     if (!v || !me) return
@@ -259,9 +286,11 @@ function EditProfile({ features, onDone }) {
 
   if (!v) return <div className="res-empty">{t('Loading…')}</div>
   const set = (k, val) => setV((x) => ({ ...x, [k]: val }))
+  const badAge = v.age !== '' && (Number(v.age) < 13 || Number(v.age) > 120)
   const save = async () => {
     setSaving(true); setError(null)
-    try { await updateMe({ ...v, username: v.username.trim().replace(/^@/, ''), bio: v.bio.trim() || null }); onDone() } catch (e) { setError(e.message) } finally { setSaving(false) }
+    const age = v.age === '' ? null : Number(v.age)
+    try { await updateMe({ ...v, username: v.username.trim().replace(/^@/, ''), bio: v.bio.trim() || null, first_name: v.first_name.trim() || null, last_name: v.last_name.trim() || null, age }); onDone() } catch (e) { setError(e.message) } finally { setSaving(false) }
   }
   return (
     <motion.div className="pp-edit" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={spring}>
@@ -272,6 +301,15 @@ function EditProfile({ features, onDone }) {
         <div className={`pp-at ${name.state}`}>@<input value={v.username.replace(/^@/, '')} maxLength={30} autoCapitalize="none" spellCheck={false} onChange={(e) => set('username', e.target.value)} />
           {name.state === 'ok' && <Check size={16} />}{name.state === 'bad' && <X size={16} />}</div>
         <small className={name.state === 'bad' ? 'bad' : ''}>{name.state === 'bad' ? t(name.reason) : name.state === 'ok' ? t('Available') : name.state === 'checking' ? t('Checking…') : t('Letters, digits, dots and underscores')}</small>
+      </label>
+      <div className="pp-row">
+        <label className="pp-field"><span>{t('First name')}</span><input value={v.first_name} maxLength={40} autoComplete="given-name" onChange={(e) => set('first_name', e.target.value)} /></label>
+        <label className="pp-field"><span>{t('Last name')}</span><input value={v.last_name} maxLength={60} autoComplete="family-name" onChange={(e) => set('last_name', e.target.value)} /></label>
+      </div>
+      <label className="pp-field pp-age">
+        <span>{t('Age')}</span>
+        <input type="number" inputMode="numeric" min={13} max={120} value={v.age} onChange={(e) => set('age', e.target.value.replace(/\D/g, '').slice(0, 3))} />
+        {badAge && <small className="bad">{t('Age must be between 13 and 120')}</small>}
       </label>
       <label className="pp-field">
         <span>{t('Gender')}</span>
@@ -293,8 +331,9 @@ function EditProfile({ features, onDone }) {
       <HangoutsField value={v.hangouts} onChange={(h) => set('hangouts', h)} features={features} />
       {error && <div className="pp-error">{t(error)}</div>}
       <div className="pp-actions">
+        <button className="btn text small pp-logout" onClick={logout}>{t('Log out')}</button>
         <button className="btn text small" onClick={onDone}>{t('Cancel')}</button>
-        <button className="btn small primary" disabled={saving || name.state === 'bad' || name.state === 'checking'} onClick={save}>{saving ? t('Saving…') : t('Save')}</button>
+        <button className="btn small primary" disabled={saving || badAge || name.state === 'bad' || name.state === 'checking'} onClick={save}>{saving ? t('Saving…') : t('Save')}</button>
       </div>
     </motion.div>
   )

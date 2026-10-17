@@ -263,6 +263,12 @@ export const PL = {
   'No profile yet. It is created the first time you post an event or ask to join one.': 'Nie masz jeszcze profilu. Powstanie, gdy pierwszy raz dodasz wydarzenie albo poprosisz o dołączenie.',
   'wants to join · {event}': 'chce dołączyć · {event}',
   'No join requests yet.': 'Nie masz jeszcze próśb o dołączenie.',
+  // profile: personal details (private, GET /me)
+  'Personal details': 'Dane osobowe',
+  'First name': 'Imię',
+  'Last name': 'Nazwisko',
+  'Age': 'Wiek',
+  'Age must be between 13 and 120': 'Wiek musi być od 13 do 120 lat',
   // profile details
   'Account': 'Konto',
   'Member since': 'Na Syrence od',
