@@ -10,10 +10,7 @@ import requests
 from requests.exceptions import SSLError
 
 from src.config import DANE_FILE, get_api_token
-from src.external_sources import (
-    fetch_kupbilecik_events,
-    fetch_streets_gl_venues,
-)
+from src.external_sources import fetch_streets_gl_venues
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -89,12 +86,6 @@ CATALOGUE_DATASETS: dict[str, DatasetSpec] = {
 }
 
 EXTERNAL_DATASETS: dict[str, DatasetSpec] = {
-    "kupbilecik": DatasetSpec(
-        catalogue_id="external-kupbilecik",
-        key="kupbilecik",
-        title="Wydarzenia biletowane (kupbilecik.pl)",
-        action_name="https://www.kupbilecik.pl/pl/",
-    ),
     "streets_gl": DatasetSpec(
         catalogue_id="external-streets-gl",
         key="streets_gl",
@@ -176,10 +167,6 @@ class WarszawaApiClient:
         payload: Optional[dict[str, Any]] = None,
     ) -> list[dict[str, Any]]:
         """Fetch records for a given DatasetSpec."""
-        if spec.key == "kupbilecik":
-            return fetch_kupbilecik_events(
-                session=self.session, timeout=self.timeout
-            )
         if spec.key == "streets_gl":
             return fetch_streets_gl_venues(session=self.session)
 

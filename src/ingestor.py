@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Callable, Optional
 
-from sqlalchemy import Engine, func, inspect
+from sqlalchemy import Engine, inspect, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,6 @@ from src.models import (
     Base,
     CityEvent,
     Defibrillator,
-    KupbilecikEvent,
     OpenSportsField,
     SportsActivity,
     StreetsGlVenue,
@@ -627,78 +626,6 @@ def ingest_air_quality(session: Session, records: list[dict[str, Any]]) -> int:
     return len(stations_by_name)
 
 
-def ingest_kupbilecik_events(
-    session: Session, records: list[dict[str, Any]]
-) -> int:
-    """Upsert ticketed events from kupbilecik.pl into kupbilecik_events."""
-    now = utc_now()
-    rows_by_id: dict[int, dict[str, Any]] = {}
-
-    for item in records:
-        eid = _to_int(item.get("id"))
-        name = _to_str(item.get("name"))
-        url = _to_str(item.get("url"))
-        if eid is None or not name or not url:
-            continue
-        existing = rows_by_id.get(eid)
-        category = _to_str(item.get("category"))
-        if category is None and existing is not None:
-            category = existing.get("category")
-
-        rows_by_id[eid] = {
-            "id": eid,
-            "name": name[:500],
-            "date": _to_str(item.get("date")),
-            "time": _to_str(item.get("time")),
-            "end_date": _to_str(item.get("end_date")),
-            "end_time": _to_str(item.get("end_time")),
-            "location": (
-                (_to_str(item.get("location")) or "")[:500] or None
-            ),
-            "address": ((_to_str(item.get("address")) or "")[:500] or None),
-            "city": ((_to_str(item.get("city")) or "")[:120] or None),
-            "postcode": ((_to_str(item.get("postcode")) or "")[:32] or None),
-            "region": ((_to_str(item.get("region")) or "")[:120] or None),
-            "category": (category[:120] if category else None),
-            "event_type": (
-                (_to_str(item.get("event_type")) or "")[:120] or None
-            ),
-            "price": _to_float(item.get("price")),
-            "currency": ((_to_str(item.get("currency")) or "")[:16] or None),
-            "availability": (
-                (_to_str(item.get("availability")) or "")[:64] or None
-            ),
-            "status": ((_to_str(item.get("status")) or "")[:64] or None),
-            "url": url[:500],
-            "image_url": _to_str(item.get("image_url")),
-            "description": _to_str(item.get("description")),
-            "updated_at": now,
-        }
-
-    all_rows = list(rows_by_id.values())
-    batch_size = 500
-    for idx in range(0, len(all_rows), batch_size):
-        chunk = all_rows[idx: idx + batch_size]
-        stmt = pg_insert(KupbilecikEvent).values(chunk)
-        update_cols: dict[str, Any] = {}
-        for col in chunk[0].keys():
-            if col == "id":
-                continue
-            if col == "category":
-                update_cols[col] = func.coalesce(
-                    stmt.excluded.category, KupbilecikEvent.category
-                )
-            else:
-                update_cols[col] = getattr(stmt.excluded, col)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=["id"],
-            set_=update_cols,
-        )
-        session.execute(stmt)
-
-    return len(all_rows)
-
-
 def ingest_streets_gl_venues(
     session: Session, records: list[dict[str, Any]]
 ) -> int:
@@ -767,7 +694,6 @@ INGEST_HANDLERS: dict[str, Callable[[Session, list[dict[str, Any]]], int]] = {
     "open_sports_fields": ingest_open_sports_fields,
     "city_events": ingest_city_events,
     "air_quality": ingest_air_quality,
-    "kupbilecik": ingest_kupbilecik_events,
     "streets_gl": ingest_streets_gl_venues,
 }
 
@@ -784,8 +710,19 @@ class DatabaseIngestor:
         self.api_client = api_client or WarszawaApiClient()
 
     def init_schema(self) -> None:
-        """Create all tables in PostgreSQL if they do not exist."""
-        Base.metadata.create_all(self.engine)
+        """Create missing tables in current_schema() only."""
+        with self.engine.begin() as conn:
+            existing = set(
+                conn.execute(
+                    text(
+                        "SELECT tablename FROM pg_tables "
+                        "WHERE schemaname = current_schema()"
+                    )
+                ).scalars()
+            )
+            for table in Base.metadata.sorted_tables:
+                if table.name not in existing:
+                    table.create(conn, checkfirst=False)
 
     def sync_spec(self, spec: DatasetSpec) -> int:
         """Fetch and ingest a single DatasetSpec, recording a SyncLog entry."""

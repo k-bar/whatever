@@ -13,7 +13,7 @@ commit; see [operations.md](operations.md#environments).
                  dane.um.warszawa.pl ──(blocks AWS IPs)──> relay (Poland, Cloudflare tunnel)
                           ▲                                        ▲
  OpenStreetMap Overpass   │                                        │
- kupbilecik.pl            │                                        │
+                          │                                        │
         ▲                 │                                        │
         │      ┌──────────┴───────────── EC2 box (one per env) ────┴──────────────────────┐
         │      │                                                                           │
@@ -65,7 +65,7 @@ commit; see [operations.md](operations.md#environments).
 5. **Show.** `frontend/src/data/api.js` is the only caller of the API. Pins, boxes, search, profiles.
 
 Parallel to this, Kamil's `src/` keeps its own raw copy of the Open Data sets (with history for
-weather and air quality). Only `kupbilecik.py` reads from it, as a fallback. See
+weather and air quality). The API reads only its `tourist_routes`. See
 [data.md](data.md#two-pipelines).
 
 ## Repository map

@@ -106,11 +106,11 @@ Kamil's raw tables from `src/models.py`, migration `0007`), then the systemd uni
 | `warszawa-api` | FastAPI |
 | `warszawa-ingest.timer` | `app/ingest/run.py`: fetchers -> `events`, plus tourist routes |
 | `warszawa-conditions.timer` | weather + air quality -> `weather_stations`, `air_stations` |
-| `warszawa-sync` | Kamil's `src/` scheduler -> raw tables (`toilets`, `city_events`, `kupbilecik_events`, `sync_logs`, ...), via `app/ingest/src_sync.py` |
+| `warszawa-sync` | Kamil's `src/` scheduler -> raw tables (`toilets`, `city_events`, `streets_gl_venues`, `sync_logs`, ...), via `app/ingest/src_sync.py` |
 
 `src_sync.py` gives Kamil's code the box's DB credentials (Secrets Manager), the `<DB_SCHEMA>, public`
-search_path and the Warsaw API relay. Never run `python -m src.main` against RDS by hand: it ignores
-`DB_SCHEMA` and writes into `public`, which is prod.
+search_path and the Warsaw API relay. `src/` honours `DB_SCHEMA` (default `public`, which is prod), so when
+running `python -m src.main` by hand against RDS always set `DB_SCHEMA=dev`.
 
 No SSH: use Session Manager (`aws ssm start-session --target <instance from deploy/environments.json>`).
 
@@ -151,7 +151,7 @@ Kamil owns the database schema and the data sources; the backend adapts to them.
 - `src/` (Kamil): raw Open Data tables, defined in `src/models.py`. New or changed tables need a backend
   migration that creates them in the right schema (see `0007_kamil_tables.py`); ping @JustCodeMeV.
 - `backend/app/ingest/sources/`: fetchers that feed `events`. They return RawEvents; they may read
-  Kamil's raw tables as a fallback (see `kupbilecik.py`) but never write:
+  Kamil's raw tables but never write to them:
 
 1. Write `fetch_records()` (network; Warsaw Open Data goes through `warsaw_open_data.fetch(action)`, which
    handles the API key and the relay) and a pure `parse(records) -> list[RawEvent]` (`app/ingest/base.py`).
