@@ -354,7 +354,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     if (!selectedId) return
     let t0 = performance.now(), raf
     const tick = (t) => {
-      const k = ((t - t0) / 1200) % 1
+      const k = Math.min(1, Math.max(0, ((t - t0) / 1200) % 1)) // rAF timestamps can precede t0 by a frame
       if (m.getLayer('wl-selected')) {
         m.setPaintProperty('wl-selected', 'circle-radius', 10 + k * 22)
         m.setPaintProperty('wl-selected', 'circle-stroke-opacity', 1 - k)
