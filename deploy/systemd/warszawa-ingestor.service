@@ -1,0 +1,20 @@
+[Unit]
+Description=Warszawa Open Data ingestor (src/, Kamil): weather/air every 10 min, rest every 2 h
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=warszawa
+WorkingDirectory=@ROOT@
+ExecStartPre=+/usr/bin/bash @ROOT@/deploy/render-ingestor-env.sh
+EnvironmentFile=-/run/warszawa/ingestor.env
+ExecStart=@ROOT@/.venv-ingestor/bin/python -m src.main --watch
+Restart=always
+RestartSec=30
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,67 @@
+# CD, pull-based. When CI passes on a push to dev or master, move release/<env> to that commit.
+# The env's EC2 box polls release/<env> every minute and deploys it (infra/ec2/agent.sh,
+# deploy/deploy.sh); this job then waits until the public /health reports the new commit.
+#   dev    -> release/dev  -> dev box
+#   master -> release/prod -> prod box
+# Why not push from here: the AWS org blocks GitHub OIDC roles, so Actions holds no AWS access.
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [dev, master]
+
+permissions:
+  contents: write # push release/* branches
+
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: release-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+      - name: Pick environment
+        id: env
+        run: |
+          case "${{ github.event.workflow_run.head_branch }}" in
+            master) env=prod ;;
+            dev) env=dev ;;
+            *) echo "not a release branch"; exit 1 ;;
+          esac
+          echo "name=$env" >> "$GITHUB_OUTPUT"
+          echo "api=$(jq -r --arg e "$env" '.[$e].api' deploy/environments.json)" >> "$GITHUB_OUTPUT"
+          echo "web=$(jq -r --arg e "$env" '.[$e].web' deploy/environments.json)" >> "$GITHUB_OUTPUT"
+      - name: Move release/${{ steps.env.outputs.name }}
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: git push --force origin "$SHA:refs/heads/release/${{ steps.env.outputs.name }}"
+      - name: Wait for the box to deploy it
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          API: ${{ steps.env.outputs.api }}
+        run: |
+          for i in $(seq 1 90); do
+            got=$(curl -fsS -m 10 "$API/health" | jq -r .sha 2>/dev/null || true)
+            if [ "$got" = "$SHA" ]; then echo "live: $API ($SHA)"; exit 0; fi
+            echo "waiting ($i): live sha=${got:-unreachable}"
+            sleep 15
+          done
+          echo "::error::box did not deploy $SHA within 22 min; check: aws ssm start-session (see CONTRIBUTING.md)"
+          exit 1
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### ${{ steps.env.outputs.name }}"
+            echo "- API: ${{ steps.env.outputs.api }}/docs"
+            echo "- Web: ${{ steps.env.outputs.web }}"
+            echo "- Commit: \`${{ github.event.workflow_run.head_sha }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
