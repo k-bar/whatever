@@ -104,13 +104,12 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
           onFocus={() => { setMenuOpen(false); setModeOpen(false); setFocused(true) }} />
         {(q || results) && <button className="btn icon small ghost" onClick={clear} aria-label={t('Clear')}><X size={20} stroke={2.2} /></button>}
         <button className={`mode-btn ${modeOpen ? 'open' : ''}`} onClick={() => { setModeOpen(!modeOpen); setMenuOpen(false) }}>
-          {!mobile && <Mode.Icon size={15} />}{!mobile && t(Mode.label)}
-          {mobile && <Mode.Icon size={16} />}
+          {t(Mode.label)}
           <Chevron size={14} className="chev" />
         </button>
         <motion.button className={`btn icon go ${mode === 'assistant' ? 'accent' : ''}`} onClick={() => submit()} aria-label={t('Run search')}
           whileTap={{ scale: 0.85 }} animate={searching ? { rotate: 360 } : { rotate: 0 }} transition={searching ? { repeat: Infinity, duration: 0.9, ease: 'linear' } : spring}>
-          {mode === 'assistant' ? <Sparkle /> : <Search />}
+          <Mode.Icon />{/* the chosen mode's icon lives here, on the confirm button; the switch shows only its name */}
         </motion.button>
       </motion.div>
 
@@ -174,7 +173,7 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
                 <WhenPart value={evWhen} onChange={(w) => { setEvWhen(w); setEvWhenDone(false) }} onDone={() => setEvWhenDone(true)} />
                 <span className="hs-sep" />
                 <WherePart value={evWhere} onChange={setEvWhere} features={features} />
-                <button type="button" className="hero-go" onClick={() => submit()} aria-label={t('Search')}><Search size={19} /></button>
+                <button type="button" className="hero-go" onClick={() => submit()} aria-label={t('Search')}><Calendar size={19} /></button>
               </div>
             </>)}
             {mode === 'assistant' && (
