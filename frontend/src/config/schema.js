@@ -62,6 +62,8 @@ export const SECTIONS = [
       { id: 'mapPalette', label: 'Map palette', type: 'select', default: 'colour', options: [
         { value: 'colour', label: 'Colour (parks, water, paths)' }, { value: 'grey', label: 'Grey (Positron)' }, { value: 'pastel', label: 'Pastel' }, { value: 'paper', label: 'Warm paper' },
         { value: 'bright', label: 'Bright colours' }, { value: 'liberty', label: 'Liberty' }, { value: 'fiord', label: 'Fiord (blue dark)' }, { value: 'dark', label: 'Dark matter' }] },
+      { id: 'landuse', label: 'Land-use colours (residential, commercial…)', type: 'toggle', default: true },
+      { id: 'landuseLegend', label: 'Land-use key (bottom right)', type: 'toggle', default: true },
       { id: 'streetLabels', label: 'Street names', type: 'select', default: 'normal', options: [
         { value: 'none', label: 'Hidden' }, { value: 'small', label: 'Small' }, { value: 'normal', label: 'Normal' }, { value: 'large', label: 'Large' }] },
       { id: 'poiLabels', label: 'Place labels (POI)', type: 'toggle', default: false },

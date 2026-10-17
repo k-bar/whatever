@@ -217,7 +217,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     const m = map.current
     if (!m?.isStyleLoaded()) return
     applyMapDesign(m, values)
-  }, [values.streetLabels, values.poiLabels, values.borders, values.buildings, values.waterTint, values.mapPalette, values.cityBoundary])
+  }, [values.streetLabels, values.poiLabels, values.borders, values.buildings, values.waterTint, values.mapPalette, values.cityBoundary, values.landuse])
 
   useEffect(() => {
     const m = map.current

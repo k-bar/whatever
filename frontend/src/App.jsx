@@ -8,6 +8,7 @@ import { curate } from './mapboxes/curate'
 import { BottomSheet } from './components/BottomSheet'
 import { BottomToolbar } from './components/BottomToolbar'
 import { InterfaceEditor } from './components/InterfaceEditor'
+import { LanduseLegend } from './components/LanduseLegend'
 import { CloseButton } from './components/CloseButton'
 import { Mermaid } from './components/Icons'
 import { MapBox } from './components/MapBox'
@@ -156,6 +157,8 @@ export default function App() {
 
       <BottomToolbar busy={values.busyAreas} onBusy={() => { set('busyAreas', !values.busyAreas); say(values.busyAreas ? 'Busy areas off' : 'Busy areas on') }}
         onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()} layersOn={values.showPlaces} onLayers={() => set('showPlaces', !values.showPlaces)} />
+
+      <LanduseLegend getMap={() => mapRef.current?.getMap()} mobile={mobile} />
 
       {mobile && <BottomSheet open={!!sheet && !!sheetContent} onClose={() => setSheet(null)} initial="half">{sheetContent}</BottomSheet>}
 
