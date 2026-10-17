@@ -1,0 +1,47 @@
+[
+ {
+  "slug": "warsaw_open_data",
+  "name": "Warsaw Open Data (dane.um.warszawa.pl)",
+  "url": "https://dane.um.warszawa.pl",
+  "is_reliable": true,
+  "last_run_at": "2026-10-17T15:23",
+  "last_status": "ok",
+  "item_count": 654
+ },
+ {
+  "slug": "streets_gl",
+  "name": "OpenStreetMap venues (streets.gl)",
+  "url": "https://streets.gl",
+  "is_reliable": true,
+  "last_run_at": "2026-10-17T15:23",
+  "last_status": "ok",
+  "item_count": 447
+ },
+ {
+  "slug": "kupbilecik",
+  "name": "kupbilecik.pl tickets",
+  "url": "https://www.kupbilecik.pl",
+  "is_reliable": true,
+  "last_run_at": "2026-10-17T15:23",
+  "last_status": "partial (403)",
+  "item_count": 170
+ },
+ {
+  "slug": "user",
+  "name": "Warszawa Live users",
+  "url": null,
+  "is_reliable": false,
+  "last_run_at": null,
+  "last_status": null,
+  "item_count": 6
+ },
+ {
+  "slug": "google_busy",
+  "name": "Google Popular Times (mock)",
+  "url": null,
+  "is_reliable": false,
+  "last_run_at": null,
+  "last_status": "mock data",
+  "item_count": 1674
+ }
+]
