@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
 import { useLang } from './i18n'
 import { fetchBusyAreas, fetchCityLayer, fetchFeatures, fetchMapbox, locateByIp, routeTo, runSearch } from './data/api'
-import { CITY_LAYERS, walkBoxFeature } from './components/cityLayers'
+import { alongPaths, CITY_LAYERS, walkBoxFeature, walkPaths } from './components/cityLayers'
 import { useFavourites } from './hooks/useFavourites'
 import { useScrollFade } from './hooks/useScrollFade'
 import { useStartPoint } from './hooks/useStartPoint'
@@ -65,12 +65,16 @@ export default function App() {
   const start = useStartPoint() // picked in Profile; beats the IP guess
   const firstPosition = useRef(true)
   const [route, setRoute] = useState(null)
-  // "In the city" layers (toilets, AED, walking routes): fetched the first time each is switched on
+  // "In the city" layers (toilets, AED, walking routes): fetched the first time each is switched on.
+  // Toilets and AEDs only show along the walk you're on: within 600 m of the route (cityLayers.alongPaths).
   const [city, setCity] = useState({})
+  const paths = useMemo(() => walkPaths(route, boxes), [route, boxes])
+  const onPath = paths.length > 0
   useEffect(() => {
-    for (const l of CITY_LAYERS) if (values[l.param] && !city[l.id]) fetchCityLayer(l.id).then((fc) => setCity((c) => ({ ...c, [l.id]: fc })))
-  }, [values.showToilets, values.showAed, values.showWalks]) // eslint-disable-line react-hooks/exhaustive-deps
-  const cityCounts = Object.fromEntries(CITY_LAYERS.map((l) => [l.id, city[l.id]?.features.length]))
+    for (const l of CITY_LAYERS) if (values[l.param] && !city[l.id] && (l.id === 'walks' || onPath)) fetchCityLayer(l.id).then((fc) => setCity((c) => ({ ...c, [l.id]: fc })))
+  }, [values.showToilets, values.showAed, values.showWalks, onPath]) // eslint-disable-line react-hooks/exhaustive-deps
+  const cityShown = useMemo(() => alongPaths(city, paths), [city, paths])
+  const cityCounts = Object.fromEntries(CITY_LAYERS.map((l) => [l.id, l.id === 'walks' || onPath ? cityShown[l.id]?.features.length : undefined]))
   const [draftPin, setDraftPin] = useState(null) // "+ Create event" is open: where the new event happens
   const meRef = useRef(null)
   useEffect(() => { meRef.current = me }, [me])
@@ -302,7 +306,7 @@ export default function App() {
     <div className={`app ${view === 'map' && panel && !mobile ? (panelFull ? 'slide-full' : 'slide-open') : ''} ${flying ? 'flying' : ''}`}>
       <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
         onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={revealed} draftPin={draftPin} onDraftPin={setDraftPin}
-        city={city} onPickWalk={pickWalk} />
+        city={cityShown} onPickWalk={pickWalk} />
 
       <AnimatePresence>{view === 'landing' && <Landing key="landing" features={features ? featureList : null} onEnter={enterMap} getMap={getMap} />}</AnimatePresence>
 

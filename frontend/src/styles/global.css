@@ -1027,6 +1027,7 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .close-all { position: fixed; top: var(--close-all-top); right: 16px; z-index: 89; height: var(--close-all-h); display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; background: var(--surface-solid); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--fg-2); transition: color .15s, transform .15s; } /* opacity: fade in/out in App.jsx */
 .close-all:hover { color: var(--fg); transform: translateY(-1px); }
 .pm-title.pm-sub { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); } /* "In the city" section of the pin box */
+.pm-hint { margin: -4px 10px 6px; font-size: 11.5px; line-height: 1.35; color: var(--fg-2); }
 
 /* ---------- scrolling lists with soft edges (hooks/useScrollFade.js): the open map boxes ---------- */
 @property --fade-top { syntax: '<length>'; inherits: false; initial-value: 0px; }
