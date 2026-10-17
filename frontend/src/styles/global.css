@@ -147,16 +147,6 @@ h2 { font-size: var(--titleSize); }
 .mode-menu small { display: block; color: inherit; opacity: .6; font-size: 11px; font-weight: 400; }
 
 /* ---------- burger menu (liquid) ---------- */
-.burger-menu { position: absolute; left: 0; top: calc(var(--searchHeight) + 10px); width: 280px; padding: 10px; z-index: 40; transform-origin: top left; }
-.burger-menu .bm-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 12px; border-radius: calc(var(--radius) - 8px); font-weight: 600; transition: background .15s, transform .15s; }
-.burger-menu .bm-item:hover { background: var(--surface-2); transform: translateX(3px); }
-.burger-menu .bm-item .ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; background: var(--surface-2); color: var(--fg-2); }
-.burger-menu .bm-item:hover .ic { color: var(--accent); }
-.burger-menu .bm-item small { margin-left: auto; color: var(--fg-3); font-weight: 500; }
-:root[data-menuStyle='bubbles'] .burger-menu { background: transparent; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-:root[data-menuStyle='bubbles'] .burger-menu .bm-item { background: var(--surface-solid); border-radius: 999px; box-shadow: var(--shadow); width: fit-content; min-width: 220px; }
-:root[data-menuStyle='sheet'] .burger-menu { background: var(--surface-solid); backdrop-filter: none; -webkit-backdrop-filter: none; border-radius: 12px; }
-.burger-menu .bm-title { padding: 6px 12px 10px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3); font-weight: 700; }
 
 /* ---------- results panel ---------- */
 .results { position: absolute; left: 0; top: calc(var(--searchHeight) + 10px); width: 100%; max-height: calc(100vh - var(--searchHeight) - 140px); display: flex; flex-direction: column; z-index: 15; overflow: hidden; }
@@ -339,7 +329,6 @@ h2 { font-size: var(--titleSize); }
   .top-right { top: 12px; right: 12px; }
   .boxes { display: none; }
   .mode-menu { right: 50px; }
-  .burger-menu { width: 100%; }
   .results.desktop { display: none; }
   .app-title { display: none; }
   .data-badge { left: 12px; bottom: calc(12px + var(--safe-b)); font-size: 10px; }
@@ -514,7 +503,6 @@ h2 { font-size: var(--titleSize); }
 .brand-name { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 19px; letter-spacing: -0.01em; }
 .brand-lg { gap: 12px; }
 .brand-lg .brand-name { font-size: 30px; }
-.burger-menu .bm-title { padding: 4px 8px 10px; text-transform: none; letter-spacing: 0; }
 
 /* ---------- start page ("Search"): the live map behind a wash, then "Syrenka poleca" ---------- */
 .landing { position: fixed; inset: 0; z-index: 80; overflow-y: auto; overscroll-behavior: contain; }
@@ -574,15 +562,7 @@ h2 { font-size: var(--titleSize); }
 .slideover { position: fixed; top: 0; bottom: 0; left: 0; width: var(--slideW); z-index: 45; display: flex; flex-direction: column; background: var(--surface-solid); border-right: 1px solid var(--line); box-shadow: 10px 0 30px -20px rgba(20, 20, 20, .4); transition: width .45s cubic-bezier(.2, .8, .2, 1); }
 .slideover.full { width: 100vw; z-index: 65; border-right: 0; }
 .so-bar { position: relative; flex: none; display: flex; align-items: center; gap: 8px; height: 72px; padding: 0 14px 0 18px; border-bottom: 1px solid var(--line); }
-.so-burger { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--fg-2); transition: background .15s, color .15s; }
-.so-burger:hover, .so-burger.open { background: var(--surface-2); color: var(--fg); }
 .so-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.so-menu { position: absolute; left: 14px; top: 64px; z-index: 5; width: 290px; padding: 8px; border-radius: 18px; transform-origin: top left; }
-.so-menu .bm-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border-radius: 12px; font-weight: 600; transition: background .15s; }
-.so-menu .bm-item:hover, .so-menu .bm-item.on { background: var(--surface-2); }
-.so-menu .bm-item .ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: var(--surface-2); color: var(--fg-2); }
-.so-menu .bm-item.on .ic { background: var(--fg); color: var(--bg); }
-.so-menu .bm-item small { margin-left: auto; color: var(--fg-3); font-weight: 500; }
 .so-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .slideover .sp-head { padding: 18px 22px 6px; }
 .slideover .sp-scroll { flex: 1; overflow-y: auto; padding: 4px 14px 24px; }
@@ -632,7 +612,6 @@ h2 { font-size: var(--titleSize); }
 
 /* ---------- "+ Create event": burger entry, full-height panel on the right, draft pin ---------- */
 .bm-item.accent .ic { background: var(--accent); color: var(--accent-fg); }
-.burger-menu .bm-item.accent:hover .ic { color: var(--accent-fg); }
 .create-panel { position: fixed; top: 16px; right: 16px; bottom: calc(16px + var(--safe-b)); width: min(420px, calc(100vw - 32px)); z-index: 55; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-solid); }
 .ce-scroll { padding: 4px 16px 12px; }
 .ce-field { display: block; margin: 0 0 16px; }
@@ -1070,3 +1049,34 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .selects > .selects-head:hover { transform: translateY(-2px); filter: saturate(1.25); box-shadow: var(--shadow-lg); }
 .selects-head h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; letter-spacing: -0.01em; }
 :root[data-theme='dark'] .selects > .selects-head { background: linear-gradient(90deg, #3a2422, #3a3322); }
+
+/* ---------- slide-over tray: the burger opens it on its menu; items open inside it (SidePanels.jsx) ---------- */
+.burger-btn { position: relative; }
+.burger-ic { position: absolute; inset: 0; display: grid; place-items: center; } /* burger and (x) overlap while they spin past each other */
+.so-close { width: 40px; height: 40px; min-width: 40px; margin: 0 4px 0 -6px; background: transparent !important; box-shadow: none !important; border-color: transparent !important; }
+.so-expand { width: 36px; height: 36px; min-width: 36px; }
+.so-back { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; margin: 12px 0 0 12px; padding: 6px 12px 6px 6px; border-radius: 999px; font-size: 13.5px; font-weight: 700; color: var(--fg-2); transition: background .15s, color .15s; }
+.so-back:hover { background: var(--surface-2); color: var(--fg); }
+.tray-menu { display: flex; flex-direction: column; gap: 4px; padding: 16px 12px; overflow-y: auto; }
+.tray-item { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px; border-radius: 18px; text-align: left; color: var(--fg); transition: background .15s; }
+.tray-item:hover { background: var(--surface-2); }
+.tray-item:hover .tray-go { transform: translateX(3px); color: var(--fg); }
+.tray-ic { width: 48px; height: 48px; flex: none; display: grid; place-items: center; border-radius: 16px; }
+.tray-ic.logo { background: transparent; }
+.tray-ic.create { background: var(--accent); color: var(--accent-fg); border-radius: 50%; box-shadow: 0 8px 18px -8px var(--accent); }
+.tray-ic.profile { background: color-mix(in srgb, #f5b800 16%, transparent); color: #f5b800; }
+.tray-ic.messages { background: color-mix(in srgb, #2b7fe0 14%, transparent); color: #2b7fe0; }
+.tray-ic.settings { background: color-mix(in srgb, #3d4250 12%, transparent); color: #3d4250; }
+:root[data-theme='dark'] .tray-ic.settings { color: #c3c7d0; background: rgba(255,255,255,.08); }
+.tray-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.tray-txt b { font-size: 16px; font-weight: 700; }
+.tray-txt small { font-size: 12.5px; color: var(--fg-2); font-weight: 500; }
+.tray-go { color: var(--fg-3); flex: none; transition: transform .15s, color .15s; }
+.so-link { width: 100%; text-align: left; margin-top: 4px; }
+.blk-title.so-section { display: flex; flex-direction: column; gap: 2px; padding: 4px 10px 6px; }
+.blk-title.so-section span { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 12.5px; color: var(--fg-2); }
+/* Syrenka Selects inside the tray: one column of full posters */
+.selects-rail.single { flex: 1; min-height: 0; }
+.selects-rail.single .sr-list { padding: 0 12px 16px; gap: 10px; }
+.selects-rail.single .sr-item.wide .sr-img { height: 190px; }
+

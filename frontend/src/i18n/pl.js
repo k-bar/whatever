@@ -379,4 +379,14 @@ export const PL = {
   'Round avatar': 'Okrągły awatar',
   'Dot with halo': 'Kropka z poświatą',
   'Classic blue pin': 'Klasyczna niebieska pinezka',
+  // slide-over tray menu
+  'Close menu': 'Zamknij menu',
+  'Picked for the next two weeks': 'Wybrane na najbliższe dwa tygodnie',
+  'Host something, invite people': 'Zorganizuj coś, zaproś ludzi',
+  'Profile': 'Profil',
+  'You, your friends and events': 'Ty, twoi znajomi i wydarzenia',
+  'People you met at events': 'Ludzie poznani na wydarzeniach',
+  'Settings': 'Ustawienia',
+  'Data sources and the map key': 'Źródła danych i legenda mapy',
+  'Places and events you starred': 'Miejsca i wydarzenia z gwiazdką',
 }

@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from '../config/store'
-import { Burger, Calendar, Chevron, Database, History, Message, Plus, Search, Sparkle, Star, User, X, Minus } from './Icons'
+import { Burger, Calendar, Chevron, History, Search, Sparkle, X, Minus } from './Icons'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { fmtWhenFor } from '../mapboxes/curate'
-import { Brand } from './Brand'
 import { CloseButton } from './CloseButton'
 import { useLang } from '../i18n'
 import { WhenPart, WherePart, whenLabel } from './LandingSearch'
@@ -16,19 +15,7 @@ export const MODES = [
   { id: 'assistant', label: 'Assistant', hint: 'Ask in plain words', Icon: Sparkle },
 ]
 
-export const MENU_ITEMS = [
-  { id: 'profile', label: 'Profiles', Icon: User, hint: 'you' },
-  { id: 'messages', label: 'Messages', Icon: Message, hint: '' },
-  { id: 'create', label: 'Create event', Icon: Plus, hint: '', accent: true },
-  { id: 'favourites', label: 'Favourite spots', Icon: Star, hint: '' },
-  { id: 'sources', label: 'Data sources', Icon: Database, hint: '' },
-]
-
-// Burger menus (this one and the slide-over's) open with clip-path, never scale: closed is a burger-sized
-// corner at the top left, open reaches a little past every edge so the shadow isn't clipped.
-export const MENU_CLOSED = 'inset(0% 84% 88% 0% round 24px)'
-export const MENU_OPEN = 'inset(-14% -14% -14% -14% round 24px)'
-/** The burger menus' open / close: the same calm "push" as the search pill's flight (landing/searchFlight.js). */
+/** The burger's spin-and-switch and the tray: the same calm "push" as the search pill's flight (landing/searchFlight.js). */
 export function usePush() {
   const { values } = useConfig()
   return values.reduceMotion ? { duration: 0.1 } : { duration: FLIGHT_MS / 1000 / (values.animSpeed || 1), ease: [0.4, 0, 0.2, 1] }
@@ -42,7 +29,7 @@ const readRecent = () => { try { return JSON.parse(localStorage.getItem(RECENT_K
  * The Gemini-style pill: burger (plain) · input · mode dropdown · spyglass (circle).
  * Focusing the input opens the focus panel (recents / category pills / assistant thread).
  */
-export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, searching, mobile, chat, onChatClear, initialQuery = '', features }) {
+export function SearchBar({ onSearch, trayOpen = false, onBurger, results, onPick, onClear, searching, mobile, chat, onChatClear, initialQuery = '', features }) {
   const { values } = useConfig()
   const { t } = useLang()
   const spring = useSpring()
@@ -52,7 +39,6 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
   const placeholder = values.searchPlaceholder === 'Search Warsaw tonight…' ? "What's the plan today?" : values.searchPlaceholder
   const [mode, setMode] = useState('search')
   const [modeOpen, setModeOpen] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [focused, setFocused] = useState(false)
   const [chatFull, setChatFull] = useState(false)
   const [recent, setRecent] = useState(readRecent)
@@ -67,7 +53,7 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
   const [evWhere, setEvWhere] = useState(null)
 
   useEffect(() => {
-    const onDoc = (e) => { if (!wrapRef.current?.contains(e.target)) { setModeOpen(false); setMenuOpen(false); setFocused(false) } }
+    const onDoc = (e) => { if (!wrapRef.current?.contains(e.target)) { setModeOpen(false); setFocused(false) } }
     document.addEventListener('pointerdown', onDoc)
     return () => document.removeEventListener('pointerdown', onDoc)
   }, [])
@@ -85,7 +71,7 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
     }
     setPushed(true)
     setTimeout(() => setPushed(false), 260 / (values.animSpeed || 1))
-    setModeOpen(false); setMenuOpen(false)
+    setModeOpen(false)
     remember(term)
     if (m !== 'assistant') { setFocused(false); inputRef.current?.blur() } else setQ('')
     onSearch(m, term, opts)
@@ -96,24 +82,30 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
   // all three chosen → search; changing any of them afterwards searches again
   useEffect(() => { if (evReady) submit() }, [evReady, evCat, evWhen, evWhenDone, evWhere]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const panelOpen = values.searchPanel && focused && !menuOpen && !modeOpen && (mode === 'assistant' || !results || q !== (results?.q || ''))
-  const showResults = results && !menuOpen && !mobile && !panelOpen && mode !== 'assistant'
-  const showAssistant = mode === 'assistant' && (focused || chatFull) && !menuOpen && !modeOpen && values.searchPanel
+  const panelOpen = values.searchPanel && focused && !modeOpen && (mode === 'assistant' || !results || q !== (results?.q || ''))
+  const showResults = results && !mobile && !panelOpen && mode !== 'assistant'
+  const showAssistant = mode === 'assistant' && (focused || chatFull) && !modeOpen && values.searchPanel
 
   return (
     <div className="search-wrap" ref={wrapRef}>
       <span className="search-glow" />
       {/* arriving from / leaving for the start page is a separate flight (landing/searchFlight.js) */}
       <motion.div className="search surface" animate={pushed ? { y: 10, scale: 0.985 } : { y: 0, scale: 1 }} transition={spring}>
-        <motion.button className="btn icon burger-btn" aria-label={t('Menu')} onClick={() => { setMenuOpen(!menuOpen); setModeOpen(false); setFocused(false) }}
-          animate={{ rotate: menuOpen ? 90 : 0 }} transition={push}>
-          {menuOpen ? <X size={26} stroke={2.2} /> : <Burger />}
-        </motion.button>
+        {/* opens / closes the slide-over tray; the burger spins out as the (x) spins in, and back */}
+        <button className="btn icon burger-btn" aria-label={t(trayOpen ? 'Close menu' : 'Menu')} aria-expanded={trayOpen}
+          onClick={() => { onBurger?.(); setModeOpen(false); setFocused(false) }}>
+          <AnimatePresence initial={false}>
+            <motion.span key={trayOpen ? 'x' : 'burger'} className="burger-ic"
+              initial={{ rotate: -90, opacity: 0, scale: 0.6 }} animate={{ rotate: 0, opacity: 1, scale: 1 }} exit={{ rotate: 90, opacity: 0, scale: 0.6 }} transition={push}>
+              {trayOpen ? <X size={26} stroke={2.2} /> : <Burger />}
+            </motion.span>
+          </AnimatePresence>
+        </button>
         <input ref={inputRef} value={q} placeholder={mode === 'assistant' ? t('Ask the assistant…') : t(placeholder)} onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setFocused(false); inputRef.current?.blur() } }}
-          onFocus={() => { setMenuOpen(false); setModeOpen(false); setFocused(true) }} />
+          onFocus={() => { setModeOpen(false); setFocused(true) }} />
         {(q || results) && <button className="btn icon small ghost" onClick={clear} aria-label={t('Clear')}><X size={20} stroke={2.2} /></button>}
-        <button className={`mode-btn ${modeOpen ? 'open' : ''}`} onClick={() => { setModeOpen(!modeOpen); setMenuOpen(false) }}>
+        <button className={`mode-btn ${modeOpen ? 'open' : ''}`} onClick={() => setModeOpen(!modeOpen)}>
           {t(Mode.label)}
           <Chevron size={14} className="chev" />
         </button>
@@ -131,25 +123,6 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
             {MODES.map((m) => (
               <button key={m.id} className={m.id === mode ? 'on' : ''} onClick={() => { setMode(m.id); setModeOpen(false); setFocused(true); inputRef.current?.focus() }}>
                 <m.Icon size={18} /><span>{t(m.label)}<small>{t(m.hint)}</small></span>
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* burger menu: grows out from under the burger and stops, like the search pill's push. It is revealed
-          with clip-path, never scaled, so the text and shadow are drawn once and nothing re-renders as it lands. */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div className="burger-menu surface" style={{ willChange: 'clip-path' }}
-            initial={{ clipPath: MENU_CLOSED, opacity: 0 }}
-            animate={{ clipPath: MENU_OPEN, opacity: 1 }}
-            exit={{ clipPath: MENU_CLOSED, opacity: [1, 1, 0], transition: { ...push, opacity: { ...push, times: [0, 0.75, 1] } } }}
-            transition={{ ...push, opacity: { duration: push.duration * 0.25, ease: 'linear' } }}>
-            <div className="bm-title"><Brand onHome={() => { setMenuOpen(false); onHome?.() }} /></div>
-            {MENU_ITEMS.map((it) => (
-              <button key={it.id} className={`bm-item ${it.accent ? 'accent' : ''}`} onClick={() => { setMenuOpen(false); onMenu(it.id) }}>
-                <span className="ic"><it.Icon size={18} /></span>{t(it.label)}<small>{it.hint && t(it.hint)}</small>
               </button>
             ))}
           </motion.div>
