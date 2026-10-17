@@ -6,15 +6,13 @@ import time
 from types import FrameType
 from typing import Any, Optional
 
-from sqlalchemy import create_engine
-
 from src.api_client import (
     DATASETS_BY_KEY,
     EXTERNAL_DATASETS,
     DatasetSpec,
     parse_dane_file,
 )
-from src.config import get_database_url
+from src.config import create_db_engine
 from src.ingestor import DatabaseIngestor
 
 FAST_INTERVAL_SECONDS = 10 * 60  # 10 minutes
@@ -155,7 +153,7 @@ def lambda_handler(
     """AWS Lambda entry point triggered by AWS EventBridge Scheduler."""
     del context
     payload = event if isinstance(event, dict) else {}
-    engine = create_engine(get_database_url())
+    engine = create_db_engine()
     ingestor = DatabaseIngestor(engine=engine)
     ingestor.init_schema()
 

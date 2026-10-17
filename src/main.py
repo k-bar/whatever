@@ -4,10 +4,8 @@ import argparse
 import logging
 from typing import Optional
 
-from sqlalchemy import create_engine
-
 from src.api_client import DATASETS_BY_KEY
-from src.config import get_database_url
+from src.config import create_db_engine
 from src.ingestor import DatabaseIngestor
 from src.scheduler import DatasetScheduler, get_specs_for_group
 
@@ -29,7 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Synchronize dataset group: 'fast' (weather, air_quality - 10m), "
             "'slow' (other 6 Warsaw datasets - 2h), "
-            "'external' (kupbilecik, streets_gl), or 'all'."
+            "'external' (streets_gl), or 'all'."
         ),
     )
     parser.add_argument(
@@ -60,8 +58,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         format="%(asctime)s [%(levelname)s] %(message)s",
     )
     args = build_parser().parse_args(argv)
-    db_url = args.db_url or get_database_url()
-    engine = create_engine(db_url)
+    engine = create_db_engine(db_url=args.db_url)
     ingestor = DatabaseIngestor(engine=engine)
 
     ingestor.init_schema()

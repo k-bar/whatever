@@ -8,7 +8,7 @@ The same data arrives through two pipelines. They write different tables:
 |---|---|---|
 | Code | `backend/app/ingest/` | `src/` (repo root), launched by `backend/app/ingest/src_sync.py` |
 | Writes | `sources`, `events`, `event_occurrences`, `weather_stations`, `air_stations`, `tourist_routes` | raw tables from `src/models.py` (below), `sync_logs` |
-| Read by the API | yes, everything the map shows | only `tourist_routes`, and `kupbilecik_events` (as a fallback) |
+| Read by the API | yes, everything the map shows | only `tourist_routes` |
 | Schedule | `warszawa-ingest.timer` (prod hourly at `:17`, dev every 6 h at `:37`), `warszawa-conditions.timer` (every 10 min) | `warszawa-sync.service`, a long-running scheduler: weather and air every 10 min, the rest every 2 h |
 | Status | `GET /sources` | `sync_logs` table, `journalctl -u warszawa-sync` |
 
@@ -25,7 +25,6 @@ through the relay in Poland (see [operations.md](operations.md#warsaw-api-relay)
 | `warsaw_toilets` | Open Data `get_m_toalety` | place, category `toilets` | every ingest run | hidden from `/places` unless asked for |
 | `warsaw_aed` | Open Data `get_scb_lokalizacja_defibrylatorow` | place, category `aed` | every ingest run | hidden from `/places` unless asked for |
 | `osm_venues` | OpenStreetMap Overpass (theatres, cinemas, clubs, museums, stadiums…) | place | 24 h | ~450, ODbL, ported from Kamil's streets.gl query |
-| `kupbilecik` | kupbilecik.pl listing pages (JSON-LD) | event | 12 h | the site sometimes answers 403 to bots; falls back to `kupbilecik_events` |
 
 Non-event feeds (`Feed` in `app/ingest/conditions.py`):
 
@@ -63,7 +62,7 @@ CI runs every parser against its fixture (`tests/test_contract.py`).
 
 ## Kamil's synchronizer (`src/`)
 
-Datasets come from `dane.txt` (Open Data catalogue URLs) plus two external ones:
+Datasets come from `dane.txt` (Open Data catalogue URLs) plus OpenStreetMap (`streets_gl`):
 
 | Key | Tables | Strategy |
 |---|---|---|
@@ -75,12 +74,11 @@ Datasets come from `dane.txt` (Open Data catalogue URLs) plus two external ones:
 | `sports_activities` | `sports_activities` | upsert by `url` |
 | `open_sports_fields` | `open_sports_fields` | upsert by school / address / type / equipment |
 | `city_events` | `city_events` | upsert by `url` |
-| `kupbilecik` | `kupbilecik_events` | upsert by id |
 | `streets_gl` | `streets_gl_venues` | upsert by OSM id |
 
 The tables are created by Alembic migration `0007` in the environment's schema, not by `create_all`.
-Never run `python -m src.main` against RDS by hand: it ignores `DB_SCHEMA` and writes into `public`,
-which is prod. Kamil's own docs: `API.md` (Polish) and `man.md` (see [known-issues.md](known-issues.md)).
+`src/` honours `DB_SCHEMA` (default `public`, which is prod): when running `python -m src.main` by hand
+against RDS, always set `DB_SCHEMA=dev`. Kamil's own docs: `API.md` (Polish) and `man.md` (see [known-issues.md](known-issues.md)).
 
 ## Tables
 
@@ -107,7 +105,7 @@ The database is one RDS instance; each environment has its own schema (`public` 
 
 `tourist_routes`, `tourist_points`, `toilets`, `weather_measurements`, `defibrillators`,
 `sports_activities`, `open_sports_fields`, `city_events`, `air_quality_stations`,
-`air_quality_measurements`, `sync_logs`, `kupbilecik_events`, `streets_gl_venues`.
+`air_quality_measurements`, `sync_logs`, `streets_gl_venues`.
 Column lists: `API.md`, section 2.
 
 ### Migrations (`backend/alembic/versions/`)
@@ -121,6 +119,7 @@ Column lists: `API.md`, section 2.
 | `0005` | `users.favourite_ids` |
 | `0006` | Profiles: `username`, `gender`, `hangouts`; `friendships` |
 | `0007` | Kamil's raw tables; `tourist_routes` takes his shape |
+| `0008` | kupbilecik removed: drop `kupbilecik_events`, its events marked inactive |
 
 `deploy.sh` runs `alembic upgrade head` in the box's schema on every deploy. CI runs `alembic upgrade
 head && alembic check` on an empty database, so models and migrations must match.

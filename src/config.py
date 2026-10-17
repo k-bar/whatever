@@ -4,15 +4,25 @@ from pathlib import Path
 from typing import Mapping, Optional
 from urllib.parse import quote_plus
 import os
+import re
+
+from sqlalchemy import Engine, create_engine
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 API_KEY_FILE = BASE_DIR / "apiKey.txt"
 DANE_FILE = BASE_DIR / "dane.txt"
 
-DEFAULT_DATABASE_URL = (
-    "postgresql+psycopg://warszawa:warszawa_password"
-    "@localhost:5432/warszawa_live"
-)
+DEFAULT_DATABASE_URL = "postgresql+psycopg://postgres@localhost:54329/warszawa"
+SCHEMA_PATTERN = re.compile(r"^[a-z_][a-z0-9_]*$")
+
+
+def get_db_schema(env: Optional[Mapping[str, str]] = None) -> str:
+    """Read and validate PostgreSQL target schema from DB_SCHEMA."""
+    environ = env if env is not None else os.environ
+    schema = (environ.get("DB_SCHEMA") or "public").strip()
+    if not SCHEMA_PATTERN.fullmatch(schema):
+        raise ValueError(f"Invalid DB_SCHEMA identifier: {schema!r}")
+    return schema
 
 
 def get_database_url(env: Optional[Mapping[str, str]] = None) -> str:
@@ -42,13 +52,30 @@ def get_database_url(env: Optional[Mapping[str, str]] = None) -> str:
     return DEFAULT_DATABASE_URL
 
 
+def create_db_engine(
+    db_url: Optional[str] = None,
+    schema: Optional[str] = None,
+    env: Optional[Mapping[str, str]] = None,
+) -> Engine:
+    """Create SQLAlchemy Engine configured with DB_SCHEMA search_path."""
+    resolved_url = db_url or get_database_url(env=env)
+    resolved_schema = schema or get_db_schema(env=env)
+    return create_engine(
+        resolved_url,
+        connect_args={"options": f"-csearch_path={resolved_schema},public"},
+    )
+
+
 def get_api_token(
     api_key_path: Path = API_KEY_FILE,
     env: Optional[Mapping[str, str]] = None,
 ) -> str:
     """Read Warsaw Open Data API token from env or apiKey.txt."""
     environ = env if env is not None else os.environ
-    env_token = environ.get("WARSZAWA_API_TOKEN")
+    env_token = (
+        environ.get("WARSZAWA_API_TOKEN")
+        or environ.get("WARSAW_API_TOKEN")
+    )
     if env_token:
         return env_token.strip()
     if not api_key_path.exists():

@@ -384,44 +384,6 @@ class SyncLog(Base):
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
-class KupbilecikEvent(Base):
-    """Ticketed cultural/entertainment event scraped from kupbilecik.pl."""
-
-    __tablename__ = "kupbilecik_events"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(500), nullable=False)
-    date: Mapped[Optional[str]] = mapped_column(
-        String(32), nullable=True, index=True
-    )
-    time: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    end_date: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    end_time: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    location: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    city: Mapped[Optional[str]] = mapped_column(
-        String(120), nullable=True, index=True
-    )
-    postcode: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    region: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
-    category: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
-    event_type: Mapped[Optional[str]] = mapped_column(
-        String(120), nullable=True
-    )
-    price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    currency: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
-    availability: Mapped[Optional[str]] = mapped_column(
-        String(64), nullable=True
-    )
-    status: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    url: Mapped[str] = mapped_column(String(500), unique=True, nullable=False)
-    image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, onupdate=utc_now
-    )
-
-
 class StreetsGlVenue(Base):
     """Event venue in Warsaw from OpenStreetMap (used by streets.gl)."""
 
