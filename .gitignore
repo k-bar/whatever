@@ -7,18 +7,21 @@ relaytok*.txt
 
 # python
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
+venv/
 .pytest_cache/
+.mypy_cache/
 .ruff_cache/
 backend/scripts/_cache/
 
-# local data snapshots (rebuild with backend/db/fetch_data.py, load with backend/scripts/import_sqlite.py)
+# local SQLite snapshots from the backend/db/ scrapers (see backend/db/db.md)
 *.db
 backend/db/zdjecia/
 
 # project-local Postgres (backend/scripts/dev-postgres.sh)
 .dev/
+pgdata/
 
 # macOS
 .DS_Store
@@ -29,3 +32,4 @@ infra/*outputs.json
 
 # personal editor / agent config
 .claude/
+.idea/

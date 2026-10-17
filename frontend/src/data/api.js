@@ -50,6 +50,18 @@ export async function fetchFeatures() {
   }
 }
 
+/**
+ * "In the city" layers (Warsaw open data, see components/cityLayers.js): 'toilets' and 'aed' come from
+ * GET /places?category=…, 'walks' (tourist walking routes) from GET /routes. Empty when the API lacks them.
+ */
+export async function fetchCityLayer(id) {
+  try {
+    return await get(id === 'walks' ? '/routes' : `/places?category=${id}`, { timeout: 15000 })
+  } catch {
+    return { type: 'FeatureCollection', features: [] }
+  }
+}
+
 export async function fetchSources() {
   try {
     return await get('/sources')
@@ -58,43 +70,20 @@ export async function fetchSources() {
   }
 }
 
-export async function fetchMapbox(feature) {
-  // backend/mapboxes will curate "the most important info" server-side; until then the
-  // frontend curates locally (src/mapboxes/curate.js) and this just returns null.
-  try {
-    return await get(`/mapboxes/${encodeURIComponent(feature.properties.event_id)}`, { timeout: 1200 })
-  } catch {
-    return null
-  }
-}
+/* ---------- past events: stored, never searched ---------- */
 
-export async function loadSettings() {
-  try {
-    return await get('/ui/settings', { timeout: 1200 })
-  } catch {
-    return null
-  }
-}
-
-export async function saveSettings(values) {
-  try {
-    await get('/ui/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(values), timeout: 1500 })
-    return true
-  } catch {
-    return false
-  }
-}
+const toDate = (iso) => new Date(String(iso).replace(/([+-]\d{2})$/, '$1:00'))
+/** An event is past once it has ended (or started, when it has no end). Undated places never are. */
+export const isPast = (p, now = Date.now()) => !!p?.starts_at && toDate(p.ends_at || p.starts_at).getTime() < now
+/** Search shows only upcoming and ongoing things; past events stay stored (backend keeps them as history). */
+export const upcoming = (features) => (features || []).filter((f) => !isPast(f.properties))
 
 /**
- * Search. mode ∈ search | events | assistant. Tries backend/search/<mode> first, then
+ * Search. mode ∈ search | events | assistant. The backend has no search endpoint, so this
  * filters the already-loaded features client-side.
  */
 export async function runSearch(mode, q, features, opts = {}) {
-  try {
-    return await get(`/search/${mode}?q=${encodeURIComponent(q)}${opts.category ? `&category=${opts.category}` : ''}`, { timeout: 1500 })
-  } catch {
-    return localSearch(mode, q, features, opts)
-  }
+  return localSearch(mode, q, upcoming(features), opts)
 }
 
 function localSearch(mode, q, features, opts = {}) {
@@ -122,7 +111,7 @@ function localSearch(mode, q, features, opts = {}) {
     const cats = [...new Set(results.flatMap((f) => f.properties.categories))].slice(0, 3).join(', ')
     const top = results.slice(0, 3).map((f) => `• ${f.properties.title}${f.properties.venue_name ? ` @ ${f.properties.venue_name}` : ''}`).join('\n')
     const answer = n
-      ? `I found ${n} things matching “${q}” across the city, mostly ${cats}. My top picks:\n${top}\n\nTap one to open it on the map. (Assistant is a stub: backend/search/assistant.py will plug in a real model.)`
+      ? `I found ${n} things matching “${q}” across the city, mostly ${cats}. My top picks:\n${top}\n\nTap one to open it on the map. (Assistant is a stub: it searches what's on the map.)`
       : `Nothing matches “${q}” yet. Try a district (Praga, Mokotów), a mood (jazz, run, picnic) or a venue.`
     return { answer, results }
   }
@@ -305,6 +294,41 @@ export async function fetchJoinRequests() {
   try { return await authed('/me/join-requests?direction=incoming&status=pending', { timeout: 6000 }) } catch { return [] }
 }
 
+/** My favourited events/venues saved with the account (GET /me/favourites); null when this browser has no session. */
+export async function fetchFavourites() {
+  if (!readToken()) return null
+  try { return (await authed('/me/favourites', { timeout: 6000 })).ids } catch { return null }
+}
+
+/** Save the whole list of favourited events/venues (PUT /me/favourites). Logged in only; logged out, stars stay in the browser. */
+export async function saveFavourites(ids) {
+  try { return (await authed('/me/favourites', { method: 'PUT', body: { ids } })).ids } catch { return null }
+}
+
+/* ---------- profiles & friends (backend/app/routers/profiles.py) ---------- */
+
+/** Call as the logged-in user when there is a session, anonymously otherwise (public profile pages). */
+const maybeAuthed = (path, opts = {}) => (readToken() ? authed(path, opts) : get(path, { timeout: 8000, ...opts }))
+
+/** A profile page: by id, or by @username. Includes stats and how the viewer relates to them. */
+export const fetchProfile = (who) => maybeAuthed(typeof who === 'number' ? `/users/${who}/profile` : `/profiles/${encodeURIComponent(who)}`)
+/** scope: going | been | hosting. Yourself and friends only (403 otherwise). */
+export const fetchProfileEvents = (userId, scope) => maybeAuthed(`/users/${userId}/events?scope=${scope}`)
+export const fetchFriends = (userId) => maybeAuthed(`/users/${userId}/friends`)
+export const fetchFriendRequests = (direction = 'incoming') => authed(`/me/friend-requests?direction=${direction}`)
+export const sendFriendRequest = (username) => authed('/friends/requests', { method: 'POST', body: { username } })
+export const answerFriendRequest = (id, status) => authed(`/friend-requests/${id}`, { method: 'PATCH', body: { status } })
+export const unfriend = (userId) => authed(`/friends/${userId}`, { method: 'DELETE' })
+export const searchPeople = (q) => maybeAuthed(`/people/search?q=${encodeURIComponent(q)}`)
+export const checkUsername = (name) => maybeAuthed(`/usernames/${encodeURIComponent(name)}/available`)
+/** PATCH /me: display_name, username, gender ('f' | 'm' | '' to clear), bio, interests, hangouts. */
+export const updateMe = (patch) => authed('/me', { method: 'PATCH', body: patch })
+/** Upload a profile picture (shrunk in the browser, stored by the API); returns its path for photos[0]. */
+export async function uploadProfilePhoto(file) {
+  const r = await authed('/userevents/photos', { method: 'POST', body: { data_url: await shrinkPhoto(file, 800) } })
+  return r.url
+}
+
 /** Shrink a photo in the browser (longest side 1600 px, JPEG) so uploads stay small. */
 async function shrinkPhoto(file, max = 1600) {
   const img = await createImageBitmap(file)
@@ -340,4 +364,16 @@ async function fetchPrivateUserEvents() {
   } catch {
     return []
   }
+}
+
+/* ---------- going / asking to join (backend/app/routers/social.py) ---------- */
+
+/** PUT /occurrences/{id}/attendance — "I'm going"; wants_company puts you on the "come with me" list. */
+export async function setAttendance(occurrenceId, wantsCompany = true) {
+  return authed(`/occurrences/${occurrenceId}/attendance`, { method: 'PUT', body: { wants_company: wantsCompany }, timeout: 8000 })
+}
+
+/** POST /occurrences/{id}/join-requests — ask the host (or someone who wants company) to join them. */
+export async function requestJoin(occurrenceId, targetUserId, message = null) {
+  return authed(`/occurrences/${occurrenceId}/join-requests`, { method: 'POST', body: { target_user_id: targetUserId, message }, timeout: 8000 })
 }

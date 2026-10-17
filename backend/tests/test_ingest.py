@@ -57,7 +57,15 @@ def test_outside_warsaw_dropped_and_missing_marked_inactive(db):
 def test_occurrence_with_attendees_survives_removal(db):
     spec = SOURCES["warsaw_events"]
     load(db, spec, [raw("a", starts=("2030-01-01T18:00:00+01:00", "2030-01-02T18:00:00+01:00"))], None)
-    user = User(email="x@example.com", password_hash="x", display_name="X", photos=[], interests=[], links={})
+    user = User(
+        email="x@example.com",
+        password_hash="x",
+        display_name="X",
+        username="x.user",
+        photos=[],
+        interests=[],
+        links={},
+    )
     db.add(user)
     db.flush()
     attended = db.scalars(select(Occurrence).order_by(Occurrence.starts_at)).first()
@@ -69,6 +77,18 @@ def test_occurrence_with_attendees_survives_removal(db):
     ids = set(db.scalars(select(Occurrence.id)))
     assert attended.id in ids  # kept: someone is going
     assert len(ids) == 2  # 01-02 dropped, 01-03 added
+
+
+def test_past_occurrences_are_kept_when_the_source_stops_listing_them(db):
+    spec = SOURCES["warsaw_events"]
+    load(db, spec, [raw("a", starts=("2020-05-01T18:00:00+02:00", "2030-01-02T18:00:00+01:00"))], None)
+    db.commit()
+
+    # next run: the source no longer lists either date (the past one is over, the future one cancelled)
+    load(db, spec, [raw("a", starts=("2030-01-03T18:00:00+01:00",))], None)
+    db.commit()
+    years = sorted(o.starts_at.year for o in db.scalars(select(Occurrence)))
+    assert years == [2020, 2030]  # 2020 kept as history; cancelled 2030-01-02 dropped; 2030-01-03 added
 
 
 def test_api_request_direct_and_via_relay(monkeypatch):
@@ -119,7 +139,7 @@ def test_amenities_parse_coordinates_hours_and_categories():
 
 def test_conditions_and_routes_parse():
     from app.ingest.conditions import parse_air, parse_weather
-    from app.ingest.routes import parse_routes
+    from app.ingest.routes import parse_routes, route_line, route_points
     from app.ingest.sources.warsaw_open_data import as_records
 
     weather = parse_weather(fixture_records("warsaw_weather"))
@@ -129,8 +149,9 @@ def test_conditions_and_routes_parse():
     assert air and "PM10" in air[0]["params"] and air[0]["index_name"]
 
     routes = parse_routes(as_records(fixture_records("warsaw_routes")))
-    assert routes and routes[0]["path"].startswith("SRID=4326;LINESTRING(20.")  # lng first
-    assert routes[0]["points"] and {"id", "name", "lat", "lng"} <= routes[0]["points"][0].keys()
+    assert routes and routes[0]["traces"] and routes[0]["tourist_points"]  # stored raw, Kamil's shape
+    assert 20 < route_line(routes[0]["traces"])[0][0] < 22  # lng first
+    assert {"id", "name", "lat", "lng"} <= route_points(routes[0]["tourist_points"])[0].keys()
 
 
 def test_osm_venues_parse():

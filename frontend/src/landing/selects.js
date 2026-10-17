@@ -5,7 +5,8 @@
  *   score = soon × kind of event × (photo, description, big-name venue, people going) bonuses
  * Year-long "daily" listings (social services, permanent offers) and things that already ended are
  * dropped. Picking is greedy with penalties for repeating a category or a venue, so the grid reads
- * as a mix. The two best picks that have a photo become the 2-wide headliners.
+ * as a mix. Every pick has a poster. The top row is two normal cards (so more than one shows above
+ * the fold); the two best picks become 2-wide headliners further down.
  *
  * Later: people going / "wants company" counts from our own users, and paid slots (sponsored: true),
  * which the grid already knows how to place.
@@ -23,17 +24,22 @@ const KIND = {
 
 const BIG_VENUE = /stadion|narodow|teatr wielki|filharmoni|torwar|progresj|stodo|palladium|tama|hala koszyki|kopernik|zachęt|muzeum|łazienk|pałac kultury|plac defilad|koneser|elektrowni/i
 
-export function pickSelects(features, { now = new Date(), count = 10 } = {}) {
+export function pickSelects(features, { now = new Date(), count = 12, social = null } = {}) {
   const t0 = now.getTime()
+  const going = social?.going || {}, joined = social?.joined || {}
   const seenTitle = new Set()
   const candidates = []
   for (const f of features || []) {
     const p = f.properties || {}
     if (p.kind !== 'event' || !p.title || !p.starts_at) continue
+    const id = String(p.event_id)
+    const userMade = Boolean(p.is_public_invite || p.audience) // public invitations / "+ Create event"
+    const acted = Boolean(going[id] || joined[id]) // you pressed "I'm going" or "Ask to join"
     const start = Date.parse(p.starts_at), end = Date.parse(p.ends_at || p.starts_at)
     if (!Number.isFinite(start)) continue
     if (p.daily || end - start > 3 * DAY) continue // year-long listings, permanent offers
     if (end < t0 || start - t0 > HORIZON_DAYS * DAY) continue // over, or too far ahead
+    if (!p.image_url) continue // posters only: Syrenka Selects is a visual pick
     const key = p.title.trim().toLowerCase()
     if (seenTitle.has(key)) continue // the same show on several dates: keep the soonest only
     seenTitle.add(key)
@@ -45,6 +51,8 @@ export function pickSelects(features, { now = new Date(), count = 10 } = {}) {
     if (p.lead) score *= 1.15
     if (BIG_VENUE.test(`${p.venue_name || ''} ${p.address || ''}`)) score *= 1.3
     score *= 1 + Math.min(1, ((p.attendees || 0) + (p.wanting_company || 0)) / 20)
+    if (userMade) score *= 1.6 // people made this: the point of Syrenka Selects
+    if (acted) score *= 3 // you're going / asked to join: always near the top
     candidates.push({ f, score, cat, venue: (p.venue_name || p.address || '').toLowerCase() })
   }
   candidates.sort((a, b) => b.score - a.score)
@@ -64,16 +72,16 @@ export function pickSelects(features, { now = new Date(), count = 10 } = {}) {
     if (c.venue) venueCount[c.venue] = (venueCount[c.venue] || 0) + 1
   }
 
-  // headliners: the two best picks with a photo; laid out at the top and in the middle of the grid
-  const withPhoto = picked.filter((c) => c.f.properties.image_url)
-  const heads = withPhoto.slice(0, 2)
-  const rest = picked.filter((c) => !heads.includes(c))
-  const order = []
+  // top row: the two best picks side by side; the next two best become wide headliners lower down
+  const top = picked.slice(0, 2)
+  const heads = picked.slice(2, 4)
+  const rest = picked.slice(4)
+  const order = [...top]
   if (heads[0]) order.push({ ...heads[0], wide: true })
   order.push(...rest.slice(0, 4))
   if (heads[1]) order.push({ ...heads[1], wide: true })
   order.push(...rest.slice(4))
-  return order.map(({ f, wide }) => ({ feature: f, wide: !!wide }))
+  return order.map(({ f, wide }) => ({ feature: f, wide: !!wide, going: Boolean(going[String(f.properties.event_id)]), asked: Boolean(joined[String(f.properties.event_id)]), userMade: Boolean(f.properties.is_public_invite || f.properties.audience) }))
 }
 
 /** City images sometimes come as http://; serve them over https so the page stays secure. */

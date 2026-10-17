@@ -6,8 +6,8 @@ Every event gets `events.i18n`:
 upstream is translated again. Identical texts (hundreds of sport classes called "Zumba") are
 translated once: every text goes through the `text_translations` cache first.
 
-The API serves `?lang=en|pl` from this (app/routers/events.py). Runs at the end of every ingest
-(app/ingest/run.py) and on its own:
+The API serves `?lang=en|pl` from this (app/routers/events.py). Runs every 10 minutes on the boxes
+(deploy/systemd/warszawa-translate.timer), independent of the ingest, and by hand:
 
     python -m app.translate [--limit 3000]
 

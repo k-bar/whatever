@@ -9,5 +9,10 @@ from app.ingest.base import SourceSpec
 from app.ingest.sources import osm_venues, warsaw_amenities, warsaw_open_data
 
 SOURCES: dict[str, SourceSpec] = {
-    spec.slug: spec for spec in [*warsaw_open_data.SPECS, *warsaw_amenities.SPECS, *osm_venues.SPECS]
+    spec.slug: spec
+    for spec in [
+        *warsaw_open_data.SPECS,
+        *warsaw_amenities.SPECS,
+        *osm_venues.SPECS,
+    ]
 }

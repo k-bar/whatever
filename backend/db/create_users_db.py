@@ -46,7 +46,7 @@ KUP_BILECIK_DB = HERE / "kup_bilecik.db"
 EVENTS_DB = HERE / "events.db"
 STREET_GL_DB = HERE / "street_gl.db"
 
-# Event categories from PLAN.md, used for `interests` and hosted events
+# Event categories from docs/PLAN.md, used for `interests` and hosted events
 CATEGORIES = [
     "music", "nightlife", "theatre", "film", "exhibitions", "meetups", "grzybki",
     "study_buddies", "running", "yoga", "sports", "festivals", "markets", "culture",

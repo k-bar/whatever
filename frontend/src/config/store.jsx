@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { DEFAULTS, PARAMS } from './schema'
-import { saveSettings, loadSettings } from '../data/api'
 
 const KEY = 'warszawa-live.ui.v2'
 const Ctx = createContext(null)
@@ -41,17 +40,6 @@ export function ConfigProvider({ children }) {
 
   useEffect(() => { applyConfig(values) }, [values])
 
-  // Settings saved on the backend (if it is up) win over localStorage.
-  useEffect(() => {
-    loadSettings().then((remote) => {
-      if (remote && Object.keys(remote).length) {
-        const merged = { ...DEFAULTS, ...remote }
-        setSaved(merged)
-        setValues(merged)
-      }
-    })
-  }, [])
-
   // undo / redo history: consecutive edits of the same param within 700ms are coalesced (slider drags)
   const past = useRef([]), future = useRef([]), lastEdit = useRef({ id: null, t: 0 })
   const [histN, setHistN] = useState(0)
@@ -75,8 +63,7 @@ export function ConfigProvider({ children }) {
     setStatus('saving')
     localStorage.setItem(KEY, JSON.stringify(values))
     setSaved(values)
-    const ok = await saveSettings(values)
-    setStatus(ok ? 'saved' : 'local')
+    setStatus('saved') // this browser only: the backend has no settings endpoint
     setTimeout(() => setStatus('idle'), 1800)
   }, [values])
 

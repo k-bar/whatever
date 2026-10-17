@@ -1,62 +1,74 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { assetUrl, fetchJoinRequests, fetchMe, fetchSources } from '../data/api'
-import { categoryColor, categoryLabel } from '../data/categories'
+import { dataStatus, fetchJoinRequests, fetchSources } from '../data/api'
+import { categoryColor } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
-import { CloseButton } from './CloseButton'
 import { Brand } from './Brand'
-import { Burger, Expand, Shrink, Star } from './Icons'
-import { MENU_ITEMS } from './SearchBar'
+import { ChevronL, ChevronR, Cog, Expand, Mermaid, Message, Plus, Shrink, Silhouette, Star, X } from './Icons'
 import { StartPointPicker } from './StartPointPicker'
+import { ProfilePage } from './ProfilePage'
+import { LanduseLegend } from './LanduseLegend'
+import { useConfig } from '../config/store'
+import { DEV_TOOLS } from '../config/env'
 import { locale, useLang } from '../i18n'
 
 const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
 
-/**
- * The slide-over: a full-height section on the left, "under" the map (straight edges, a divider, no
- * floating corners). The map never moves. Desktop has three modes: map, map + slide-over, slide-over
- * full screen (expand button). Mobile only has full screen. The (x) is the only way to close it; the
- * burger switches what it shows; the syrenka.me lockup goes back to the start page.
- */
-export function SlideOver({ section, onSection, onClose, full, onFull, onHome, mobile, children }) {
+/** The tray's home: what used to be the burger pop-up. "create" starts a new event instead of opening a view. */
+const TRAY_ITEMS = [
+  { id: 'selects', label: 'Syrenka Selects', hint: 'Picked for the next two weeks', tone: 'logo', icon: <Mermaid size={30} /> },
+  { id: 'create', label: 'Create event', hint: 'Host something, invite people', tone: 'create', icon: <Plus size={22} stroke={2.6} /> },
+  { id: 'profile', label: 'Profile', hint: 'You, your friends and events', tone: 'profile', icon: <Silhouette size={22} /> },
+  { id: 'messages', label: 'Messages', hint: 'People you met at events', tone: 'messages', icon: <Message size={21} stroke={2.2} /> },
+  { id: 'settings', label: 'Settings', hint: 'Data sources and the map key', tone: 'settings', icon: <Cog size={21} stroke={2} /> },
+]
+
+function TrayMenu({ onSection }) {
   const { t } = useLang()
-  const [menu, setMenu] = useState(false)
-  const ref = useRef(null)
-  useEffect(() => {
-    if (!menu) return
-    const onDoc = (e) => { if (!ref.current?.contains(e.target)) setMenu(false) }
-    document.addEventListener('pointerdown', onDoc)
-    return () => document.removeEventListener('pointerdown', onDoc)
-  }, [menu])
+  return (
+    <nav className="tray-menu" aria-label={t('Menu')}>
+      {TRAY_ITEMS.map((it) => (
+        <button key={it.id} className="tray-item" onClick={() => onSection(it.id)}>
+          <span className={`tray-ic ${it.tone}`}>{it.icon}</span>
+          <span className="tray-txt"><b>{t(it.label)}</b><small>{t(it.hint)}</small></span>
+          {it.id !== 'create' && <ChevronR size={18} className="tray-go" />}
+        </button>
+      ))}
+    </nav>
+  )
+}
+
+/**
+ * The slide-over tray: a full-height section on the left, "under" the map. The search bar's burger opens and
+ * closes it (and turns into its (x)). Two positions: the menu (home) and inside one item, with a way back.
+ * The bar has the logo (back to the start page) and maximise; on a phone or maximised, the search bar is
+ * covered, so the (x) moves into the bar's corner.
+ */
+export function SlideOver({ section, onSection, onBack, onClose, full, onFull, onHome, mobile, children }) {
+  const { t } = useLang()
+  const atHome = section === 'menu'
   return (
     <motion.aside className={`slideover ${full || mobile ? 'full' : ''}`} initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
       transition={{ type: 'spring', stiffness: 260, damping: 34 }}>
-      <header className="so-bar" ref={ref}>
+      <header className="so-bar">
+        {(full || mobile) && <button className="btn icon so-close" onClick={onClose} aria-label={t('Close menu')}><X size={22} stroke={2.2} /></button>}
         <Brand onHome={onHome} />
-        <button className={`so-burger ${menu ? 'open' : ''}`} onClick={() => setMenu(!menu)} aria-label={t('Menu')} aria-expanded={menu}><Burger size={22} /></button>
         <div className="so-actions">
           {!mobile && (
-            <button className="btn icon so-expand" style={{ width: 34, height: 34, minWidth: 34 }} onClick={onFull} aria-label={t(full ? 'Shrink' : 'Full screen')} title={t(full ? 'Shrink' : 'Full screen')}>
+            <button className="btn icon so-expand" onClick={onFull} aria-label={t(full ? 'Shrink' : 'Full screen')} title={t(full ? 'Shrink' : 'Full screen')}>
               {full ? <Shrink size={18} stroke={2.2} /> : <Expand size={18} stroke={2.2} />}
             </button>
           )}
-          <CloseButton size={34} onClick={onClose} />
         </div>
-        <AnimatePresence>
-          {menu && (
-            <motion.div className="so-menu surface" initial={{ opacity: 0, y: -8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.96 }} transition={{ duration: 0.18 }}>
-              {MENU_ITEMS.map((it) => (
-                <button key={it.id} className={`bm-item ${it.id === section ? 'on' : ''}`} onClick={() => { setMenu(false); onSection(it.id) }}>
-                  <span className="ic"><it.Icon size={18} /></span>{t(it.label)}<small>{it.hint && t(it.hint)}</small>
-                </button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </header>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={section} className="so-body" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }}>
-          {children}
+        <motion.div key={section} className="so-body" initial={{ opacity: 0, x: atHome ? -16 : 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: atHome ? -16 : 16 }} transition={{ duration: 0.2 }}>
+          {atHome ? <TrayMenu onSection={onSection} /> : (
+            <>
+              <button className="so-back" onClick={onBack}><ChevronL size={18} stroke={2.2} />{t('Menu')}</button>
+              {children}
+            </>
+          )}
         </motion.div>
       </AnimatePresence>
     </motion.aside>
@@ -64,40 +76,29 @@ export function SlideOver({ section, onSection, onClose, full, onFull, onHome, m
 }
 
 /** One section's title + scrolling content inside the slide-over. */
-function Shell({ title, sub, children }) {
+function Shell({ title, sub, children, footer }) {
   return (
     <>
       <div className="sp-head"><div><h2>{title}</h2>{sub && <div className="mb-sub">{sub}</div>}</div></div>
       <div className="sp-scroll">{children}</div>
+      {footer && <div className="sp-foot">{footer}</div>}
     </>
   )
 }
 
-export function ProfilePanel() {
+export function ProfilePanel({ features, onPick, onFavourites }) {
   const { t } = useLang()
-  const [me, setMe] = useState(undefined) // undefined = loading, null = no account in this browser yet
   const [requests, setRequests] = useState([])
-  useEffect(() => { fetchMe().then(setMe); fetchJoinRequests().then(setRequests) }, [])
-  const name = me?.display_name || t('Guest')
-  const photo = me?.photos?.[0]
+  useEffect(() => { fetchJoinRequests().then(setRequests) }, [])
   return (
     <Shell title={t('Your profile')} sub={t('What others see when you ask to join')}>
-      {me === undefined && <div className="res-empty">{t('Loading…')}</div>}
-      {me !== undefined && (
-        <div className="profile-hero">
-          <div className="big" style={photo ? { backgroundImage: `url(${assetUrl(photo)})`, backgroundSize: 'cover' } : {}}>{!photo && name[0]}</div>
-          <h2 style={{ fontSize: 22 }}>{name}</h2>
-          {!me && <p className="mb-text" style={{ marginTop: 8 }}>{t('No profile yet. It is created the first time you post an event or ask to join one.')}</p>}
-          {me?.interests?.length > 0 && (
-            <div className="chips">{me.interests.map((c) => <span className="badge" key={c} style={{ background: `color-mix(in srgb, ${categoryColor(c)} 15%, transparent)`, color: categoryColor(c) }}>{categoryLabel(c)}</span>)}</div>
-          )}
-          {me?.bio && <p className="mb-text" style={{ marginTop: 12 }}>{me.bio}</p>}
-          {me?.links && Object.keys(me.links).length > 0 && (
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
-              {Object.entries(me.links).map(([label, url]) => <a key={label} className="btn small" href={url} target="_blank" rel="noreferrer">{label}</a>)}
-            </div>
-          )}
-        </div>
+      <ProfilePage features={features} onPick={onPick} />
+      {onFavourites && (
+        <button className="sp-row so-link" onClick={onFavourites}>
+          <span className="av" style={{ background: '#f2a900' }}><Star size={18} filled /></span>
+          <span><div className="t">{t('Favourite spots')}</div><div className="s">{t('Places and events you starred')}</div></span>
+          <ChevronR size={18} className="right" />
+        </button>
       )}
       <div className="blk-title" style={{ padding: '0 10px' }}>{t('Join requests')}</div>
       {requests.map((r) => (
@@ -142,13 +143,27 @@ export function FavouritesPanel({ features, favourites, onPick }) {
   )
 }
 
-export function SourcesPanel() {
+/** Live / offline status of the API and how many pins are loaded (was the bottom-left map badge). */
+function DataStatus({ pins }) {
   const { t } = useLang()
+  return (
+    <div className={`data-status ${dataStatus.source}`}>
+      <i />{t(dataStatus.source === 'api' ? 'live API' : dataStatus.source === 'offline' ? 'API offline' : 'loading…')} · {pins.toLocaleString(locale())} {t('pins')}
+    </div>
+  )
+}
+
+/** Data sources: where every pin comes from; its footer holds the live status and the map key. */
+export function SettingsPanel({ pins = 0, getMap, mobile }) {
+  const { t } = useLang()
+  const { values } = useConfig()
   const [sources, setSources] = useState([])
   useEffect(() => { fetchSources().then(setSources) }, [])
   const max = Math.max(1, ...sources.map((s) => s.item_count))
   return (
-    <Shell title={t("APIs I'm plugged in to")} sub={t('Where every pin comes from')}>
+    <Shell title={t('Settings')} sub={t('Data sources and the map key')}
+      footer={<>{DEV_TOOLS && values.apiBadge && <DataStatus pins={pins} />}<LanduseLegend embedded getMap={getMap} mobile={mobile} /></>}>
+      <div className="blk-title so-section">{t('Data sources')}<span>{t('Where every pin comes from')}</span></div>
       {sources.map((s) => (
         <div className="sp-row" key={s.slug} style={{ display: 'block' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

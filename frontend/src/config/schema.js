@@ -52,8 +52,6 @@ export const SECTIONS = [
       { id: 'searchHeight', label: 'Search bar height', type: 'range', min: 46, max: 72, step: 2, unit: 'px', default: 58 },
       { id: 'searchPanel', label: 'Focus panel (recents / categories / chat)', type: 'toggle', default: true },
       { id: 'searchPlaceholder', label: 'Placeholder text', type: 'text', default: "What's the plan today?" },
-      { id: 'menuStyle', label: 'Burger menu style', type: 'select', default: 'liquid', options: [
-        { value: 'liquid', label: 'Liquid glass' }, { value: 'sheet', label: 'Flat sheet' }, { value: 'bubbles', label: 'Bubbles' }] },
     ],
   },
   {
@@ -63,7 +61,7 @@ export const SECTIONS = [
         { value: 'colour', label: 'Colour (parks, water, paths)' }, { value: 'grey', label: 'Grey (Positron)' }, { value: 'pastel', label: 'Pastel' }, { value: 'paper', label: 'Warm paper' },
         { value: 'bright', label: 'Bright colours' }, { value: 'liberty', label: 'Liberty' }, { value: 'fiord', label: 'Fiord (blue dark)' }, { value: 'dark', label: 'Dark matter' }] },
       { id: 'landuse', label: 'Land-use colours (residential, commercial…)', type: 'toggle', default: true },
-      { id: 'landuseLegend', label: 'Land-use key (bottom right)', type: 'toggle', default: true },
+      { id: 'landuseLegend', label: 'Land-use key (in Data sources)', type: 'toggle', default: true },
       { id: 'streetLabels', label: 'Street names', type: 'select', default: 'normal', options: [
         { value: 'none', label: 'Hidden' }, { value: 'small', label: 'Small' }, { value: 'normal', label: 'Normal' }, { value: 'large', label: 'Large' }] },
       { id: 'poiLabels', label: 'Place labels (POI)', type: 'toggle', default: false },
@@ -77,6 +75,10 @@ export const SECTIONS = [
       { id: 'cityBoundary', label: 'City boundary line', type: 'toggle', default: true },
       { id: 'busyAreas', label: 'Busy areas (golden outlines)', type: 'toggle', default: true },
       { id: 'showMe', label: 'My position (IP based)', type: 'toggle', default: true },
+      { id: 'meStyle', label: 'My position marker', type: 'select', default: 'syrenka', options: [
+        { value: 'person', label: 'Pin with a person' }, { value: 'tag', label: 'Pin + "You are here" tag' },
+        { value: 'syrenka', label: 'Syrenka pin' }, { value: 'avatar', label: 'Round avatar' },
+        { value: 'dot', label: 'Dot with halo' }, { value: 'classic', label: 'Classic blue pin' }] },
       { id: 'routeStyle', label: 'Route line style', type: 'select', default: 'dashed', options: [
         { value: 'dashed', label: 'Dashed' }, { value: 'solid', label: 'Solid' }, { value: 'dots', label: 'Dots' }] },
     ],
@@ -89,6 +91,18 @@ export const SECTIONS = [
       { id: 'markerSize', label: 'Marker size', type: 'range', min: 0.5, max: 2, step: 0.1, default: 1 },
       { id: 'colorBy', label: 'Colour markers by', type: 'select', default: 'category', options: [
         { value: 'category', label: 'Category' }, { value: 'kind', label: 'Event / place' }, { value: 'mono', label: 'Accent colour' }] },
+      // the toolbar pin button's options (data/pinGroups.js): every pin belongs to exactly one
+      { id: 'pinFriends', label: 'Pins: New friends', type: 'toggle', default: true },
+      { id: 'pinClubs', label: 'Pins: Social Clubs', type: 'toggle', default: true },
+      { id: 'pinEvents', label: 'Pins: Events', type: 'toggle', default: true },
+      { id: 'pinSights', label: 'Pins: Sights', type: 'toggle', default: true },
+      { id: 'pinMusic', label: 'Pins: Music', type: 'toggle', default: true },
+      { id: 'pinFood', label: 'Pins: Food', type: 'toggle', default: true },
+      // "In the city" layers in the same pin box (components/cityLayers.js). Toilets and AEDs only ever
+      // show within 600 m of the route you're walking, so they're on; walking routes stay off until asked for
+      { id: 'showToilets', label: 'Map: toilets near your route', type: 'toggle', default: true },
+      { id: 'showAed', label: 'Map: defibrillators (AED) near your route', type: 'toggle', default: true },
+      { id: 'showWalks', label: 'Map: walking routes', type: 'toggle', default: false },
       { id: 'showEvents', label: 'Show events', type: 'toggle', default: true },
       { id: 'showPlaces', label: 'Show venues', type: 'toggle', default: true },
       { id: 'showPitches', label: 'Show open pitches', type: 'toggle', default: false },
@@ -106,7 +120,6 @@ export const SECTIONS = [
       { id: 'boxWidth', label: 'Box width', type: 'range', min: 280, max: 420, step: 10, unit: 'px', default: 340 },
       { id: 'boxImages', label: 'Show images / posters', type: 'toggle', default: true },
       { id: 'boxDensity', label: 'Density', type: 'select', default: 'comfy', options: [{ value: 'compact', label: 'Compact' }, { value: 'comfy', label: 'Comfortable' }] },
-      { id: 'maxBoxes', label: 'Max open boxes', type: 'range', min: 1, max: 6, step: 1, default: 3 },
     ],
   },
   {
@@ -123,6 +136,11 @@ export const SECTIONS = [
     params: [
       { id: 'appTitle', label: 'App title', type: 'text', default: 'Syrenka.me' },
       { id: 'showTitle', label: 'Show title under search', type: 'toggle', default: false },
+      { id: 'selectsBtn', label: 'Syrenka Poleca button', type: 'select', default: 'pill', options: [
+        { value: 'pill', label: '1 · White pill' }, { value: 'ink', label: '2 · Black pill' }, { value: 'accent', label: '3 · Red pill' },
+        { value: 'outline', label: '4 · Outline' }, { value: 'tint', label: '5 · Soft red tint' }, { value: 'serif', label: '6 · Serif' },
+        { value: 'underline', label: '7 · Underlined' }, { value: 'arrow', label: '8 · With an arrow' }, { value: 'ticket', label: '9 · Ticket' },
+        { value: 'lines', label: '10 · Divider' }] },
     ],
   },
   {
@@ -138,7 +156,7 @@ export const SECTIONS = [
     params: [
       { id: 'darkMode', label: 'Dark mode', type: 'toggle', default: false },
       { id: 'debugOverlay', label: 'Debug overlay (zoom, counts)', type: 'toggle', default: false },
-      { id: 'apiBadge', label: 'Show data-source badge', type: 'toggle', default: true },
+      { id: 'apiBadge', label: 'Live API status (in Data sources)', type: 'toggle', default: true },
     ],
   },
 ]

@@ -7,10 +7,11 @@ import { LANDUSE, getLanduseHidden, landuseActive, setLanduseHidden } from './ma
 const OPEN_KEY = 'warszawa-live.landuse-key-open.v1'
 
 /**
- * Bottom-right key for the land-use colours. Tapping a row hides/shows that colour on the map.
- * Collapsed to its header by default (it shares the right edge with the map boxes); the choice is remembered.
+ * Key for the land-use colours. Tapping a row dims / restores that colour on the map.
+ * Lives in the footer of the Data sources panel (embedded); collapsed to its header by default, the
+ * choice is remembered.
  */
-export function LanduseLegend({ getMap, mobile }) {
+export function LanduseLegend({ getMap, mobile, embedded = false }) {
   const { values } = useConfig()
   const { t } = useLang()
   const spring = useSpring()
@@ -32,7 +33,7 @@ export function LanduseLegend({ getMap, mobile }) {
   }
 
   return (
-    <div className="landuse-key surface">
+    <div className={`landuse-key ${embedded ? 'embedded' : 'surface'}`}>
       <button className="lk-head" onClick={toggleOpen} aria-expanded={open}>
         <span className="lk-dots">{LANDUSE.slice(0, 4).map((c) => <i key={c.key} style={{ background: c.color }} />)}</span>
         {t('Land use')}

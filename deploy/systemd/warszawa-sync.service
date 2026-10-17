@@ -1,0 +1,20 @@
+[Unit]
+Description=Warszawa Live: Kamil's Open Data sync (src/, scheduler) -> raw tables
+After=network-online.target
+
+[Service]
+Type=simple
+User=warszawa
+WorkingDirectory=@ROOT@/backend
+EnvironmentFile=/etc/warszawa/instance.env
+EnvironmentFile=/etc/warszawa/release.env
+ExecStart=@ROOT@/backend/.venv/bin/python -m app.ingest.src_sync --watch
+Restart=on-failure
+RestartSec=60
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

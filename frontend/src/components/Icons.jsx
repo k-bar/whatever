@@ -1,4 +1,4 @@
-import mermaidSvg from '../../mermaid.svg'
+import mermaidSvg from '../assets/mermaid.svg'
 
 const S = ({ children, size = 20, stroke = 1.9, ...rest }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke}
@@ -44,12 +44,19 @@ export const Walk = (p) => <S {...p}><circle cx="13" cy="4" r="1.8" /><path d="M
 export const Bike = (p) => <S {...p}><circle cx="5.5" cy="17" r="3.5" /><circle cx="18.5" cy="17" r="3.5" /><path d="M5.5 17 10 9h5l3.5 8" /><path d="M10 9l3 8" /><path d="M13 6h3" /></S>
 export const Send = (p) => <S {...p}><path d="m3 11 18-8-8 18-2-8Z" /></S>
 export const History = (p) => <S {...p}><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /><path d="M12 7v5l3 2" /></S>
+export const Music = (p) => <S {...p}><path d="M9 18V6l11-2v12" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" /></S>
 export const FACT_ICON = { clock: Clock, pin: Pin, map: MapIcon, repeat: Repeat, users: Users, access: Access, phone: Phone }
 
-/** The Warsaw mermaid (Syrenka): the city's red shield, frontend/mermaid.svg. */
+/** The Warsaw mermaid (Syrenka): the city's red shield, src/assets/mermaid.svg. */
 export const Mermaid = ({ size = 26, className }) => (
   <img src={mermaidSvg} width={size} height={size} alt="Warsaw mermaid" className={className} draggable={false} />
 )
+/** Filled person silhouette (the tray's Profile item). */
+export const Silhouette = ({ size = 20, ...rest }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...rest}><circle cx="12" cy="7.6" r="4.3" /><path d="M3.6 21.2a8.4 8.4 0 0 1 16.8 0Z" /></svg>
+)
+/** Settings cog. */
+export const Cog = (p) => <S {...p}><path d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.3a2 2 0 0 1-2 0l-.2-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.2.1a2 2 0 0 1 1 1.7v.5a2 2 0 0 1-1 1.7l-.2.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.2-.1a2 2 0 0 1 2 0l.4.3a2 2 0 0 1 1 1.7v.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.3a2 2 0 0 1 2 0l.2.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.2-.1a2 2 0 0 1-1-1.7v-.5a2 2 0 0 1 1-1.7l.2-.1a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.2.1a2 2 0 0 1-2 0l-.4-.3a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2Z" /><circle cx="12" cy="12" r="3" /></S>
 export const Globe = (p) => <S {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></S>
 export const UserCheck = (p) => <S {...p}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><path d="m16 11 2 2 4-4" /></S>
 export const Lock = (p) => <S {...p}><rect x="5" y="11" width="14" height="10" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></S>

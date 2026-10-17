@@ -1,8 +1,7 @@
 import { locale, translate } from '../i18n'
 /**
  * Map box curation: decide what the small info box shows for a clicked feature.
- * Returns an ordered list of blocks. GET /mapboxes/{id} (backend/UI_CONTRACT.md) is the server-side twin;
- * when it answers (fetchMapbox), its `blocks` replace these.
+ * Returns an ordered list of blocks. Curation is client-side only: the backend has no /mapboxes endpoint.
  *
  * Block types rendered by <MapBox>: posters, hours, pitch, live, social, text, facts, tickets
  */
@@ -23,12 +22,54 @@ export function fmtWhen(iso) {
   return time ? `${day} · ${time}` : day
 }
 
+/** Like fmtWhen(starts_at), but something already running shows when it ends: "Now · until 22:00" / "On until Sun 30 Nov". */
+export function fmtWhenFor(p) {
+  if (!p?.starts_at) return null
+  const parse = (iso) => new Date(String(iso).replace(/([+-]\d{2})$/, '$1:00'))
+  const now = new Date(), s = parse(p.starts_at), e = p.ends_at && parse(p.ends_at)
+  if (e && s < now && e >= now) {
+    if (e.toDateString() === now.toDateString()) return translate('Now · until {time}', { time: e.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }) })
+    return translate('On until {date}', { date: e.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' }) })
+  }
+  return fmtWhen(p.starts_at)
+}
+
 export function curate(feature, ctx = {}) {
   const p = feature.properties
   const blocks = []
   const badges = (p.categories || []).slice(0, 2).map(categoryLabel)
   if (p.is_public_invite) badges.unshift('Public invite')
-  if (p.source === 'warsaw_open_data') badges.push('City data')
+  if (p.source?.startsWith('warsaw_')) badges.push('City data') // warsaw_events, warsaw_sport, ... (GET /sources)
+  if (p.source === 'kupbilecik') badges.push('Tickets')
+
+  // ---- "In the city" layers: toilets, defibrillators, walking routes (components/cityLayers.js) ----
+  const cats = p.categories || []
+  if (cats.includes('toilets')) {
+    const today = p.opening_hours?.[DAYS[new Date().getDay()]]
+    blocks.push({ type: 'facts', items: [
+      p.address && { icon: 'pin', text: p.address },
+      { icon: 'clock', text: /^0?0:00-24:00$/.test(today || '') ? translate('Open 24 hours') : today ? `${translate('Today')} ${today.replace('-', '–')}` : translate(p.opening_hours ? 'Closed today' : 'Opening hours unknown') },
+      p.district && { icon: 'map', text: p.district },
+    ].filter(Boolean) })
+    return { title: translate('Public toilet'), subtitle: p.venue_name, badges: [translate('Toilets'), translate('City data')], blocks }
+  }
+  if (cats.includes('aed')) {
+    blocks.push({ type: 'facts', items: [p.address && { icon: 'pin', text: p.address }, p.district && { icon: 'map', text: p.district }].filter(Boolean) })
+    blocks.push({ type: 'text', text: translate('In a cardiac arrest: call 112, start CPR and send someone for the AED. It talks you through every step.') })
+    return { title: translate('Defibrillator (AED)'), subtitle: p.venue_name, badges: ['AED', translate('City data')], blocks }
+  }
+  if (p.kind === 'walk') {
+    const stops = (p.points || []).map((s) => s.name)
+    const hours = (p.length_km || 0) / 4
+    blocks.push({ type: 'facts', items: [
+      p.length_km && { icon: 'map', text: `${p.length_km.toFixed(1)} km` },
+      p.length_km && { icon: 'clock', text: translate('about {h} h on foot, without stops', { h: hours < 1 ? hours.toFixed(1) : Math.round(hours * 2) / 2 }) },
+      stops.length && { icon: 'pin', text: translate('{n} stops, from {first}', { n: stops.length, first: stops[0] }) },
+    ].filter(Boolean) })
+    if (p.description) blocks.push({ type: 'text', text: p.description })
+    if (stops.length) blocks.push({ type: 'text', muted: true, text: stops.join(' · ') })
+    return { title: p.title, subtitle: translate('Walking route'), badges: [translate('Walking route'), translate('City data')], blocks }
+  }
 
   // ---- events people made with "+ Create event" (backend/app/userevents) -----------------------
   if (p.audience) {

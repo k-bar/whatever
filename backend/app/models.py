@@ -3,15 +3,18 @@ from datetime import datetime
 from geoalchemy2 import Geography
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
     Index,
     Integer,
+    SmallInteger,
     String,
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -102,10 +105,21 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True)
     password_hash: Mapped[str] = mapped_column(Text)
     display_name: Mapped[str] = mapped_column(String(80))
+    # @username, Instagram style: unique, lowercase, chosen by the user (app/usernames.py)
+    username: Mapped[str] = mapped_column(String(30), unique=True)
+    gender: Mapped[str | None] = mapped_column(String(1))  # f / m / null; Polish labels: Byłam / Byłem
+    # Personal details: only the user sees them (Me), never in public profiles
+    first_name: Mapped[str | None] = mapped_column(String(40))
+    last_name: Mapped[str | None] = mapped_column(String(60))
+    age: Mapped[int | None] = mapped_column(SmallInteger)
+    # "You can find me at": [{"name": "Spatif", "place_id": 123 | null}], up to 5
+    hangouts: Mapped[list[dict]] = mapped_column(JSONB, default=list, server_default="[]")
     bio: Mapped[str | None] = mapped_column(Text)
     photos: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
     interests: Mapped[list[str]] = mapped_column(ARRAY(String(32)), default=list)
     links: Mapped[dict] = mapped_column(JSONB, default=dict)
+    # IDs of favourited events/venues (events.id), saved with the account so stars follow you between devices
+    favourite_ids: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=list, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -121,6 +135,7 @@ class Attendance(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped[User] = relationship()
+    occurrence: Mapped[Occurrence] = relationship()
 
 
 class JoinRequest(Base):
@@ -138,6 +153,31 @@ class JoinRequest(Base):
     requester: Mapped[User] = relationship(foreign_keys=[requester_id])
     target: Mapped[User] = relationship(foreign_keys=[target_user_id])
     occurrence: Mapped[Occurrence] = relationship()
+
+
+class Friendship(Base):
+    """A friend request; accepted = friends. One row per pair of people, whoever asked first."""
+
+    __tablename__ = "friendships"
+    __table_args__ = (
+        CheckConstraint("requester_id <> addressee_id", name="ck_friendships_not_self"),
+        Index(
+            "ux_friendships_pair",
+            text("least(requester_id, addressee_id)"),
+            text("greatest(requester_id, addressee_id)"),
+            unique=True,
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    requester_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    addressee_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="pending")  # pending / accepted
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    requester: Mapped[User] = relationship(foreign_keys=[requester_id])
+    addressee: Mapped[User] = relationship(foreign_keys=[addressee_id])
 
 
 class GeocodeCache(Base):
@@ -206,14 +246,16 @@ class AirStation(Base):
 
 
 class TouristRoute(Base):
+    """Kamil's table (src/models.py): raw API shape. /routes builds the LineString from traces."""
+
     __tablename__ = "tourist_routes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(200), unique=True)
+    title: Mapped[str] = mapped_column(String(255), unique=True)
     length_km: Mapped[float | None] = mapped_column(Float)
     description: Mapped[str | None] = mapped_column(Text)
-    path = mapped_column(Geography("LINESTRING", srid=4326, spatial_index=False), nullable=False)
-    points: Mapped[list] = mapped_column(JSONB, default=list)  # [{"id", "name", "lat", "lng"}]
+    traces: Mapped[list | None] = mapped_column(JSONB)  # [[lat, lng], ...] as the API sends it
+    tourist_points: Mapped[list | None] = mapped_column(JSONB)  # [{"id_point", "name", "latlng": {...}}]
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

@@ -17,6 +17,7 @@ export function StartPointPicker() {
   const [state, setState] = useState('idle') // idle | searching | locating | error
   const timer = useRef(null)
   const ctl = useRef(null)
+  const inputRef = useRef(null)
 
   useEffect(() => {
     clearTimeout(timer.current)
@@ -33,7 +34,8 @@ export function StartPointPicker() {
   const pick = (p) => { onSet({ lngLat: p.lngLat, label: p.label, sub: p.sub }); setQ(''); setHits([]) }
   const useDevice = async () => {
     setState('locating')
-    try { pick(await locateByDevice()); setState('idle') } catch { setState('error') }
+    // no position (permission denied, no GPS fix): say so and hand the choice back to the user
+    try { pick(await locateByDevice()); setState('idle') } catch { setState('error'); inputRef.current?.focus() }
   }
 
   return (
@@ -49,7 +51,7 @@ export function StartPointPicker() {
 
       <label className="start-input">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Address or postcode, e.g. 02-591')}
+        <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Address or postcode, e.g. 02-591')}
           onKeyDown={(e) => { if (e.key === 'Enter' && hits[0]) pick(hits[0]) }} aria-label={t('Search an address or postcode')} />
         {state === 'searching' && <span className="spin" />}
       </label>
@@ -63,8 +65,8 @@ export function StartPointPicker() {
           ))}
         </div>
       )}
-      {q.trim().length >= 2 && state === 'idle' && !hits.length && <div className="start-note">{t('No address found in Warsaw')}</div>}
-      {state === 'error' && <div className="start-note">{t('Could not get a location. Try typing the address instead.')}</div>}
+      {q.trim().length >= 2 && state === 'idle' && !hits.length && <div className="start-note warn">{t("I can't find it. Try another address or postcode.")}</div>}
+      {state === 'error' && <div className="start-note warn">{t("I can't find it. Please choose your starting point: type your address or postcode above.")}</div>}
 
       <button className="btn small start-gps" onClick={useDevice} disabled={state === 'locating'}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>

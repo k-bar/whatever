@@ -26,6 +26,8 @@ def invite(client, headers, **kw):
 
 def test_health_and_meta(client):
     assert client.get("/health").json()["status"] == "ok"
+    r = client.get("/", follow_redirects=False)
+    assert r.status_code == 307 and r.headers["location"] == "/docs"
     cats = client.get("/categories").json()
     assert {"slug": "music", "label": "Music"} in cats
 
@@ -96,6 +98,8 @@ def test_auth_and_profile(client, alice):
     public = client.get(f"/users/{r.json()['id']}").json()
     assert "email" not in public and "links" not in public
     assert client.patch("/me", headers=alice, json={"interests": ["not-a-category"]}).status_code == 422
+    r = client.patch("/me", headers=alice, json={"bio": None, "display_name": None})
+    assert r.json()["bio"] is None and r.json()["display_name"] == "Alice"  # bio cleared, name kept
 
 
 def test_come_with_me_flow(client, alice, bob):
@@ -111,6 +115,9 @@ def test_come_with_me_flow(client, alice, bob):
         f"/occurrences/{occ_id}/attendance", headers=bob, json={"wants_company": True, "max_group": 3}
     )
     assert r.status_code == 200
+    going = client.get("/me/attending", headers=bob).json()
+    assert [(g["occurrence_id"], g["title"]) for g in going] == [(occ_id, "Picnic in Pole Mokotowskie")]
+    assert going[0]["starts_at"] and going[0]["event_id"] == ev["id"]
     attendees = client.get(
         f"/occurrences/{occ_id}/attendees", headers=carol, params={"wants_company": True}
     ).json()
@@ -205,3 +212,15 @@ def test_conditions_and_routes(client, db):
 
     sources = {s["slug"]: s for s in client.get("/sources").json()}
     assert sources["warsaw_weather"]["last_status"] == "ok"
+
+
+def test_personal_details_are_private(client, alice):
+    r = client.patch("/me", headers=alice, json={"first_name": " Alicja ", "last_name": "Nowak", "age": 24})
+    assert r.status_code == 200
+    me = r.json()
+    assert (me["first_name"], me["last_name"], me["age"]) == ("Alicja", "Nowak", 24)
+    public = client.get(f"/users/{me['id']}").json()
+    assert "first_name" not in public and "age" not in public
+    assert client.patch("/me", headers=alice, json={"age": 7}).status_code == 422
+    cleared = client.patch("/me", headers=alice, json={"first_name": "", "age": None}).json()
+    assert cleared["first_name"] is None and cleared["age"] is None and cleared["last_name"] == "Nowak"
