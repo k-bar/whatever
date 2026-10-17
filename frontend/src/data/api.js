@@ -308,6 +308,17 @@ export async function fetchMe() {
   try { return await authed('/me', { timeout: 6000 }) } catch { return null }
 }
 
+/** Save my profile (PATCH /me): display_name, bio, photos, interests, links. Returns the updated profile. */
+export async function updateMe(patch) {
+  return authed('/me', { method: 'PATCH', body: patch, timeout: 8000 })
+}
+
+/** Occurrences I said I'm going to, with event title and dates (GET /me/attending). */
+export async function fetchAttending() {
+  if (!readToken()) return []
+  try { return await authed('/me/attending', { timeout: 6000 }) } catch { return [] }
+}
+
 /** Join requests to me that are still waiting for an answer (GET /me/join-requests). */
 export async function fetchJoinRequests() {
   if (!readToken()) return []

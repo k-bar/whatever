@@ -319,7 +319,7 @@ export default function App() {
       <AnimatePresence>
         {view === 'map' && panel && (
           <SlideOver key="slideover" section={panel} onSection={onMenu} onClose={closePanel} full={panelFull} onFull={() => setPanelFull((f) => !f)} onHome={goHome} mobile={mobile}>
-            {panel === 'profile' && <ProfilePanel />}
+            {panel === 'profile' && <ProfilePanel features={featureList} favourites={fav.ids} />}
             {panel === 'messages' && <MessagesPanel />}
             {panel === 'favourites' && <FavouritesPanel features={featureList} favourites={fav.ids} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
             {panel === 'sources' && <SourcesPanel />}

@@ -161,6 +161,11 @@ class AttendanceOut(ORM):
     wants_company: bool
     max_group: int | None
     created_at: datetime
+    # filled by GET /me/attending so the profile can list "going to" / "been to" without extra calls
+    event_id: int | None = None
+    title: str | None = None
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None
 
 
 class AttendeeOut(ORM):
