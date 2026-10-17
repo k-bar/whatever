@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 
 from app.config import settings
@@ -24,6 +25,12 @@ app.include_router(social.router)
 app.include_router(profiles.router)
 app.include_router(map.router)
 app.include_router(userevents_router)
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    """The bare API URL opens the interactive docs."""
+    return RedirectResponse("/docs")
 
 
 @app.get("/health", tags=["meta"])
