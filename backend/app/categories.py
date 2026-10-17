@@ -1,4 +1,4 @@
-"""Our category list (from PLAN.md) and the mapping from source labels to it."""
+"""Our category list (from docs/PLAN.md) and the mapping from source labels to it."""
 
 import re
 
