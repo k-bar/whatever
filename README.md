@@ -15,13 +15,18 @@ venues, plus "I'm going, come with me" to find company. Product plan: [`docs/PLA
 |---|---|
 | `backend/` | FastAPI + SQLAlchemy + PostGIS API (`app/`), Alembic migrations, the ingest pipeline (`app/ingest/`), tests |
 | `backend/app/ingest/sources/` | One file per data source (Warsaw Open Data, OpenStreetMap, ...) |
+| `src/`, `tests/` | Kamil's Open Data synchronizer (raw tables), run on the boxes by `backend/app/ingest/src_sync.py` |
 | `backend/db/` | Exploratory scrapers and local SQLite snapshots; not used by the app (see `backend/db/db.md`) |
 | `frontend/` | React + Vite + MapLibre UI (see `frontend/README.md`) |
 | `infra/` | AWS CDK (Python): EC2 boxes, RDS, CloudFront, DNS |
-| `deploy/` | On-box deploy script and systemd units (API, hourly ingest, 10-minute conditions) |
-| `docs/` | Product plan and notes |
+| `deploy/` | On-box deploy script and systemd units (API, ingest, conditions, Kamil's sync) |
+| `docs/` | Documentation: architecture, data, API, frontend, operations, known issues |
 
-API endpoints for the UI: [`backend/UI_CONTRACT.md`](backend/UI_CONTRACT.md).
+## Documentation
+
+Start at [`docs/README.md`](docs/README.md): [architecture](docs/architecture.md), [data](docs/data.md),
+[API](docs/api.md), [frontend](docs/frontend.md), [operations](docs/operations.md),
+[known issues / cleanup backlog](docs/known-issues.md).
 
 ## Getting started
 
