@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchFavourites, saveFavourites } from '../data/api'
+import { fetchFavourites, isLoggedIn, onAuthChange, saveFavourites } from '../data/api'
 
 // Event/venue IDs (events.id) as numbers. v1 held made-up IDs from the old sample data, so it's ignored.
 const KEY = 'syrenka.favourites.v2'
@@ -10,24 +10,32 @@ const readLocal = () => {
 }
 
 /**
- * Favourite spots: kept in this browser and saved with the account in PostgreSQL (users.favourite_ids),
- * so they follow you to other devices. On load the account's list and this browser's are merged.
+ * Favourite spots.
+ * - Not logged in: kept in this browser only (localStorage), nothing goes to the server.
+ * - Logged in: also saved with the account in PostgreSQL (users.favourite_ids), so they follow you to
+ *   other devices. Logging in merges what this browser starred into the account.
  */
 export function useFavourites() {
   const [ids, setIds] = useState(readLocal)
-  const synced = useRef(false)
+  const synced = useRef(false) // true once the logged-in account's list has been read and merged
   const timer = useRef(null)
 
-  useEffect(() => {
+  // read the account's list (if logged in) and merge it with this browser's stars
+  const sync = useCallback(() => {
+    synced.current = false
+    if (!isLoggedIn()) return
     fetchFavourites().then((saved) => {
-      if (saved?.length) setIds((local) => new Set([...saved, ...local]))
-      synced.current = true
+      synced.current = isLoggedIn()
+      // a new Set either way, so the merged list is saved back to the account
+      setIds((local) => new Set([...(saved || []), ...local]))
     })
   }, [])
 
+  useEffect(() => { sync(); return onAuthChange(sync) }, [sync])
+
   useEffect(() => {
     try { localStorage.setItem(KEY, JSON.stringify([...ids])) } catch { /* private mode */ }
-    if (!synced.current) return // don't overwrite the account before its list has been read
+    if (!synced.current || !isLoggedIn()) return // logged out: browser only
     clearTimeout(timer.current)
     timer.current = setTimeout(() => saveFavourites([...ids]), SAVE_DELAY_MS)
   }, [ids])
