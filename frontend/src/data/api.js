@@ -311,7 +311,7 @@ export async function fetchFavourites() {
   try { return (await authed('/me/favourites', { timeout: 6000 })).ids } catch { return null }
 }
 
-/** Save the whole list of favourited events/venues (PUT /me/favourites). Starring is an action, so it may open a guest account. */
+/** Save the whole list of favourited events/venues (PUT /me/favourites). Logged in only; logged out, stars stay in the browser. */
 export async function saveFavourites(ids) {
   try { return (await authed('/me/favourites', { method: 'PUT', body: { ids } })).ids } catch { return null }
 }
