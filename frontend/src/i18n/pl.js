@@ -302,9 +302,12 @@ export const PL = {
   'On until {date}': 'Trwa do {date}',
   // toolbar pin button
   'Pins': 'Pinezki',
-  'Show or hide all pins': 'Pokaż lub ukryj wszystkie pinezki',
-  'Pins on': 'Pinezki: wł.',
-  'Pins off': 'Pinezki: wył.',
+  'Show on the map': 'Pokaż na mapie',
+  'New friends': 'Nowi znajomi',
+  'Social Clubs': 'Kluby i zajęcia',
+  'Sights': 'Atrakcje',
+  'Food': 'Jedzenie',
+  'Close all': 'Zamknij wszystko',
   // profile (ProfilePage.jsx)
   'Log in to get your profile: an @username, friends, and the events you go to and host.': 'Zaloguj się, aby mieć profil: @nazwę, znajomych i wydarzenia, na które chodzisz i które organizujesz.',
   'Back to my profile': 'Wróć do mojego profilu',
