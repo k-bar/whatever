@@ -40,7 +40,7 @@ const PLANS = { // plan -> [category (colour), emoji]
 const POP_MS = 380
 const SWAP_MS = 2200 // one person pops out, another pops in
 const LINK_EVERY_MS = 600 // a new set of lines starts (about three times as many as before)
-const DRAW_MS = 1500 // a line travels from one person to the other
+const DRAW_MS = 1950 // a line travels from one person to the other (slowed 30% from 1.5 s); keep .ln-reveal in sync
 const HOLD_MS = 1600 // then stays a moment before fading
 const FADE_MS = 600
 
@@ -87,13 +87,30 @@ export function LandingNetwork({ getMap, mobile }) {
     return () => { clearTimeout(timer); map?.off('moveend', place); window.removeEventListener('resize', place) }
   }, [getMap])
 
+  // When the map moves (it settles into its home view just after loading, or the window resizes) the
+  // people move with it: same people, new positions. Only spots that no longer fit drop out; the scene
+  // itself doesn't start over, so nobody vanishes and pops in again.
+  const spotsRef = useRef(spots)
+  useEffect(() => {
+    spotsRef.current = spots
+    const scene = s.current
+    const byI = new Map(spots.map((p) => [p.i, p]))
+    scene.shown = scene.shown.filter((b) => byI.has(b.spot.i))
+    scene.shown.forEach((b) => { b.spot = byI.get(b.spot.i) })
+    scene.links = scene.links.filter((l) => byI.has(l.a.i) && byI.has(l.b.i))
+    scene.links.forEach((l) => { l.a = byI.get(l.a.i); l.b = byI.get(l.b.i) })
+    render()
+  }, [spots])
+  const ready = spots.length > 0
+
   // the scene: people popping in and out, lines travelling between them
   useEffect(() => {
-    if (!spots.length) return
+    if (!ready) return
     const timers = []
     const later = (fn, ms) => timers.push(setTimeout(fn, ms))
     const scene = s.current
-    const max = Math.min(spots.length, mobile ? 6 : 12)
+    const cap = mobile ? 6 : 12
+    const max = Math.min(spotsRef.current.length, cap)
     let uid = 0
     scene.shown = []
     scene.links = []
@@ -101,7 +118,7 @@ export function LandingNetwork({ getMap, mobile }) {
     const live = () => scene.shown.filter((b) => !b.out)
     const show = () => {
       const taken = new Set(scene.shown.map((b) => b.spot.i))
-      const free = spots.filter((p) => !taken.has(p.i))
+      const free = spotsRef.current.filter((p) => !taken.has(p.i))
       if (!free.length) return
       scene.shown.push({ key: ++uid, spot: free[Math.floor(Math.random() * free.length)], out: false })
       render()
@@ -128,13 +145,13 @@ export function LandingNetwork({ getMap, mobile }) {
 
     for (let n = 0; n < max; n++) later(show, 200 + n * 220) // pop in one after another
     const swap = setInterval(() => {
-      const people = live()
+      const people = live(), spots = spotsRef.current, max = Math.min(spots.length, cap)
       if (people.length >= max && spots.length > max) { hide(people[0]); later(show, POP_MS / 2) } else if (people.length < max) show()
     }, SWAP_MS)
     const lines = values.reduceMotion ? null : setInterval(link, LINK_EVERY_MS)
     later(link, 200 + max * 220)
     return () => { timers.forEach(clearTimeout); clearInterval(swap); if (lines) clearInterval(lines) }
-  }, [spots, mobile, values.reduceMotion])
+  }, [ready, mobile, values.reduceMotion])
 
   const { shown, links } = s.current
   return (
