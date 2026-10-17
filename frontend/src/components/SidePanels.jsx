@@ -11,6 +11,7 @@ import { StartPointPicker } from './StartPointPicker'
 import { ProfilePage } from './ProfilePage'
 import { LanduseLegend } from './LanduseLegend'
 import { useConfig } from '../config/store'
+import { DEV_TOOLS } from '../config/env'
 import { locale, useLang } from '../i18n'
 
 const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
@@ -146,7 +147,7 @@ export function SourcesPanel({ pins = 0, getMap, mobile }) {
   const max = Math.max(1, ...sources.map((s) => s.item_count))
   return (
     <Shell title={t('Data sources')} sub={t('Where every pin comes from')}
-      footer={<>{values.apiBadge && <DataStatus pins={pins} />}<LanduseLegend embedded getMap={getMap} mobile={mobile} /></>}>
+      footer={<>{DEV_TOOLS && values.apiBadge && <DataStatus pins={pins} />}<LanduseLegend embedded getMap={getMap} mobile={mobile} /></>}>
       {sources.map((s) => (
         <div className="sp-row" key={s.slug} style={{ display: 'block' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
