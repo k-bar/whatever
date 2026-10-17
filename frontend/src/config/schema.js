@@ -42,8 +42,10 @@ export const SECTIONS = [
       { id: 'accent', label: 'Accent colour', type: 'color', default: '#e7392b',
         options: ['#e7392b', '#ff6b4a', '#2b6be7', '#7c4dff', '#0fa37f', '#f2a900', '#111111'] },
       { id: 'radius', label: 'Corner radius', type: 'range', min: 6, max: 32, step: 1, unit: 'px', default: 22 },
-      { id: 'glassBlur', label: 'Glass blur', type: 'range', min: 0, max: 40, step: 1, unit: 'px', default: 18 },
-      { id: 'glassOpacity', label: 'Glass opacity', type: 'range', min: 0.3, max: 1, step: 0.05, default: 0.72 },
+      { id: 'glassBlur', label: 'Glass blur', type: 'range', min: 0, max: 40, step: 1, unit: 'px', default: 16 },
+      { id: 'glassOpacity', label: 'Glass opacity', type: 'range', min: 0.1, max: 1, step: 0.05, default: 0.45 },
+      { id: 'glassTint', label: 'Glass tint', type: 'select', default: 'neutral', options: [
+        { value: 'neutral', label: 'Neutral' }, { value: 'warm', label: 'Warm' }, { value: 'cool', label: 'Cool' }, { value: 'accent', label: 'Accent' }] },
       { id: 'shadow', label: 'Shadow depth', type: 'select', default: 'soft', options: [
         { value: 'none', label: 'None' }, { value: 'soft', label: 'Soft' }, { value: 'deep', label: 'Deep' }, { value: 'hard', label: 'Hard offset' }] },
       { id: 'controlSize', label: 'Control size', type: 'range', min: 36, max: 60, step: 2, unit: 'px', default: 48 },
@@ -57,6 +59,7 @@ export const SECTIONS = [
         { value: 'pulse', label: 'Pulse' }, { value: 'aurora', label: 'Aurora ring' }] },
       { id: 'searchWidth', label: 'Search bar width', type: 'range', min: 380, max: 780, step: 10, unit: 'px', default: 560 },
       { id: 'searchHeight', label: 'Search bar height', type: 'range', min: 46, max: 72, step: 2, unit: 'px', default: 58 },
+      { id: 'searchPanel', label: 'Focus panel (recents / categories / chat)', type: 'toggle', default: true },
       { id: 'searchPlaceholder', label: 'Placeholder text', type: 'text', default: 'Search Warsaw tonight…' },
       { id: 'menuStyle', label: 'Burger menu style', type: 'select', default: 'liquid', options: [
         { value: 'liquid', label: 'Liquid glass' }, { value: 'sheet', label: 'Flat sheet' }, { value: 'bubbles', label: 'Bubbles' }] },
@@ -65,8 +68,8 @@ export const SECTIONS = [
   {
     id: 'map', label: 'Map design',
     params: [
-      { id: 'mapPalette', label: 'Map palette', type: 'select', default: 'grey', options: [
-        { value: 'grey', label: 'Grey (Positron)' }, { value: 'pastel', label: 'Pastel' }, { value: 'paper', label: 'Warm paper' },
+      { id: 'mapPalette', label: 'Map palette', type: 'select', default: 'colour', options: [
+        { value: 'colour', label: 'Colour (parks, water, paths)' }, { value: 'grey', label: 'Grey (Positron)' }, { value: 'pastel', label: 'Pastel' }, { value: 'paper', label: 'Warm paper' },
         { value: 'bright', label: 'Bright colours' }, { value: 'liberty', label: 'Liberty' }, { value: 'fiord', label: 'Fiord (blue dark)' }, { value: 'dark', label: 'Dark matter' }] },
       { id: 'streetLabels', label: 'Street names', type: 'select', default: 'normal', options: [
         { value: 'none', label: 'Hidden' }, { value: 'small', label: 'Small' }, { value: 'normal', label: 'Normal' }, { value: 'large', label: 'Large' }] },
@@ -79,6 +82,10 @@ export const SECTIONS = [
         { value: 'default', label: 'Default' }, { value: 'azure', label: 'Azure' }, { value: 'ink', label: 'Ink' }, { value: 'mint', label: 'Mint' }] },
       { id: 'mapSaturation', label: 'Map saturation', type: 'range', min: 0, max: 1.6, step: 0.1, default: 1 },
       { id: 'cityBoundary', label: 'City boundary line', type: 'toggle', default: true },
+      { id: 'trafficAreas', label: 'High-traffic areas (golden)', type: 'toggle', default: true },
+      { id: 'showMe', label: 'My position (IP based)', type: 'toggle', default: true },
+      { id: 'routeStyle', label: 'Route line style', type: 'select', default: 'dashed', options: [
+        { value: 'dashed', label: 'Dashed' }, { value: 'solid', label: 'Solid' }, { value: 'dots', label: 'Dots' }] },
     ],
   },
   {
@@ -95,7 +102,7 @@ export const SECTIONS = [
       { id: 'showInvites', label: 'Show public invitations', type: 'toggle', default: true },
       { id: 'starredDefault', label: 'Starred places on by default', type: 'toggle', default: true },
       { id: 'timeWindow', label: 'Time window', type: 'select', default: 'month', options: [
-        { value: 'now', label: 'Next 3 hours' }, { value: 'today', label: 'Today' }, { value: 'week', label: 'This week' }, { value: 'month', label: 'Next 30 days' }, { value: 'all', label: 'Everything' }] },
+        { value: 'today', label: 'Today' }, { value: 'weekend', label: 'Weekend' }, { value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }] },
     ],
   },
   {

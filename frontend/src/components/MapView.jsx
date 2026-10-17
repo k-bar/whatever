@@ -6,19 +6,25 @@ import { WARSAW_BBOX } from '../data/api'
 import { categoryMatchExpr } from '../data/categories'
 import { applyMapDesign, firstSymbolLayer, HEAT_PALETTES, styleFor } from './mapStyle'
 
-const SRC = 'wl-features', BUSY = 'wl-busy', BOUNDARY = 'wl-boundary'
+const SRC = 'wl-features', BUSY = 'wl-busy', BOUNDARY = 'wl-boundary', TRAFFIC = 'wl-traffic', ROUTE = 'wl-route'
+const EMPTY = { type: 'FeatureCollection', features: [] }
 const LAYERS = ['wl-glow', 'wl-dots', 'wl-starred', 'wl-selected']
 
 function timeRange(window) {
   const now = new Date()
   const iso = (d) => d.toISOString().slice(0, 16)
   const end = new Date(now)
-  if (window === 'now') end.setHours(now.getHours() + 3)
-  else if (window === 'today') end.setHours(23, 59)
+  const start = new Date(now); start.setHours(now.getHours() - 2)
+  if (window === 'today') end.setHours(23, 59)
+  else if (window === 'weekend') {
+    const day = now.getDay() // 0 Sun .. 6 Sat
+    const toSat = day === 0 ? -1 : (6 - day)
+    start.setDate(now.getDate() + Math.max(0, toSat)); if (toSat > 0) start.setHours(0, 0)
+    end.setDate(now.getDate() + (day === 0 ? 0 : toSat + 1)); end.setHours(23, 59)
+  }
   else if (window === 'week') end.setDate(now.getDate() + 7)
   else if (window === 'month') end.setDate(now.getDate() + 30)
   else return null
-  const start = new Date(now); start.setHours(now.getHours() - 2)
   return [iso(start), iso(end)]
 }
 
@@ -38,15 +44,16 @@ function buildFilter(v, favourites, favOnly) {
   return f
 }
 
-export const MapView = forwardRef(function MapView({ features, busy, heat, favourites, favOnly, selectedId, onPick, onReady, onMove }, ref) {
+export const MapView = forwardRef(function MapView({ features, busy, traffic, route, me, heat, favourites, favOnly, selectedId, onPick, onReady, onMove }, ref) {
   const { values } = useConfig()
   const el = useRef(null)
   const map = useRef(null)
   const vRef = useRef(values)
   vRef.current = values
   // latest props for handlers registered once (style.load fires again after every setStyle)
-  const dataRef = useRef({ features, busy, heat, favourites, favOnly })
-  dataRef.current = { features, busy, heat, favourites, favOnly }
+  const dataRef = useRef({ features, busy, heat, favourites, favOnly, traffic, route })
+  dataRef.current = { features, busy, heat, favourites, favOnly, traffic, route }
+  const meMarker = useRef(null)
   const styleKey = styleFor(values)
 
   useImperativeHandle(ref, () => ({
@@ -80,9 +87,15 @@ export const MapView = forwardRef(function MapView({ features, busy, heat, favou
     if (!m.getSource(SRC)) m.addSource(SRC, { type: 'geojson', data: d.features || { type: 'FeatureCollection', features: [] }, promoteId: 'event_id' })
     if (!m.getSource(BUSY)) m.addSource(BUSY, { type: 'geojson', data: d.busy || { type: 'FeatureCollection', features: [] } })
     if (!m.getSource(BOUNDARY)) m.addSource(BOUNDARY, { type: 'geojson', data: '/warsaw_boundary.geojson' })
+    if (!m.getSource(TRAFFIC)) m.addSource(TRAFFIC, { type: 'geojson', data: d.traffic || EMPTY })
+    if (!m.getSource(ROUTE)) m.addSource(ROUTE, { type: 'geojson', data: d.route || EMPTY })
     const before = firstSymbolLayer(m)
+    if (!m.getLayer('wl-traffic-fill')) m.addLayer({ id: 'wl-traffic-fill', type: 'fill', source: TRAFFIC, paint: { 'fill-color': '#f2b705', 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.18, 15, 0.28] } }, before)
+    if (!m.getLayer('wl-traffic-line')) m.addLayer({ id: 'wl-traffic-line', type: 'line', source: TRAFFIC, paint: { 'line-color': '#d9a400', 'line-width': 1.5, 'line-opacity': 0.8 } }, before)
     if (!m.getLayer('wl-boundary-line')) m.addLayer({ id: 'wl-boundary-line', type: 'line', source: BOUNDARY, paint: { 'line-color': '#e7392b', 'line-width': 1.5, 'line-dasharray': [3, 3], 'line-opacity': 0.55 } }, before)
     if (!m.getLayer('wl-heat')) m.addLayer({ id: 'wl-heat', type: 'heatmap', source: BUSY, layout: { visibility: d.heat ? 'visible' : 'none' }, paint: { 'heatmap-weight': ['get', 'weight'] } })
+    if (!m.getLayer('wl-route-casing')) m.addLayer({ id: 'wl-route-casing', type: 'line', source: ROUTE, layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 7, 'line-opacity': 0.9 } })
+    if (!m.getLayer('wl-route')) m.addLayer({ id: 'wl-route', type: 'line', source: ROUTE, layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': vRef.current.accent, 'line-width': 3.5 } })
     if (!m.getLayer('wl-glow')) m.addLayer({ id: 'wl-glow', type: 'circle', source: SRC, paint: { 'circle-blur': 1, 'circle-opacity': 0.55 } })
     if (!m.getLayer('wl-dots')) m.addLayer({ id: 'wl-dots', type: 'circle', source: SRC, paint: {} })
     if (!m.getLayer('wl-starred')) m.addLayer({ id: 'wl-starred', type: 'circle', source: SRC, paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#f2a900', 'circle-stroke-width': 3 } })
@@ -90,6 +103,9 @@ export const MapView = forwardRef(function MapView({ features, busy, heat, favou
     styleMarkers(m, vRef.current)
     styleHeat(m, vRef.current)
     refreshFilters(m)
+    styleRoute(m, vRef.current)
+    m.setLayoutProperty('wl-traffic-fill', 'visibility', vRef.current.trafficAreas ? 'visible' : 'none')
+    m.setLayoutProperty('wl-traffic-line', 'visibility', vRef.current.trafficAreas ? 'visible' : 'none')
     m.setLayoutProperty('wl-boundary-line', 'visibility', vRef.current.cityBoundary ? 'visible' : 'none')
     m.setPaintProperty('wl-boundary-line', 'line-color', vRef.current.accent)
   }
@@ -107,6 +123,21 @@ export const MapView = forwardRef(function MapView({ features, busy, heat, favou
   // ---------- data ----------
   useEffect(() => { const m = map.current; if (m?.getSource(SRC) && features) m.getSource(SRC).setData(features) }, [features])
   useEffect(() => { const m = map.current; if (m?.getSource(BUSY) && busy) m.getSource(BUSY).setData(busy) }, [busy])
+  useEffect(() => { const m = map.current; if (m?.getSource(TRAFFIC) && traffic) m.getSource(TRAFFIC).setData(traffic) }, [traffic])
+  useEffect(() => { const m = map.current; if (m?.getSource(ROUTE)) m.getSource(ROUTE).setData(route || EMPTY) }, [route])
+  useEffect(() => { const m = map.current; if (!m?.getLayer('wl-traffic-fill')) return; for (const id of ['wl-traffic-fill', 'wl-traffic-line']) m.setLayoutProperty(id, 'visibility', values.trafficAreas ? 'visible' : 'none') }, [values.trafficAreas])
+  useEffect(() => { const m = map.current; if (m?.getLayer('wl-route')) styleRoute(m, values) }, [values.routeStyle, values.accent])
+
+  // "me": pulsing light-blue dot (HTML marker so CSS can animate it)
+  useEffect(() => {
+    const m = map.current
+    if (!m) return
+    if (!me || !values.showMe) { meMarker.current?.remove(); meMarker.current = null; return }
+    if (!meMarker.current) {
+      const el = document.createElement('div'); el.className = 'me-marker'; el.innerHTML = '<span class="ring"></span><span class="ring r2"></span><span class="core"></span>'
+      meMarker.current = new maplibregl.Marker({ element: el }).setLngLat(me).addTo(m)
+    } else meMarker.current.setLngLat(me)
+  }, [me, values.showMe])
 
   // ---------- design params ----------
   useEffect(() => {
@@ -186,6 +217,13 @@ function styleMarkers(m, v) {
   m.setPaintProperty('wl-glow', 'circle-radius', bigger(2.6))
   m.setLayoutProperty('wl-glow', 'visibility', v.markerStyle === 'glow' ? 'visible' : 'none')
   m.setPaintProperty('wl-starred', 'circle-radius', bigger(1.7))
+}
+
+function styleRoute(m, v) {
+  m.setPaintProperty('wl-route', 'line-color', v.accent)
+  const dash = { dashed: [2, 1.6], solid: [1, 0], dots: [0.1, 1.8] }[v.routeStyle] || [2, 1.6]
+  m.setPaintProperty('wl-route', 'line-dasharray', dash)
+  m.setLayoutProperty('wl-route', 'line-cap', v.routeStyle === 'dots' ? 'round' : 'round')
 }
 
 function styleHeat(m, v) {

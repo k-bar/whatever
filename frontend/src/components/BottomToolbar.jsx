@@ -2,11 +2,14 @@ import { motion } from 'framer-motion'
 import { useConfig, useSpring } from '../config/store'
 import { Flame, Home, Layers, Minus, Moon, Plus, Sun } from './Icons'
 
-/** Symmetrical: [heat] [-] [home] [+] [dark]  (+ optional layers toggle for places/events) */
+const WINDOWS = [['today', 'Today'], ['weekend', 'Weekend'], ['week', 'Week'], ['month', 'Month']]
+
+/** Centred, symmetrical: [venues] [heat] | [-] [home] [+] | [dark] [Today·Weekend·Week·Month] */
 export function BottomToolbar({ heat, onHeat, onZoom, onHome, onLayers, layersOn }) {
   const { values, set } = useConfig()
   const spring = useSpring()
   const dark = values.darkMode
+  const idx = Math.max(0, WINDOWS.findIndex(([v]) => v === values.timeWindow))
   return (
     <motion.div className="toolbar-wrap" initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ ...spring, delay: 0.2 }}>
       <div className="toolbar surface">
@@ -23,12 +26,13 @@ export function BottomToolbar({ heat, onHeat, onZoom, onHome, onLayers, layersOn
           </motion.span>
           <small>{dark ? 'Light' : 'Dark'}</small>
         </button>
-        <button className="tb" onClick={() => set('timeWindow', NEXT[values.timeWindow])} title="Time window" style={{ fontSize: 11, fontWeight: 700 }}>
-          {LABEL[values.timeWindow]}<small>When</small>
-        </button>
+        <div className="seg" role="radiogroup" aria-label="Time window">
+          <motion.span className="seg-thumb" animate={{ x: `${idx * 100}%` }} transition={spring} />
+          {WINDOWS.map(([v, label]) => (
+            <button key={v} role="radio" aria-checked={values.timeWindow === v} className={`seg-opt ${values.timeWindow === v ? 'on' : ''}`} onClick={() => set('timeWindow', v)}>{label}</button>
+          ))}
+        </div>
       </div>
     </motion.div>
   )
 }
-const NEXT = { now: 'today', today: 'week', week: 'month', month: 'all', all: 'now' }
-const LABEL = { now: '3h', today: 'Today', week: 'Week', month: '30d', all: 'All' }

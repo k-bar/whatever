@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { SECTIONS } from '../config/schema'
 import { useConfig, useSpring } from '../config/store'
-import { Check, Chevron, ChevronL, ChevronR, Sliders, X } from './Icons'
+import { Check, Chevron, ChevronL, ChevronR, Redo, Sliders, Undo, X } from './Icons'
 import { useIsMobile } from '../hooks/useMedia'
 
 /* ---------- controls ---------- */
@@ -98,7 +98,7 @@ function Section({ section, values, set }) {
 }
 
 export function InterfaceEditor({ open, onToggle }) {
-  const { values, set, save, reset, revert, dirty, status } = useConfig()
+  const { values, set, save, reset, revert, dirty, status, undo, redo, canUndo, canRedo } = useConfig()
   const spring = useSpring()
   const mobile = useIsMobile()
   const [q, setQ] = useState('')
@@ -128,6 +128,8 @@ export function InterfaceEditor({ open, onToggle }) {
                 <h2>Interface editor</h2>
               </div>
               <div className="ed-actions">
+                <button className="btn icon small ghost" onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo"><Undo size={18} /></button>
+                <button className="btn icon small ghost" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo"><Redo size={18} /></button>
                 <button className={`btn pill small ${dirty ? 'primary' : ''}`} onClick={save} disabled={!dirty && status === 'idle'}>
                   {status === 'saving' ? 'Saving…' : status === 'saved' ? 'Saved ✓' : status === 'local' ? 'Saved locally' : dirty ? 'Save' : 'Saved'}
                 </button>

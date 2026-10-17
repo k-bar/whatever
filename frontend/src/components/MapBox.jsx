@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
-import { FACT_ICON, Plus, Star, Ticket, X } from './Icons'
+import { Bike, FACT_ICON, Plus, Star, Ticket, Walk, X } from './Icons'
 import { categoryColor } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 
@@ -73,13 +73,13 @@ function Block({ b }) {
 /**
  * One map info box. `data` comes from curate(); `expanded` turns it into the right-side panel.
  */
-export function MapBox({ data, feature, expanded, onClose, onExpand, starred, onStar, showImage = true, layoutId }) {
+export function MapBox({ data, feature, expanded, journey, onClose, onExpand, starred, onStar, showImage = true, layoutId }) {
   const spring = useSpring()
   const c = categoryColor(feature.properties.categories?.[0])
   return (
     <motion.article className={`mapbox surface ${expanded ? 'expanded' : ''}`} layout layoutId={layoutId}
       initial={{ opacity: 0, scale: 0.85, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 8 }} transition={spring}>
-      {onClose && <button className="btn icon small mb-x" onClick={onClose} aria-label="Close"><X size={16} /></button>}
+      {onClose && <button className="btn icon small mb-x" onClick={onClose} aria-label="Close"><X size={24} stroke={2.4} /></button>}
       {onStar && <button className={`btn icon small mb-star ${starred ? 'on' : ''}`} onClick={onStar} aria-label="Star"><Star size={16} filled={starred} /></button>}
       {showImage && data.image && <div className="mb-img" style={{ backgroundImage: `url(${data.image})` }} />}
       {showImage && !data.image && <div className="mb-img" style={{ height: 8, background: `linear-gradient(90deg, ${c}, color-mix(in srgb, ${c} 30%, transparent))` }} />}
@@ -93,6 +93,13 @@ export function MapBox({ data, feature, expanded, onClose, onExpand, starred, on
         <div className="mb-badges">
           {data.badges.map((b, i) => <span className={`badge ${i === 0 ? 'accent' : ''}`} key={i} style={i === 0 ? { background: `color-mix(in srgb, ${c} 15%, transparent)`, color: c } : {}}>{b}</span>)}
         </div>
+        {journey && (
+          <div className={`blk journey ${journey.pending ? 'pending' : ''}`}>
+            <span className="j"><Walk size={18} />{journey.pending ? 'pinging…' : `${journey.walkMin}m walking`}</span>
+            <span className="j"><Bike size={18} />{journey.pending ? '' : `${journey.bikeMin}m cycling`}</span>
+            {!journey.pending && <span className="src">{journey.km.toFixed(1)} km · {journey.source === 'osrm' ? 'streets' : 'estimate'}</span>}
+          </div>
+        )}
         {data.blocks.slice(0, expanded ? 99 : 3).map((b, i) => <Block b={b} key={i} />)}
         {expanded && data.url && <a className="mb-link" href={data.url} target="_blank" rel="noreferrer">Open source page ↗</a>}
         {expanded && (

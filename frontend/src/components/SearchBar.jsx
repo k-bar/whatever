@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from '../config/store'
-import { Burger, Calendar, Chevron, Database, Message, Search, Sparkle, Star, User, X } from './Icons'
-import { categoryColor, categoryLabel } from '../data/categories'
+import { Burger, Calendar, Chevron, Database, History, Message, Plus, Search, Sparkle, Star, User, X, Minus } from './Icons'
+import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 
 export const MODES = [
@@ -18,11 +18,15 @@ export const MENU_ITEMS = [
   { id: 'sources', label: "APIs I'm plugged in to", Icon: Database, hint: '5 sources' },
 ]
 
+const SUGGESTED = ['jazz tonight', 'run club', 'Praga nightlife', 'free exhibitions', 'picnic', 'stand-up', 'teatr', 'Mokotów']
+const RECENT_KEY = 'warszawa-live.recent.v1'
+const readRecent = () => { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]') } catch { return [] } }
+
 /**
  * The Gemini-style pill: burger (plain) · input · mode dropdown · spyglass (circle).
- * Props: onSearch(mode, q), onMenu(itemId), results {mode, q, answer, results} | null, onPick(feature), onClear()
+ * Focusing the input opens the focus panel (recents / category pills / assistant thread).
  */
-export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searching, mobile }) {
+export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searching, mobile, chat, onChatClear }) {
   const { values } = useConfig()
   const spring = useSpring()
   const bouncy = useSpring({ stiffness: 520, damping: 18 })
@@ -30,41 +34,59 @@ export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searchin
   const [mode, setMode] = useState('search')
   const [modeOpen, setModeOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [focused, setFocused] = useState(false)
+  const [chatFull, setChatFull] = useState(false)
+  const [recent, setRecent] = useState(readRecent)
   const [pushed, setPushed] = useState(false)
   const wrapRef = useRef(null)
+  const inputRef = useRef(null)
   const Mode = MODES.find((m) => m.id === mode)
 
   useEffect(() => {
-    const onDoc = (e) => { if (!wrapRef.current?.contains(e.target)) { setModeOpen(false); setMenuOpen(false) } }
+    const onDoc = (e) => { if (!wrapRef.current?.contains(e.target)) { setModeOpen(false); setMenuOpen(false); setFocused(false) } }
     document.addEventListener('pointerdown', onDoc)
     return () => document.removeEventListener('pointerdown', onDoc)
   }, [])
 
-  const submit = () => {
+  const remember = (term) => {
+    if (!term.trim()) return
+    const next = [term.trim(), ...recent.filter((r) => r !== term.trim())].slice(0, 8)
+    setRecent(next); localStorage.setItem(RECENT_KEY, JSON.stringify(next))
+  }
+
+  const submit = (term = q, m = mode, opts) => {
     setPushed(true)
     setTimeout(() => setPushed(false), 260 / (values.animSpeed || 1))
     setModeOpen(false); setMenuOpen(false)
-    onSearch(mode, q)
+    remember(term)
+    if (m !== 'assistant') { setFocused(false); inputRef.current?.blur() } else setQ('')
+    onSearch(m, term, opts)
   }
-  const clear = () => { setQ(''); onClear() }
+  const clear = () => { setQ(''); onClear(); setFocused(false) }
+  const pickCategory = (slug) => { const label = categoryLabel(slug); setQ(label); submit(label, 'events', { category: slug }) }
+
+  const panelOpen = values.searchPanel && focused && !menuOpen && !modeOpen && (mode === 'assistant' || !results || q !== (results?.q || ''))
+  const showResults = results && !menuOpen && !mobile && !panelOpen && mode !== 'assistant'
+  const showAssistant = mode === 'assistant' && (focused || chatFull) && !menuOpen && !modeOpen && values.searchPanel
 
   return (
     <div className="search-wrap" ref={wrapRef}>
       <span className="search-glow" />
       <motion.div className="search surface" animate={pushed ? { y: 10, scale: 0.985 } : { y: 0, scale: 1 }} transition={spring}>
-        <motion.button className="btn icon burger-btn" aria-label="Menu" onClick={() => { setMenuOpen(!menuOpen); setModeOpen(false) }}
+        <motion.button className="btn icon burger-btn" aria-label="Menu" onClick={() => { setMenuOpen(!menuOpen); setModeOpen(false); setFocused(false) }}
           animate={{ rotate: menuOpen ? 90 : 0 }} transition={bouncy}>
-          {menuOpen ? <X /> : <Burger />}
+          {menuOpen ? <X size={26} stroke={2.2} /> : <Burger />}
         </motion.button>
-        <input value={q} placeholder={values.searchPlaceholder} onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') clear() }} onFocus={() => setMenuOpen(false)} />
-        {(q || results) && <button className="btn icon small ghost" onClick={clear} aria-label="Clear"><X size={16} /></button>}
+        <input ref={inputRef} value={q} placeholder={mode === 'assistant' ? 'Ask the assistant…' : values.searchPlaceholder} onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setFocused(false); inputRef.current?.blur() } }}
+          onFocus={() => { setMenuOpen(false); setModeOpen(false); setFocused(true) }} />
+        {(q || results) && <button className="btn icon small ghost" onClick={clear} aria-label="Clear"><X size={20} stroke={2.2} /></button>}
         <button className={`mode-btn ${modeOpen ? 'open' : ''}`} onClick={() => { setModeOpen(!modeOpen); setMenuOpen(false) }}>
           {!mobile && <Mode.Icon size={15} />}{!mobile && Mode.label}
           {mobile && <Mode.Icon size={16} />}
           <Chevron size={14} className="chev" />
         </button>
-        <motion.button className={`btn icon go ${mode === 'assistant' ? 'accent' : ''}`} onClick={submit} aria-label="Run search"
+        <motion.button className={`btn icon go ${mode === 'assistant' ? 'accent' : ''}`} onClick={() => submit()} aria-label="Run search"
           whileTap={{ scale: 0.85 }} animate={searching ? { rotate: 360 } : { rotate: 0 }} transition={searching ? { repeat: Infinity, duration: 0.9, ease: 'linear' } : spring}>
           {mode === 'assistant' ? <Sparkle /> : <Search />}
         </motion.button>
@@ -76,7 +98,7 @@ export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searchin
           <motion.div className="mode-menu surface" initial={{ opacity: 0, scale: 0.85, y: -6 }} animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: -6 }} transition={bouncy}>
             {MODES.map((m) => (
-              <button key={m.id} className={m.id === mode ? 'on' : ''} onClick={() => { setMode(m.id); setModeOpen(false) }}>
+              <button key={m.id} className={m.id === mode ? 'on' : ''} onClick={() => { setMode(m.id); setModeOpen(false); setFocused(true); inputRef.current?.focus() }}>
                 <m.Icon size={18} /><span>{m.label}<small>{m.hint}</small></span>
               </button>
             ))}
@@ -101,9 +123,62 @@ export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searchin
         )}
       </AnimatePresence>
 
+      {/* focus panel: recents (search) · category pills (events) · thread (assistant) */}
+      <AnimatePresence>
+        {(panelOpen || showAssistant) && (
+          <motion.div key={mode} className={`focus-panel surface mode-${mode} ${chatFull && mode === 'assistant' ? 'full' : ''}`}
+            initial={{ opacity: 0, y: -14, scaleY: 0.92 }} animate={{ opacity: 1, y: 0, scaleY: 1 }} exit={{ opacity: 0, y: -10, scaleY: 0.95 }} transition={spring} style={{ transformOrigin: 'top' }}
+            onPointerDown={(e) => e.stopPropagation()}>
+            {mode === 'search' && (
+              <div className="fp-scroll">
+                {recent.length > 0 && <>
+                  <div className="blk-title fp-title"><History size={12} /> Recent</div>
+                  <div className="fp-list">{recent.map((r) => <button key={r} className="fp-item" onClick={() => { setQ(r); submit(r, 'search') }}><History size={15} />{r}</button>)}</div>
+                </>}
+                <div className="blk-title fp-title"><Sparkle size={12} /> Suggested</div>
+                <div className="fp-list">{SUGGESTED.map((r) => <button key={r} className="fp-item" onClick={() => { setQ(r); submit(r, 'search') }}><Search size={15} />{r}</button>)}</div>
+              </div>
+            )}
+            {mode === 'events' && (
+              <div className="fp-scroll">
+                <div className="blk-title fp-title"><Calendar size={12} /> Pick a category</div>
+                <div className="pills">
+                  {Object.entries(CATEGORIES).map(([slug, c]) => (
+                    <button key={slug} className="pill-cat" style={{ '--c': c.color }} onClick={() => pickCategory(slug)}><i />{c.label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {mode === 'assistant' && (
+              <>
+                <div className="fp-scroll chat">
+                  {!chat?.length && <div className="chat-empty"><Sparkle size={22} /><p>One continuous thread. Ask things like “what's on in Praga tonight?” or “free things with kids on Saturday”.</p></div>}
+                  {chat?.map((m, i) => (
+                    <div key={i} className={`msg ${m.role}`}>
+                      <div className="bubble">{m.text}</div>
+                      {m.results?.length > 0 && <div className="msg-results">{m.results.slice(0, 4).map((f) => (
+                        <button key={f.id} className="res-item mini" onClick={() => onPick(f)}>
+                          <span className="thumb" style={f.properties.image_url ? { backgroundImage: `url(${f.properties.image_url})` } : { background: categoryColor(f.properties.categories?.[0]) }}>{!f.properties.image_url && f.properties.title[0]}</span>
+                          <span><div className="t">{f.properties.title}</div><div className="s">{f.properties.kind === 'event' ? fmtWhen(f.properties.starts_at) : f.properties.venue_name}</div></span>
+                        </button>))}</div>}
+                    </div>
+                  ))}
+                  {searching && <div className="msg assistant"><div className="bubble typing"><i /><i /><i /></div></div>}
+                </div>
+                <div className="fp-foot">
+                  <button className="btn icon small primary" onClick={() => setChatFull(!chatFull)} aria-label={chatFull ? 'Shrink' : 'Expand'}>{chatFull ? <Minus size={18} /> : <Plus size={18} />}</button>
+                  <span className="fp-hint">{chat?.length ? `${chat.length} messages` : 'assistant · stub'}</span>
+                  {chat?.length > 0 && <button className="btn text small" onClick={onChatClear}>Clear thread</button>}
+                </div>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* desktop results slide down from under the bar; mobile uses the bottom sheet */}
       <AnimatePresence>
-        {results && !menuOpen && !mobile && (
+        {showResults && (
           <motion.div className="results surface desktop" initial={{ opacity: 0, y: -24, scaleY: 0.9 }} animate={{ opacity: 1, y: 0, scaleY: 1 }}
             exit={{ opacity: 0, y: -16 }} transition={spring} style={{ transformOrigin: 'top' }}>
             <ResultsList results={results} onPick={onPick} onClear={clear} />
@@ -120,7 +195,7 @@ export function ResultsList({ results, onPick, onClear }) {
     <>
       <div className="results-h">
         <h3>{results.mode === 'assistant' ? 'Assistant' : `${list.length} result${list.length === 1 ? '' : 's'}`}{results.q ? ` · “${results.q}”` : ''}</h3>
-        {onClear && <button className="btn icon small ghost" onClick={onClear} aria-label="Close results"><X size={16} /></button>}
+        {onClear && <button className="btn icon small ghost" onClick={onClear} aria-label="Close results"><X size={20} stroke={2.2} /></button>}
       </div>
       <div className="results-scroll">
         {results.answer && <div className="assistant"><b>✦ </b>{results.answer}</div>}

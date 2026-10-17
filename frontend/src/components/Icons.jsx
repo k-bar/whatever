@@ -33,6 +33,12 @@ export const Database = (p) => <S {...p}><ellipse cx="12" cy="5.5" rx="8" ry="3"
 export const Check = (p) => <S {...p}><path d="m5 12 5 5L20 7" /></S>
 export const Ticket = (p) => <S {...p}><path d="M3 9a2 2 0 0 0 0 6v3h18v-3a2 2 0 0 1 0-6V6H3Z" /><path d="M13 6v12" strokeDasharray="2 2" /></S>
 
+export const Undo = (p) => <S {...p}><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" /></S>
+export const Redo = (p) => <S {...p}><path d="m15 14 5-5-5-5" /><path d="M20 9H10a6 6 0 0 0 0 12h3" /></S>
+export const Walk = (p) => <S {...p}><circle cx="13" cy="4" r="1.8" /><path d="M10 21l2-6 3 2 1 4" /><path d="M9 12l2-4 3 1 2 3h2" /><path d="M11 8 8 13" /></S>
+export const Bike = (p) => <S {...p}><circle cx="5.5" cy="17" r="3.5" /><circle cx="18.5" cy="17" r="3.5" /><path d="M5.5 17 10 9h5l3.5 8" /><path d="M10 9l3 8" /><path d="M13 6h3" /></S>
+export const Send = (p) => <S {...p}><path d="m3 11 18-8-8 18-2-8Z" /></S>
+export const History = (p) => <S {...p}><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /><path d="M12 7v5l3 2" /></S>
 export const FACT_ICON = { clock: Clock, pin: Pin, map: MapIcon, repeat: Repeat, users: Users, access: Access, phone: Phone }
 
 /** The Warsaw mermaid, variant chosen in the editor (Branding → Mermaid symbol). */

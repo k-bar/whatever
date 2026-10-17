@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
-import { dataStatus, fetchBusy, fetchFeatures, fetchMapbox, runSearch } from './data/api'
+import { dataStatus, fetchBusy, fetchFeatures, fetchMapbox, fetchTraffic, locateByIp, routeTo, runSearch } from './data/api'
 import { useFavourites } from './hooks/useFavourites'
 import { useIsMobile } from './hooks/useMedia'
 import { curate } from './mapboxes/curate'
@@ -33,8 +33,19 @@ export default function App() {
   const [sheet, setSheet] = useState(null) // mobile: 'results' | 'box' | null
   const [zoom, setZoom] = useState(11.6)
   const [toast, setToast] = useState(null)
+  const [traffic, setTraffic] = useState(null)
+  const [me, setMe] = useState(null)
+  const [route, setRoute] = useState(null)
+  const meRef = useRef(null)
+  useEffect(() => { meRef.current = me }, [me])
+  const [chat, setChat] = useState(() => { try { return JSON.parse(localStorage.getItem('warszawa-live.chat.v1') || '[]') } catch { return [] } })
+  useEffect(() => { localStorage.setItem('warszawa-live.chat.v1', JSON.stringify(chat.map((m) => ({ ...m, results: undefined })))) }, [chat])
 
-  useEffect(() => { fetchFeatures().then(setFeatures); fetchBusy().then(setBusy) }, [])
+  useEffect(() => {
+    fetchFeatures().then(setFeatures); fetchBusy().then(setBusy); fetchTraffic().then(setTraffic)
+    locateByIp().then((loc) => { setMe(loc.lngLat); say(`You: ${loc.label}`) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const featureList = features?.features || []
 
   const say = useCallback((t) => { setToast(t); setTimeout(() => setToast(null), 1800) }, [])
@@ -49,23 +60,31 @@ export default function App() {
     })
     if (mobile) setSheet('box')
     if (fly) mapRef.current?.flyTo(feature, 14.5)
+    const from = meRef.current
+    if (from) {
+      setBoxes((b) => b.map((x) => (x.key === key ? { ...x, journey: { pending: true } } : x)))
+      routeTo(from, feature.geometry.coordinates).then((j) => {
+        setBoxes((b) => b.map((x) => (x.key === key ? { ...x, journey: j } : x)))
+        setRoute({ type: 'FeatureCollection', features: [{ type: 'Feature', geometry: j.geometry, properties: {} }] })
+      })
+    }
     const remote = await fetchMapbox(feature) // backend/mapboxes curation wins when available
     if (remote?.blocks) setBoxes((b) => b.map((x) => (x.key === key ? { ...x, data: { ...x.data, ...remote } } : x)))
   }, [mobile, values.maxBoxes])
 
-  const closeBox = (key) => setBoxes((b) => b.filter((x) => x.key !== key))
-  const closeAll = () => { setBoxes([]); setResults(null); if (sheet) setSheet(null); say('Closed all map boxes') }
+  const closeBox = (key) => setBoxes((b) => { const n = b.filter((x) => x.key !== key); if (!n.length) setRoute(null); return n })
+  const closeAll = () => { setBoxes([]); setResults(null); setRoute(null); if (sheet) setSheet(null); say('Closed all map boxes') }
   const expandBox = (key) => setBoxes((b) => b.map((x) => ({ ...x, expanded: x.key === key ? !x.expanded : false })))
   const selectedId = boxes[0]?.key
 
   // ---------- search ----------
-  const onSearch = async (mode, q) => {
+  const onSearch = async (mode, q, opts) => {
     if (!q.trim() && mode !== 'assistant') { setResults(null); return }
     setSearching(true)
-    const r = await runSearch(mode, q, featureList)
+    if (mode === 'assistant') setChat((c) => [...c, { role: 'user', text: q }])
+    const r = await runSearch(mode, q, featureList, opts)
     setSearching(false)
-    setResults({ mode, q, ...r })
-    if (mobile) setSheet('results')
+    if (mode === 'assistant') { setChat((c) => [...c, { role: 'assistant', text: r.answer, results: r.results }]) } else { setResults({ mode, q, ...r }); if (mobile) setSheet('results') }
     if (r.results?.length && r.results.length <= 40) {
       const m = mapRef.current?.getMap()
       const b = r.results.reduce((acc, f) => { const [x, y] = f.geometry.coordinates; return [Math.min(acc[0], x), Math.min(acc[1], y), Math.max(acc[2], x), Math.max(acc[3], y)] }, [999, 999, -999, -999])
@@ -86,7 +105,7 @@ export default function App() {
     if (sheet === 'results' && results) return <ResultsList results={results} onPick={pickResult} />
     if (sheet === 'box' && boxes[0]) {
       const b = boxes[0]
-      return <MapBox data={b.data} feature={b.feature} expanded starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} showImage={values.boxImages} />
+      return <MapBox data={b.data} feature={b.feature} journey={b.journey} expanded starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} showImage={values.boxImages} />
     }
     return null
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,15 +113,15 @@ export default function App() {
 
   return (
     <div className="app">
-      <MapView ref={mapRef} features={features} busy={busy} heat={heat} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
+      <MapView ref={mapRef} features={features} busy={busy} traffic={traffic} route={route} me={me} heat={heat} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
         onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} />
 
       {/* top-left: search pill + (x) + mermaid */}
       <div className="top-left">
-        <SearchBar onSearch={onSearch} onMenu={onMenu} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} />
+        <SearchBar onSearch={onSearch} onMenu={onMenu} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} />
         <div className="side-controls">
           <motion.button className="btn icon" onClick={closeAll} aria-label="Close all map boxes" title="Close all map boxes" whileTap={{ rotate: 90 }} transition={spring}
-            animate={{ opacity: boxes.length || results ? 1 : 0.55 }}><X /></motion.button>
+            animate={{ opacity: boxes.length || results ? 1 : 0.55 }}><X size={30} stroke={2.4} /></motion.button>
           <motion.button className={`btn icon mermaid-btn ${favOnly ? 'active' : ''}`} onClick={toggleFavOnly} aria-label="My favourite spots" title="My favourite spots"
             whileTap={{ scale: 0.85 }} animate={favOnly ? { rotate: [0, -8, 8, 0] } : {}} transition={spring}>
             <Mermaid variant={values.mermaidVariant} size={30} />
@@ -119,7 +138,7 @@ export default function App() {
         <div className="boxes">
           <AnimatePresence>
             {boxes.map((b) => (
-              <MapBox key={b.key} layoutId={`box-${b.key}`} data={b.data} feature={b.feature} expanded={b.expanded} onClose={() => closeBox(b.key)} onExpand={() => expandBox(b.key)}
+              <MapBox key={b.key} layoutId={`box-${b.key}`} data={b.data} feature={b.feature} expanded={b.expanded} journey={b.journey} onClose={() => closeBox(b.key)} onExpand={() => expandBox(b.key)}
                 starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} showImage={values.boxImages} />
             ))}
           </AnimatePresence>
