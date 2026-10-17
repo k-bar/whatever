@@ -1,0 +1,16 @@
+[Unit]
+Description=Warszawa Live conditions: weather + air quality (backend/app/ingest/conditions.py)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=warszawa
+WorkingDirectory=@ROOT@/backend
+EnvironmentFile=/etc/warszawa/instance.env
+EnvironmentFile=/etc/warszawa/release.env
+ExecStart=@ROOT@/backend/.venv/bin/python -m app.ingest.conditions
+TimeoutStartSec=5min
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true

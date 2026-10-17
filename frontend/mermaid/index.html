@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Syrenka Icons</title>
+<style>
+  :root { --bg:#F6F1EC; --card:#FFFFFF; --ink:#22140F; --muted:#7A6A62; --line:#E9DFD7; --chip:#F3EBE4; }
+  :root[data-theme="dark"] { --bg:#14100F; --card:#1F1917; --ink:#F6EDE6; --muted:#A8968C; --line:#33291F; --chip:#2A221E; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Inter, sans-serif; }
+  header { max-width:1200px; margin:0 auto; padding:40px 16px 8px; display:flex; gap:16px; align-items:end; justify-content:space-between; flex-wrap:wrap; }
+  h1 { margin:0; font-size:28px; letter-spacing:-.02em; }
+  header p { margin:4px 0 0; color:var(--muted); }
+  button { font:inherit; color:var(--ink); background:var(--chip); border:1px solid var(--line); border-radius:999px; padding:6px 14px; cursor:pointer; }
+  .hero { max-width:1200px; margin:16px auto 0; padding:0 16px; display:grid; grid-template-columns:minmax(0,320px) 1fr; gap:24px; align-items:center; }
+  .hero .card img.big { height:420px; }
+  .grid { max-width:1200px; margin:24px auto 64px; padding:0 16px; display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:20px; display:flex; flex-direction:column; gap:12px; }
+  .card img.big { width:100%; aspect-ratio:1; object-fit:contain; }
+  .hero .card img.big { aspect-ratio:auto; }
+  .card h2 { margin:0; font-size:16px; }
+  .card p { margin:0; color:var(--muted); font-size:13px; }
+  .sizes { display:flex; align-items:end; gap:12px; padding-top:12px; border-top:1px solid var(--line); }
+  .sizes img { display:block; }
+  .sizes span { font-size:11px; color:var(--muted); }
+  .file { font:12px ui-monospace, Menlo, monospace; color:var(--muted); }
+  @media (max-width:640px) { .hero { grid-template-columns:1fr; } .hero .card img.big { height:320px; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Syrenka icons</h1>
+    <p>The Warsaw mermaid, drawn once and restyled as ten icons. Every variation shares the same silhouette.</p>
+  </div>
+  <button id="theme">Toggle dark</button>
+</header>
+<section class="hero" id="hero"></section>
+<section class="grid" id="grid"></section>
+<script>
+  const root = document.documentElement;
+  document.getElementById('theme').onclick = () =>
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  fetch('variants.json').then(r => r.json()).then(list => {
+    const card = v => `<div class="card">
+        <img class="big" src="${v.file}" alt="${v.name}">
+        <div><h2>${v.name}</h2><p>${v.note}</p></div>
+        <div class="sizes">${[64, 32, 16].map(s =>
+          `<div><img src="${v.file}" width="${s}" height="${s}" alt=""><span>${s}</span></div>`).join('')}</div>
+        <div class="file">${v.file}</div></div>`;
+    const [master, ...rest] = list;
+    document.getElementById('hero').innerHTML = card(master) +
+      `<div><h2 style="margin:0 0 8px">${master.name}</h2><p style="color:var(--muted);max-width:52ch">${master.note}
+       The geometry follows the official arms: sabre raised over the head, round shield on the left arm,
+       tail curling into the city's "G". The variations below simplify it into icons.</p></div>`;
+    document.getElementById('grid').innerHTML = rest.map(card).join('');
+  });
+</script>
+</body>
+</html>

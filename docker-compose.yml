@@ -1,4 +1,18 @@
+# Local Postgres + PostGIS on the same port as backend/scripts/dev-postgres.sh.
+#   docker compose up -d db
 services:
+  db:
+    image: postgis/postgis:16-3.5
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: warszawa
+    ports:
+      - "54329:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/scripts/create-test-db.sql:/docker-entrypoint-initdb.d/create-test-db.sql:ro
+
   postgres:
     image: postgres:16-alpine
     container_name: warszawa_postgres
@@ -16,3 +30,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+volumes:
+  pgdata:

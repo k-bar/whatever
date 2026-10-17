@@ -1,0 +1,21 @@
+name: Bug
+description: Something is broken
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened vs. what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      placeholder: "curl ... / click ... / run ..."
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output
+      render: text

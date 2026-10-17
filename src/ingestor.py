@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Callable, Optional
 
-from sqlalchemy import Engine, func
+from sqlalchemy import Engine, func, inspect
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -135,18 +135,25 @@ def ingest_tourist_routes(
             }
 
     if routes_by_title:
-        stmt = pg_insert(TouristRoute).values(list(routes_by_title.values()))
-        stmt = stmt.on_conflict_do_update(
-            index_elements=["title"],
-            set_={
-                "length_km": stmt.excluded.length_km,
-                "description": stmt.excluded.description,
-                "traces": stmt.excluded.traces,
-                "tourist_points": stmt.excluded.tourist_points,
-                "updated_at": stmt.excluded.updated_at,
-            },
-        )
-        session.execute(stmt)
+        bind = session.get_bind()
+        col_names = {
+            c["name"] for c in inspect(bind).get_columns("tourist_routes")
+        }
+        if "traces" in col_names:
+            stmt = pg_insert(TouristRoute).values(
+                list(routes_by_title.values())
+            )
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["title"],
+                set_={
+                    "length_km": stmt.excluded.length_km,
+                    "description": stmt.excluded.description,
+                    "traces": stmt.excluded.traces,
+                    "tourist_points": stmt.excluded.tourist_points,
+                    "updated_at": stmt.excluded.updated_at,
+                },
+            )
+            session.execute(stmt)
 
     if points_by_id:
         p_stmt = pg_insert(TouristPoint).values(list(points_by_id.values()))

@@ -1,0 +1,142 @@
+# One green/red check per PR. Jobs only run for the parts of the repo a PR touches.
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, master]
+  push:
+    branches: [dev, master]
+
+# paths-filter and gitleaks read the PR's file/commit list
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      fetchers: ${{ steps.filter.outputs.fetchers }}
+      infra: ${{ steps.filter.outputs.infra }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            fetchers:
+              - 'backend/app/ingest/**'
+              - 'backend/tests/fixtures/**'
+            infra:
+              - 'infra/**'
+              - 'deploy/**'
+            frontend:
+              - 'frontend/**'
+
+  # Kamil: fast feedback on new fetchers. No database, no API token.
+  fetchers:
+    needs: changes
+    if: needs.changes.outputs.fetchers == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - name: Fetcher contract (tests/fixtures/<slug>.json -> list[RawEvent])
+        run: uv run pytest -q tests/test_contract.py
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgis/postgis:16-3.5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: warszawa_test
+        ports: ["54329:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres@localhost:54329/warszawa_test
+      TEST_DATABASE_URL: postgresql+psycopg://postgres@localhost:54329/warszawa_test
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - name: Lint
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Migrations apply and match models
+        run: uv run alembic upgrade head && uv run alembic check
+      - name: Tests
+        run: uv run pytest -q
+
+  # AWS CDK + deploy scripts: must synthesize and pass shellcheck (no AWS credentials needed:
+  # lookups are cached in infra/cdk.context.json)
+  infra:
+    needs: changes
+    if: needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Lint
+        run: |
+          cd infra && uvx ruff check . && uvx ruff format --check .
+      - name: Shell scripts
+        run: shellcheck -S warning deploy/*.sh infra/*.sh infra/ec2/agent.sh
+      - name: cdk synth
+        run: cd infra && npx -y aws-cdk@2.1145.0 synth -q
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build
+        run: |
+          [ -f frontend/package.json ] || { echo "no frontend/package.json yet"; exit 0; }
+          cd frontend && npm ci && npm run build
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Single required check for branch protection: passes when every job that ran passed.
+  ci-ok:
+    if: always()
+    needs: [changes, fetchers, backend, infra, frontend, secrets]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo '${{ toJSON(needs) }}' | jq -e 'all(.[]; .result == "success" or .result == "skipped")'
