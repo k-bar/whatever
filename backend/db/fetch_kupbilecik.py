@@ -10,7 +10,12 @@ category listings are crawled too and rows are deduplicated by event id.
 Usage:
     python fetch_kupbilecik.py                 # full crawl
     python fetch_kupbilecik.py --max-pages 5   # quick test
-    python fetch_kupbilecik.py --delay 1.0     # slower, more polite
+    python fetch_kupbilecik.py --delay 5       # slower, more polite
+    python fetch_kupbilecik.py --listings search --start-page 236   # resume
+
+The site is behind Cloudflare and blocks the IP (HTTP 403) after a few hundred
+fast requests. The script then stops and prints how to resume later; rows
+already saved stay in the database.
 """
 
 import argparse
@@ -78,12 +83,23 @@ LD_JSON_RE = re.compile(
 EVENT_ID_RE = re.compile(r"/event/(\d+)/")
 
 
+class Blocked(Exception):
+    pass
+
+
 def fetch(url, retries=3):
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     for attempt in range(retries):
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 return resp.read().decode("utf-8", errors="replace")
+        except urllib.error.HTTPError as e:
+            if e.code in (403, 429):
+                raise Blocked(url) from e
+            if attempt == retries - 1:
+                print(f"  ! {url}: {e}", file=sys.stderr)
+                return None
+            time.sleep(2 * (attempt + 1))
         except (urllib.error.URLError, TimeoutError) as e:
             if attempt == retries - 1:
                 print(f"  ! {url}: {e}", file=sys.stderr)
@@ -185,10 +201,10 @@ def upsert(conn, row):
     )
 
 
-def crawl_listing(conn, path, category, seen, max_pages, delay, scraped_at):
+def crawl_listing(conn, path, category, seen, start_page, max_pages, delay, scraped_at):
     new_total = 0
     prev_ids = None
-    for page in range(1, max_pages + 1):
+    for page in range(start_page, start_page + max_pages):
         page_html = fetch(f"{BASE}{path}?page={page}")
         if page_html is None:
             break
@@ -213,7 +229,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--db", default=str(DB_PATH))
     ap.add_argument("--max-pages", type=int, default=1000, help="pages per listing")
-    ap.add_argument("--delay", type=float, default=0.5, help="seconds between requests")
+    ap.add_argument("--delay", type=float, default=2.0, help="seconds between requests")
+    ap.add_argument("--start-page", type=int, default=1, help="first page of the first listing (for resuming)")
     ap.add_argument("--listings", nargs="*", default=list(LISTINGS), choices=list(LISTINGS))
     args = ap.parse_args()
 
@@ -221,10 +238,19 @@ def main():
     conn.executescript(SCHEMA)
     scraped_at = datetime.now().isoformat(timespec="seconds")
     seen = set()
-    for path in args.listings:
-        print(f"[{path}]")
-        new = crawl_listing(conn, path, LISTINGS[path], seen, args.max_pages, args.delay, scraped_at)
-        print(f"[{path}] +{new} new events")
+    start = args.start_page
+    try:
+        for i, path in enumerate(args.listings):
+            print(f"[{path}]")
+            new = crawl_listing(conn, path, LISTINGS[path], seen, start, args.max_pages, args.delay, scraped_at)
+            print(f"[{path}] +{new} new events")
+            start = 1
+    except Blocked as e:
+        m = re.search(r"\?page=(\d+)", str(e))
+        rest = " ".join(args.listings[i:])
+        print(f"\nBlocked by the site (HTTP 403/429) at {e}. Wait a while (~1h), then resume with:\n"
+              f"  python fetch_kupbilecik.py --listings {rest} --start-page {m.group(1) if m else 1}",
+              file=sys.stderr)
     total = conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]
     conn.close()
     print(f"Done: {len(seen)} events scraped, {total} rows in {args.db}")
