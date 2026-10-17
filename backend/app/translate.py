@@ -1,4 +1,4 @@
-"""Event titles and descriptions in Polish and English, translated by Claude and stored in Postgres.
+"""Event titles and descriptions in Polish and English, translated offline and stored in Postgres.
 
 Every event gets `events.i18n`:
     {"orig": "pl", "for": "<title>\\n<lead>", "pl": {"title", "lead"}, "en": {"title", "lead"}}
@@ -11,15 +11,18 @@ The API serves `?lang=en|pl` from this (app/routers/events.py). Runs at the end 
 
     python -m app.translate [--limit 3000]
 
-Needs ANTHROPIC_API_KEY (ANTHROPIC_API_KEY_SECRET_ARN on AWS); without it this step is skipped.
+Free and offline: the OPUS-MT Polish->English model from Argos Translate (CTranslate2 format), run with
+ctranslate2 + sentencepiece. No API key, no rate limit, nothing leaves the box. deploy/deploy.sh downloads
+the model to settings.translation_model_dir; without it this step is skipped. Sources are Polish, so only
+pl->en is translated; the rare English original is kept as-is in both languages.
 """
 
 import argparse
 import hashlib
-import json
+import re
 import sys
+from pathlib import Path
 
-import anthropic
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -27,42 +30,35 @@ from app.config import settings
 from app.db import SessionLocal
 from app.models import Event, TextTranslation
 
-MODEL = "claude-opus-5-5"
-BATCH = 40  # texts per request: titles are short, descriptions are capped at ~300 characters
+BATCH = 32  # texts per translate_batch call: titles are short, descriptions are capped at ~300 characters
 
-INSTRUCTIONS = """You translate listings for syrenka.me, a map of events and places in Warsaw.
+POLISH_LETTERS = re.compile(r"[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]")
+ENGLISH_WORDS = re.compile(r"\b(the|and|with|for|of|in|at|on|to|your|our|from)\b", re.I)
 
-For every item in the JSON list below, detect its language and return it in both Polish ("pl") and \
-English ("en"). One of the two is usually the original: return the original unchanged.
 
-- Translate naturally and concisely, the way a local events guide would phrase it. Never add information.
-- Keep proper names as they are: venues, people, bands, street names, and titles of works in quotes \
-(„...”, "..."). "Koncert „God save the Queen”" becomes "Concert „God save the Queen”".
-- Keep numbers, dates, times, emoji and punctuation.
-- "lang" is the detected original language as an ISO 639-1 code ("pl", "en", ...).
-- Return exactly one result per item, with the same "i"."""
+def detect_lang(text: str) -> str:
+    """'pl' or 'en'. Polish letters decide; otherwise two or more common English words mean English."""
+    if POLISH_LETTERS.search(text):
+        return "pl"
+    return "en" if len(ENGLISH_WORDS.findall(text)) >= 2 else "pl"
 
-SCHEMA = {
-    "type": "object",
-    "properties": {
-        "items": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "i": {"type": "integer"},
-                    "lang": {"type": "string"},
-                    "pl": {"type": "string"},
-                    "en": {"type": "string"},
-                },
-                "required": ["i", "lang", "pl", "en"],
-                "additionalProperties": False,
-            },
-        }
-    },
-    "required": ["items"],
-    "additionalProperties": False,
-}
+
+class Translator:
+    """Polish -> English with the Argos/OPUS-MT model: about 370 MB of RAM, ~30 ms per text on CPU."""
+
+    def __init__(self, model_dir: str | Path):
+        import ctranslate2  # heavy native libs: only loaded when translating
+        import sentencepiece
+
+        model_dir = Path(model_dir)
+        self.model = ctranslate2.Translator(str(model_dir / "model"), device="cpu", compute_type="int8")
+        self.sp = sentencepiece.SentencePieceProcessor(model_file=str(model_dir / "sentencepiece.model"))
+
+    def translate(self, texts: list[str]) -> list[str]:
+        results = self.model.translate_batch(
+            self.sp.encode(texts, out_type=str), beam_size=2, max_decoding_length=512
+        )
+        return ["".join(r.hypotheses[0]).replace("\u2581", " ").strip() for r in results]
 
 
 def text_key(text: str) -> str:
@@ -86,42 +82,25 @@ def pending(db: Session, limit: int) -> list[Event]:
     return list(db.scalars(stmt))
 
 
-def translate_batch(client: anthropic.Anthropic, texts: list[str]) -> dict[str, dict]:
-    """texts -> {text: {"lang", "pl", "en"}}. Texts Claude declines or skips are left out (retried next run)."""
-    items = json.dumps([{"i": i, "text": t} for i, t in enumerate(texts)], ensure_ascii=False)
-    response = client.beta.messages.create(
-        model=MODEL,
-        max_tokens=16000,
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",  # a declined batch is re-run on Anthropic's recommended fallback model
-        output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCHEMA}},
-        messages=[{"role": "user", "content": f"{INSTRUCTIONS}\n\n{items}"}],
-    )
-    if response.stop_reason in ("refusal", "max_tokens"):
-        print(f"translate: batch of {len(texts)} skipped ({response.stop_reason})", file=sys.stderr)
-        return {}
-    text = next(b.text for b in response.content if b.type == "text")
-    out = {}
-    for item in json.loads(text)["items"]:
-        i = item["i"]
-        if 0 <= i < len(texts) and item["pl"].strip() and item["en"].strip():
-            out[texts[i]] = {
-                "lang": item["lang"][:8].lower(),
-                "pl": item["pl"].strip(),
-                "en": item["en"].strip(),
-            }
+def translate_batch(translator, texts: list[str]) -> dict[str, dict]:
+    """texts -> {text: {"lang", "pl", "en"}}. Empty outputs are left out (retried next run)."""
+    polish = [t for t in texts if detect_lang(t) == "pl"]
+    out = {t: {"lang": "en", "pl": t, "en": t} for t in texts if t not in set(polish)}
+    for text, english in zip(polish, translator.translate(polish) if polish else [], strict=True):
+        if english.strip():
+            out[text] = {"lang": "pl", "pl": text, "en": english.strip()}
     return out
 
 
-def translate_texts(db: Session, client: anthropic.Anthropic, texts: set[str]) -> dict[str, TextTranslation]:
-    """Look every text up in the cache; ask Claude only for the ones it has never seen."""
+def translate_texts(db: Session, translator, texts: set[str]) -> dict[str, TextTranslation]:
+    """Look every text up in the cache; translate only the ones it has never seen."""
     keys = {text_key(t): t for t in texts}
     cached = {
         keys[row.key]: row for row in db.scalars(select(TextTranslation).where(TextTranslation.key.in_(keys)))
     }
     missing = sorted(t for t in texts if t not in cached)
     for start in range(0, len(missing), BATCH):
-        for text, tr in translate_batch(client, missing[start : start + BATCH]).items():
+        for text, tr in translate_batch(translator, missing[start : start + BATCH]).items():
             row = TextTranslation(key=text_key(text), orig=tr["lang"], pl=tr["pl"], en=tr["en"])
             db.merge(row)
             cached[text] = row
@@ -129,16 +108,16 @@ def translate_texts(db: Session, client: anthropic.Anthropic, texts: set[str]) -
     return cached
 
 
-def run(db: Session, limit: int = 3000, client: anthropic.Anthropic | None = None) -> int:
+def run(db: Session, limit: int = 3000, translator=None) -> int:
     """Translate up to `limit` pending events. Returns how many got (re)translated."""
-    if client is None:
-        if not settings.anthropic_api_key:
-            print("translate: skipped (no ANTHROPIC_API_KEY)")
+    if translator is None:
+        if not (Path(settings.translation_model_dir) / "model" / "model.bin").exists():
+            print(f"translate: skipped (no model in {settings.translation_model_dir})")
             return 0
-        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        translator = Translator(settings.translation_model_dir)
     events = pending(db, limit)
     texts = {e.title for e in events} | {e.lead for e in events if e.lead}
-    done = translate_texts(db, client, texts)
+    done = translate_texts(db, translator, texts)
     n = 0
     for e in events:
         title, lead = done.get(e.title), done.get(e.lead) if e.lead else None

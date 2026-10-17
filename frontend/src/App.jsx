@@ -111,7 +111,7 @@ export default function App() {
     if (remote?.blocks) setBoxes((b) => b.map((x) => (x.key === key ? { ...x, remote, data: { ...x.data, ...remote } } : x)))
   }, [mobile, values.maxBoxes])
 
-  // events in the new language after a PL/EN switch (the server sends Claude's translations)
+  // events in the new language after a PL/EN switch (the server sends its translations)
   const firstLang = useRef(true)
   useEffect(() => {
     if (firstLang.current) { firstLang.current = false; return }

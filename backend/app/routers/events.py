@@ -55,7 +55,7 @@ LANG = Query(None, pattern="^(pl|en)$", description="title and lead in this lang
 
 
 def localize(props: dict, event: Event, lang: str | None) -> None:
-    """?lang=pl|en: title and description in that language (Claude, app/translate.py); original alongside."""
+    """?lang=pl|en: title and description in that language (offline model, app/translate.py); original alongside."""
     i18n = event.i18n or {}
     if not lang or lang not in i18n or i18n.get("for") != translate.source_text(event):
         return  # not translated yet, or the text changed since: serve the original

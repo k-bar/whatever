@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     # with a Polish IP (X-Relay-Target protocol). Unset = call the API directly.
     warsaw_relay_url: str | None = None
     warsaw_relay_token: str | None = None
-    # Claude translates event titles/descriptions PL <-> EN (app/translate.py). Unset = no translating.
-    anthropic_api_key: str | None = None
+    # Offline PL -> EN model for event titles/descriptions (app/translate.py); downloaded by deploy/deploy.sh.
+    translation_model_dir: str = "/opt/warszawa/models/translate-pl_en-1_9"
     nominatim_user_agent: str = "warszawa-live-hackathon (github.com/k-bar/whatever)"
     db_pool_size: int = 5
     # Postgres schema for this environment ("dev" on the dev box). Tables live there;
@@ -37,7 +37,6 @@ class Settings(BaseSettings):
     db_secret_arn: str | None = None  # RDS-generated JSON: username, password, host, port, dbname
     jwt_secret_arn: str | None = None
     warsaw_api_token_secret_arn: str | None = None
-    anthropic_api_key_secret_arn: str | None = None
 
     @field_validator("database_url")
     @classmethod
@@ -77,8 +76,6 @@ class Settings(BaseSettings):
             self.warsaw_api_token = token if token and token != "CHANGE_ME" else None
             self.warsaw_relay_url = s.get("relay_url") or self.warsaw_relay_url
             self.warsaw_relay_token = s.get("relay_token") or self.warsaw_relay_token
-        if self.anthropic_api_key_secret_arn:
-            self.anthropic_api_key = read_secret(self.anthropic_api_key_secret_arn).strip() or None
         return self
 
 

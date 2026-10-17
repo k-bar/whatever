@@ -263,7 +263,7 @@ export const PL = {
   'Login required': 'Musisz się zalogować',
   'Log in to continue': 'Zaloguj się, aby kontynuować',
   'This server cannot create events yet (its API is not updated).': 'Ten serwer nie obsługuje jeszcze tworzenia wydarzeń (API nie jest zaktualizowane).',
-  // event translations (Claude, server side)
+  // event translations (server side)
   'Translated automatically · original in {lang}': 'Przetłumaczone automatycznie · oryginał: {lang}',
   'Polish': 'polski',
   'English': 'angielski',

@@ -63,7 +63,7 @@ class Event(Base):
     contact: Mapped[dict] = mapped_column(JSONB, default=dict)
     audience: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
     raw: Mapped[dict | None] = mapped_column(JSONB)
-    # title + lead in Polish and English, made by Claude (app/translate.py):
+    # title + lead in Polish and English, made offline (app/translate.py):
     # {"orig": "pl", "for": "<title>\n<lead>", "pl": {"title", "lead"}, "en": {"title", "lead"}}
     i18n: Mapped[dict | None] = mapped_column(JSONB)
     host_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
@@ -150,7 +150,7 @@ class GeocodeCache(Base):
 
 
 class TextTranslation(Base):
-    """Claude's Polish and English versions of one exact text, so repeated titles are translated once."""
+    """Polish and English versions of one exact text, so repeated titles are translated once."""
 
     __tablename__ = "text_translations"
 
