@@ -1,2 +1,18 @@
 AGENTS.md
-__pycache__
+
+# secrets
+.env
+apiKey.txt
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# local data snapshots (rebuild with fetch_data.py, load with backend/scripts/import_sqlite.py)
+*.db
+
+# project-local Postgres (backend/scripts/dev-postgres.sh)
+.dev/

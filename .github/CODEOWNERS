@@ -1,0 +1,9 @@
+# Reviewers are requested automatically based on which files a PR touches (last match wins).
+*                               @JustCodeMeV
+/backend/                       @JustCodeMeV
+/backend/app/ingest/sources/    @kdzwigal @JustCodeMeV
+/backend/tests/fixtures/        @kdzwigal
+/frontend/                      @philpiano
+/fetch_data.py                  @Informatyczek
+/PLAN.md                        @philpiano
+/.github/                       @JustCodeMeV

@@ -1,0 +1,916 @@
+[
+ {
+  "address": [
+   {
+    "name": "OCH-Teatr"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34057",
+    "name": "Kultura"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/65745/16523792/och+min.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/65745/16523792/och+min.png"
+   }
+  },
+  "language": "pl_PL",
+  "lead": "Och-Teatr zaprasza na popremierowe spektakle „Oskarżonego” Jeffreya Archera w reżyserii Krystyny Jandy. Ten dramat sądowy opowiada o doktorze Patricku Sherwoodzie, oskarżonym o zamordowanie żony.",
+  "localization": [
+   {
+    "id": "33974",
+    "name": "Ochota"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       20.9799983868717,
+       52.2141938100175
+      ],
+      "type": "Point"
+     },
+     "properties": {
+      "district": "Ochota",
+      "fullStreetName": "ulica Grójecka",
+      "shortStreetName": "ul. Grójecka",
+      "streetNumber": "65"
+     },
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2027-01-29T19:00:00+01",
+    "to": "2027-01-29T21:00:00+01"
+   }
+  ],
+  "text": "<p>Zeznania świadków, podejrzenie romansu i pytania o wiarygodność alibi stopniowo odsłaniają kolejne wersje wydarzeń. Szczególna rola przypadnie publiczności, która stanie się ławą przysięgłych i zdecyduje o winie lub niewinności bohatera. Od jej werdyktu zależeć będzie wybór jednego z dwóch zakończeń sztuki. Dopiero finał ujawni prawdę.</p>\n<p>Obsada:&nbsp;Maja Barełkowska, Maria Klusek, Maria Seweryn, Agnieszka Warchulska, Katarzyna Żak, Wojciech Chorąży, Piotr Cyrwus, Jarosław Gruda, Mirosław Haniszewski, Aleksander Kaźmierczak, Otar Saralidze, Krzysztof Stelmaszyk.</p>\n<p>Więcej <a href=\"https://www.ochteatr.com.pl/event-data/5131/oskarzony\" target=\"_blank\">na stronie teatru</a></p>",
+  "title": "Oskarżony – popremierowe spektakle",
+  "url": "https://kultura.um.warszawa.pl/-/oskarzony-popremierowe-w-och-teatrze"
+ },
+ {
+  "address": [
+   {
+    "name": "OCH-Teatr"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34057",
+    "name": "Kultura"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/65745/16523792/och+min.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/65745/16523792/och+min.png"
+   }
+  },
+  "language": "pl_PL",
+  "lead": "Och-Teatr zaprasza na premierę „Oskarżonego” Jeffreya Archera w reżyserii Krystyny Jandy. Ten dramat sądowy opowiada o doktorze Patricku Sherwoodzie, oskarżonym o zamordowanie żony.",
+  "localization": [
+   {
+    "id": "33974",
+    "name": "Ochota"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       20.9799983868717,
+       52.2141938100175
+      ],
+      "type": "Point"
+     },
+     "properties": {
+      "district": "Ochota",
+      "fullStreetName": "ulica Grójecka",
+      "shortStreetName": "ul. Grójecka",
+      "streetNumber": "65"
+     },
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2027-01-28T19:00:00+01",
+    "to": "2027-01-28T21:00:00+01"
+   }
+  ],
+  "text": "<p>Zeznania świadków, podejrzenie romansu i pytania o wiarygodność alibi stopniowo odsłaniają kolejne wersje wydarzeń. Szczególna rola przypadnie publiczności, która stanie się ławą przysięgłych i zdecyduje o winie lub niewinności bohatera. Od jej werdyktu zależeć będzie wybór jednego z dwóch zakończeń sztuki. Dopiero finał ujawni prawdę.</p>\n<p>Obsada:&nbsp;Maja Barełkowska, Maria Klusek, Maria Seweryn, Agnieszka Warchulska, Katarzyna Żak, Wojciech Chorąży, Piotr Cyrwus, Jarosław Gruda, Mirosław Haniszewski, Aleksander Kaźmierczak, Otar Saralidze, Krzysztof Stelmaszyk.</p>\n<p>Więcej <a href=\"https://www.ochteatr.com.pl/event-data/5131/oskarzony\" target=\"_blank\">na stronie teatru</a></p>",
+  "title": "Oskarżony – premiera w Och-Teatrze",
+  "url": "https://kultura.um.warszawa.pl/-/och-teatr-oskarzony-premiera"
+ },
+ {
+  "address": [
+   {
+    "name": "Plac Czerwca 1976 roku"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "15731396",
+    "name": "Historia"
+   },
+   {
+    "id": "25976419",
+    "name": "Dla młodzieży i dorosłych"
+   },
+   {
+    "id": "34079",
+    "name": "Dla seniorów"
+   }
+  ],
+  "image": {
+   "small": {
+    "path": "http://um.warszawa.pl/documents/49065/54457411/patriotyczne11.JPG/6eaf4a37-2efc-4c71-e688-0a89902ff2b4?t=1655808493702&imagePreview=1"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {
+    "id": "33987",
+    "name": "Ursus"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       20.8941954845309,
+       52.1999348114248
+      ],
+      "type": "Point"
+     },
+     "properties": {},
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": true,
+    "from": "2026-12-14T00:00:00+01",
+    "to": "2026-12-14T23:59:59+01"
+   }
+  ],
+  "text": "<p>Na placu Czerwca 1976 roku odbędą się uroczystości złożenia wieńców przy pomniku upamiętniającym wydarzenia Czerwiec 1976. W obchodach wezmą udział przedstawiciele władz samorządowych, organizacji społecznych oraz mieszkańcy, którzy wspólnie oddadzą hołd uczestnikom protestów.</p>\n<p>Podczas ceremonii przypomniana zostanie historia wydarzeń.</p>\n<p>Zapraszamy!</p>",
+  "title": "45. rocznica ogłoszenia stanu wojennego",
+  "url": "https://ursus.um.warszawa.pl/-/45-rocznica-ogloszenia-stanu-wojennego"
+ },
+ {
+  "address": [
+   {
+    "name": "Acherówka",
+    "postCodeAndOffice": "02-495 Warszawa",
+    "street": "Walerego Sławka 2"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34072",
+    "name": "Dla dzieci"
+   },
+   {
+    "id": "25976419",
+    "name": "Dla młodzieży i dorosłych"
+   },
+   {
+    "id": "92913185",
+    "name": "Święta"
+   },
+   {
+    "id": "34068",
+    "name": "Czas wolny"
+   }
+  ],
+  "image": {
+   "small": {
+    "path": "http://um.warszawa.pl/documents/49065/148392298/Mi%C4%99dzypokoleniowe+warsztaty.jpg"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {
+    "id": "33987",
+    "name": "Ursus"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       20.8955315615585,
+       52.1957351992295
+      ],
+      "type": "Point"
+     },
+     "properties": {},
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2026-12-12T12:30:00+01",
+    "to": "2026-12-12T13:30:00+01"
+   }
+  ],
+  "text": "<p><span style=\"font-size:12.0pt\"><span><span>W najbliższym czasie odbędą się warsztaty bożonarodzeniowe, podczas których uczestnicy będą przygotowywać świąteczne ozdoby i dekoracje. Spotkanie będzie okazją do wspólnego spędzenia czasu, integracji oraz kultywowania tradycji bożonarodzeniowych. </span></span></span></p>\n<p><span style=\"font-size:12.0pt\"><span><span>W trakcie zajęć powstanie wiele wyjątkowych prac, które wprowadzą wszystkich w radosny, świąteczny nastrój. </span></span></span></p>\n<p>&nbsp;</p>",
+  "title": "Warsztaty Bożonarodzeniowe",
+  "url": "https://ursus.um.warszawa.pl/-/warsztaty-bozonarodzeniowe-d-1"
+ },
+ {
+  "address": [
+   {
+    "name": "Teatr Dramatyczny"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34057",
+    "name": "Kultura"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/65745/162984829/751202381_907024802446215_3061453210866119296_n.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/65745/162984829/751202381_907024802446215_3061453210866119296_n.png"
+   }
+  },
+  "language": "pl_PL",
+  "lead": "Teatr Dramatyczny zaprasza na spektakle popremierowe sztuki Julii Holewińskiej \"Nina. Wieczna królowa\" 5, 6 i 8 grudnia. W obsadzie m.in. Małgorzata Kożuchowska, Anna Moskal, Małgorzata Niemirska, Agnieszka Wosińska, Marcin Bosak i Krzysztof Szczepaniak.",
+  "localization": [
+   {
+    "id": "33977",
+    "name": "Śródmieście"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       21.006775298267,
+       52.23191519622
+      ],
+      "type": "Point"
+     },
+     "properties": {
+      "district": "Śródmieście",
+      "fullStreetName": "Plac Defilad",
+      "shortStreetName": "pl. Defilad",
+      "streetNumber": "1"
+     },
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2026-12-05T19:00:00+01",
+    "to": "2026-12-05T21:00:00+01"
+   }
+  ],
+  "text": "<p>&nbsp;</p>\n<p>Kim naprawdę była Nina Andrycz – legendarną aktorką, ikoną polskiego teatru, żoną premiera czy przede wszystkim artystką bezgranicznie oddaną scenie? Najnowszy spektakl Wojciecha Farugi i Julii Holewińskiej to tragikomedia, w której fakty splatają się z fikcją, a biografia aktorki staje się punktem wyjścia do opowieści o związku sztuki i polityki.</p>\n<p>Obok Niny Andrycz na scenie pojawiają się postaci współtworzące historię XX wieku, m.in. Józef Cyrankiewicz, Władysław Gomułka, Stalin, Pola Negri i Irena Eichlerówna. Pełna humoru i politycznie niepoprawna sztuka odsłania kulisy teatru, cenę sławy oraz wyrzeczenia, których wymaga bezwarunkowa miłość do sztuki.</p>\n<p>„Nina. Wieczna królowa” to opowieść o pasji silniejszej od historii, różnych wzorcach kobiecości oraz cenie, jaką płaci się za życie w zgodzie ze sobą.</p>\n<p>Więcej <a href=\"https://teatrdramatyczny.pl/nina-wieczna-krolowa\" target=\"_blank\">na stronie teatru</a></p>",
+  "title": "Nina. Wieczna królowa - spektakle popremierowe",
+  "url": "https://kultura.um.warszawa.pl/-/nina-wieczna-krolowa-popremierowe"
+ },
+ {
+  "address": [
+   {
+    "name": "Park Czechowicki"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34072",
+    "name": "Dla dzieci"
+   },
+   {
+    "id": "34075",
+    "name": "Społeczeństwo"
+   },
+   {
+    "id": "25976419",
+    "name": "Dla młodzieży i dorosłych"
+   },
+   {
+    "id": "34079",
+    "name": "Dla seniorów"
+   },
+   {
+    "id": "92913185",
+    "name": "Święta"
+   },
+   {
+    "id": "34068",
+    "name": "Czas wolny"
+   }
+  ],
+  "image": {
+   "small": {
+    "path": "http://um.warszawa.pl/documents/49065/146560546/Teatr+Akt.jpg"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {
+    "id": "33987",
+    "name": "Ursus"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       20.8848914003328,
+       52.1921344988064
+      ],
+      "type": "Point"
+     },
+     "properties": {},
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2026-12-05T11:00:00+01",
+    "to": "2026-12-06T20:30:00+01"
+   }
+  ],
+  "text": "<p>Park Czechowicki kolejny raz zamieni się w świąteczne miasteczko! Od 5 do 6 grudnia, w godzinach 12:00–19:00, na mieszkańców czeka wiele atrakcji – od warsztatów piernikowych po spektakle i koncerty.</p>\n<p>&nbsp;Zachęcamy do spacerów i odkrywania zimowych iluminacji.</p>\n<h2><span style=\"font-size:1.0625rem\"></span></h2>\n<p>&nbsp;</p>",
+  "title": "Jarmark Świąteczny w Ursusie",
+  "url": "https://ursus.um.warszawa.pl/-/jarmark-swiateczny-w-ursus-1"
+ },
+ {
+  "address": [
+   {
+    "name": "Acherówka",
+    "street": "Walerego Sławka 2"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34072",
+    "name": "Dla dzieci"
+   },
+   {
+    "id": "34068",
+    "name": "Czas wolny"
+   }
+  ],
+  "image": {
+   "small": {
+    "alt": "Na zdjęciu widać grupę dzieci, którzy uczestniczą w zajęciach. Dzieci siedzą w kręgu, wyraźnie zaangażowane, śmiejąc się i bawiąc się. wki lub książki.",
+    "path": "http://um.warszawa.pl/documents/49065/152143006/Gordonki+plakat.jpg"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {
+    "id": "33987",
+    "name": "Ursus"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       20.8953429622632,
+       52.1953022308949
+      ],
+      "type": "Point"
+     },
+     "properties": {},
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2026-12-05T10:00:00+01",
+    "to": "2026-12-05T11:00:00+01"
+   }
+  ],
+  "text": "<p>Cykl obejmuje pięć spotkań zaplanowanych na soboty o godz. 10:00.Na dzieci i ich opiekunów czekają utwory wokalne, wokalno-instrumentalne i instrumentalne, kolorowe rekwizyty, instrumenty perkusyjne dostępne dla najmłodszych oraz swobodna atmosfera, w której każde dziecko może reagować na muzykę po swojemu.</p>\n<p>Na wydarzenie obowiązują bezpłatne wejściówki.</p>\n<p>Na wydarzenie zaprasza Rada i Zarząd Dzielnicy Ursus m.st. Warszawy.</p>\n<p>&nbsp;</p>\n<div class=\"figure-wrapper\">\n <figure>\n  <img alt=\"\" loading=\"lazy\" onerror=\"this.onerror=null;this.src=&quot;&quot;;this.classList.add(&quot;default-image&quot;);\" src=\"/documents/49065/167826122/Gordonki-+zmiana+terminu+10+i+11.jpg/87738ce0-3073-8883-1667-889cdd141253?version=1.0&amp;t=1788848198759&amp;imagePreview=1\">\n </figure>\n</div>\n<p>&nbsp;</p>\n<p>&nbsp;</p>",
+  "title": "Koncerty Gordonowskie w Acherówce",
+  "url": "https://ursus.um.warszawa.pl/-/koncerty-gordonowskie-w-acherow-5"
+ },
+ {
+  "address": [
+   {
+    "name": "Teatr Dramatyczny"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34057",
+    "name": "Kultura"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/65745/162984829/751202381_907024802446215_3061453210866119296_n.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/65745/162984829/751202381_907024802446215_3061453210866119296_n.png"
+   }
+  },
+  "language": "pl_PL",
+  "lead": "Teatr Dramatyczny zaprasza na premierę sztuki Julii Holewińskiej \"Nina. Wieczna królowa\" 4 grudnia. W obsadzie m.in. Małgorzata Kożuchowska, Anna Moskal, Małgorzata Niemirska, Agnieszka Wosińska, Marcin Bosak i Krzysztof Szczepaniak.",
+  "localization": [
+   {
+    "id": "33977",
+    "name": "Śródmieście"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       21.006775298267,
+       52.23191519622
+      ],
+      "type": "Point"
+     },
+     "properties": {
+      "district": "Śródmieście",
+      "fullStreetName": "Plac Defilad",
+      "shortStreetName": "pl. Defilad",
+      "streetNumber": "1"
+     },
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2026-12-04T19:00:00+01",
+    "to": "2026-12-04T21:00:00+01"
+   }
+  ],
+  "text": "<p>&nbsp;</p>\n<p>Kim naprawdę była Nina Andrycz – legendarną aktorką, ikoną polskiego teatru, żoną premiera czy przede wszystkim artystką bezgranicznie oddaną scenie? Najnowszy spektakl Wojciecha Farugi i Julii Holewińskiej to tragikomedia, w której fakty splatają się z fikcją, a biografia aktorki staje się punktem wyjścia do opowieści o związku sztuki i polityki.</p>\n<p>Obok Niny Andrycz na scenie pojawiają się postaci współtworzące historię XX wieku, m.in. Józef Cyrankiewicz, Władysław Gomułka, Stalin, Pola Negri i Irena Eichlerówna. Pełna humoru i politycznie niepoprawna sztuka odsłania kulisy teatru, cenę sławy oraz wyrzeczenia, których wymaga bezwarunkowa miłość do sztuki.</p>\n<p>„Nina. Wieczna królowa” to opowieść o pasji silniejszej od historii, różnych wzorcach kobiecości oraz cenie, jaką płaci się za życie w zgodzie ze sobą.</p>\n<p>Więcej <a href=\"https://teatrdramatyczny.pl/nina-wieczna-krolowa\" target=\"_blank\">na stronie teatru</a></p>",
+  "title": "Nina. Wieczna królowa - premiera w Dramatycznym",
+  "url": "https://kultura.um.warszawa.pl/-/nina-wieczna-krolowa-premiera-w-dramatycznym"
+ },
+ {
+  "address": [
+   {
+    "name": "Teatr Współczesny"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34057",
+    "name": "Kultura"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/65745/162984829/TRUCIZNA_2.jpeg/acd4a5bc-1930-3a6e-9bd2-e8294816c58f?t=1791062585182&imagePreview=1"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/65745/162984829/TRUCIZNA_2.jpeg/acd4a5bc-1930-3a6e-9bd2-e8294816c58f?t=1791062585182&imagePreview=1"
+   }
+  },
+  "language": "pl_PL",
+  "lead": "Teatr Współczesny zaprasza na popremierowe spektakle „Trucizny” Lot Vekemans w reżyserii Marcina Hycnara. Na scenie wystąpią Katarzyna Dąbrowska i reżyser spektaklu, który po raz pierwszy zagra w tym teatrze.",
+  "localization": [
+   {
+    "id": "33977",
+    "name": "Śródmieście"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       21.0171772720353,
+       52.219005760047
+      ],
+      "type": "Point"
+     },
+     "properties": {
+      "district": "Śródmieście",
+      "fullStreetName": "ulica Mokotowska",
+      "shortStreetName": "ul. Mokotowska",
+      "streetNumber": "13"
+     },
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2026-12-03T19:00:00+01",
+    "to": "2026-12-03T20:30:00+01"
+   }
+  ],
+  "text": "<p><br> Wiadomość o skażeniu wód podziemnych ponownie połączy losy dwojga ludzi. Spotkanie po dziesięciu latach skłoni ich do rozmowy, na którą wcześniej nie potrafili się zdobyć. Powrócą przemilczane pytania i niewypowiedziane słowa. Spektakl opowie o odmiennych sposobach przeżywania wspólnego doświadczenia, trudności pogodzenia się ze zmianą oraz nadziei na nowy początek bez wymazywania przeszłości.</p>\n<p>Więcej <a href=\"https://www.wspolczesny.pl/repertuar/w-probach/trucizna\" target=\"_blank\">na stronie teatru</a></p>",
+  "title": "Trucizna – popremierowe spektakle",
+  "url": "https://kultura.um.warszawa.pl/-/trucizna-popremierowe-w-teatrze-wspolczesnym"
+ },
+ {
+  "address": [
+   {
+    "name": "Teatr Współczesny"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34057",
+    "name": "Kultura"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/65745/162984829/TRUCIZNA_2.jpeg/acd4a5bc-1930-3a6e-9bd2-e8294816c58f?t=1791062585182&imagePreview=1"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/65745/162984829/TRUCIZNA_2.jpeg/acd4a5bc-1930-3a6e-9bd2-e8294816c58f?t=1791062585182&imagePreview=1"
+   }
+  },
+  "language": "pl_PL",
+  "lead": "2 i 3 grudnia na Scenie w Baraku Teatru Współczesnego odbędzie się premiera „Trucizny” Lot Vekemans w reżyserii Marcina Hycnara. Na scenie wystąpią Katarzyna Dąbrowska i reżyser spektaklu, który po raz pierwszy zagra w tym teatrze.",
+  "localization": [
+   {
+    "id": "33977",
+    "name": "Śródmieście"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       21.0171772720353,
+       52.219005760047
+      ],
+      "type": "Point"
+     },
+     "properties": {
+      "district": "Śródmieście",
+      "fullStreetName": "ulica Mokotowska",
+      "shortStreetName": "ul. Mokotowska",
+      "streetNumber": "13"
+     },
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2026-12-02T19:00:00+01",
+    "to": "2026-12-02T20:30:00+01"
+   }
+  ],
+  "text": "<p><br> Wiadomość o skażeniu wód podziemnych ponownie połączy losy dwojga ludzi. Spotkanie po dziesięciu latach skłoni ich do rozmowy, na którą wcześniej nie potrafili się zdobyć. Powrócą przemilczane pytania i niewypowiedziane słowa. Spektakl opowie o odmiennych sposobach przeżywania wspólnego doświadczenia, trudności pogodzenia się ze zmianą oraz nadziei na nowy początek bez wymazywania przeszłości.</p>\n<p>Więcej <a href=\"https://www.wspolczesny.pl/repertuar/w-probach/trucizna\" target=\"_blank\">na stronie teatru</a></p>",
+  "title": "Trucizna – premiera w Teatrze Współczesnym",
+  "url": "https://kultura.um.warszawa.pl/-/wspolczesny-trucizna-premiera"
+ },
+ {
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34067",
+    "name": "Sport"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/63396242/171150634/Jesienny+Turniej+Tenisa+Sto%C5%82owego_260X270.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/63396242/171150634/Jesienny+Turniej+Tenisa+Sto%C5%82owego_260X270.png"
+   }
+  },
+  "language": "pl_PL",
+  "lead": "OSiR Praga‐Południe zaprasza mieszkańców Warszawy na sportową niedzielę pełną emocji, rywalizacji i dobrej zabawy. 29 listopada spotykamy się w Hali „Siennicka”, by wspólnie rozegrać Jesienny Turniej Tenisa Stołowego – dla dzieci, młodzieży, dorosłych i seniorów.",
+  "localization": [
+   {
+    "id": "33975",
+    "name": "Praga-Południe"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       21.078237,
+       52.251507
+      ],
+      "type": "Point"
+     },
+     "properties": {
+      "district": "Praga-Południe",
+      "fullStreetName": "ulica Siennicka",
+      "shortStreetName": "ul. Siennicka",
+      "streetNumber": "40B"
+     },
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2026-11-29T15:00:00+01",
+    "to": "2026-11-29T19:00:00+01"
+   }
+  ],
+  "text": "<h2>Kiedy i gdzie?</h2>\n<ul>\n <li>29 listopada&nbsp;2026 r. (niedziela)&nbsp; w godz. 15:00-19:00&nbsp;</li>\n <li>Hala „Siennicka”, ul. Siennicka 40B, Warszawa</li>\n</ul>\n<p>To świetna okazja, by aktywnie spędzić czas, sprawdzić swoje umiejętności i poczuć atmosferę sportowej rywalizacji.</p>\n<h2>Kategorie wiekowe:</h2>\n<ul>\n <li>Dzieci do 12 lat</li>\n <li>Młodzież do 18 lat</li>\n <li>Open – dla wszystkich chętnych</li>\n <li>Kobiety 60+</li>\n <li>Mężczyźni 60+</li>\n</ul>\n<p>Każdy znajdzie tu miejsce dla siebie – niezależnie od poziomu zaawansowania.</p>\n<h2>Jak się zgłosić?</h2>\n<p>Udział w turnieju jest bezpłatny.</p>\n<p>Zgłoszenia przyjmujemy w recepcji Hali „Siennicka” &nbsp;lub w dniu wydarzenia u sędziego w godz. 14:00–14:50</p>\n<h3><a href=\"/documents/63396242/171150634/Karta+zg%C5%82oszenia_Jesienny+Turnie+Tenisa+Sto%C5%82owego+29.11.26.docx/615d5736-4158-b7c9-de13-c506c0b5771c?t=1791275386363\">Karta zgłoszenia do pobrania</a></h3>\n<h2>Nagrody</h2>\n<p>Uczestnicy turnieju otrzymują medal, wygrani otrzymają w kategoriach nagrody w formie pucharu za I, II, III miejsce. &nbsp;Dodatkowo zdobywcy I miejsca dostaną powerbanki</p>\n<h2>Regulamin</h2>\n<h3><a href=\"/documents/63396242/171150634/Regulamin+Jesienny+Turniej+Tenisa+Sto%C5%82owego+2026+na+www.docx/39f03fa0-93c5-ca68-7345-1a75b8ac69f8?t=1791276246917\">Regulamin do pobrania&nbsp;</a></h3>\n<h2>Dlaczego warto?</h2>\n<p>Turniej to świetna okazja, by:</p>\n<ul>\n <li>spędzić czas aktywnie i rodzinnie,</li>\n <li>poznać sąsiadów i lokalną społeczność,</li>\n <li>spróbować swoich sił w przyjaznej, sportowej atmosferze,</li>\n <li>poczuć ducha rywalizacji – niezależnie od wieku.</li>\n</ul>\n<p>Przyjdź, zagraj, kibicuj – twórzmy razem sportową energię na Pradze‐Południe! &nbsp;Do zobaczenia przy stołach!</p>\n<h2>FAQ – najczęściej zadawane pytania</h2>\n<p>Czy udział w turnieju jest płatny?</p>\n<ul>\n <li>Nie, udział jest całkowicie bezpłatny.</li>\n</ul>\n<p>Czy muszę mieć własną rakietkę?</p>\n<ul>\n <li>Można przynieść własną, ale na miejscu będą dostępne rakietki turniejowe.</li>\n</ul>\n<p>Czy mogę zapisać dziecko w dniu wydarzenia?</p>\n<ul>\n <li>Tak – zapisy przyjmujemy do godz. 14:50 u sędziego.</li>\n</ul>\n<p>Czy osoby początkujące mogą wziąć udział?</p>\n<ul>\n <li>Oczywiście! Turniej jest otwarty dla wszystkich – niezależnie od poziomu.</li>\n</ul>\n<p>Czy mogę kibicować bez udziału w turnieju?</p>\n<ul>\n <li>Tak, zapraszamy wszystkich mieszkańców do wspólnego dopingowania.<br> &nbsp;</li>\n</ul>\n<p>Zadanie realizowane jest w ramach Gminnego Programu Rewitalizacji m.st. Warszawy do roku 2030.</p>\n<div class=\"figure-wrapper\">\n &nbsp;\n</div>\n<div class=\"figure-wrapper\">\n <div class=\"figure-wrapper\">\n  <figure>\n   <img alt=\"Grafika dotycząca Jesiennego Turnieju Tenisa Stołowego w Hali &quot;Siennicka&quot;. Więcej informacji w artykule.\" loading=\"lazy\" onerror=\"this.onerror=null;this.src=&quot;&quot;;this.classList.add(&quot;default-image&quot;);\" src=\"/documents/63396242/171150634/Jesienny+Turniej+Tenisa+Sto%C5%82owego_PLAKAT.png/03d54623-f83b-af23-8dcb-dc15103911b4?version=1.0&amp;t=1791366945656&amp;imagePreview=1\">\n  </figure>\n </div>\n</div>\n<p>&nbsp;</p>",
+  "title": "Jesienny Turniej Tenisa Stołowego w Hali „Siennicka”",
+  "url": "https://sport.um.warszawa.pl/waw/osir-pragapld/-/jesienny-turniej-tenisa-stolowego-w-hali-siennicka-"
+ },
+ {
+  "address": [
+   {
+    "name": "Teatr Studio"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34057",
+    "name": "Kultura"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/65745/165099289/Anna+Smolar.jpeg/c22b3ec4-667e-4fe2-3c27-5de135b71532?t=1785685848864&imagePreview=1"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/65745/165099289/Anna+Smolar.jpeg/c22b3ec4-667e-4fe2-3c27-5de135b71532?t=1785685848864&imagePreview=1"
+   }
+  },
+  "language": "pl_PL",
+  "lead": "Teatr Studio zaprasza na popremierowe spektakle \"Sukcesji\" w reżyserii Anny Smolar 28 i 29 listopada. W obsadzie: Dominika Biernat, Daniel Dobosz, Marcin Pempuś, Sonia Roszczuk, Rob Wasiewicz i Marta Zięba",
+  "localization": [
+   {
+    "id": "33977",
+    "name": "Śródmieście"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       21.006775298267,
+       52.23191519622
+      ],
+      "type": "Point"
+     },
+     "properties": {
+      "district": "Śródmieście",
+      "fullStreetName": "Plac Defilad",
+      "shortStreetName": "pl. Defilad",
+      "streetNumber": "1"
+     },
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2026-11-28T19:00:00+01",
+    "to": "2026-11-28T21:00:00+01"
+   }
+  ],
+  "text": "<p>&nbsp;</p>\n<p>Anna Smolar, jedna z najważniejszych współczesnych polskich reżyserek, powraca do Teatru Studio z najnowszym spektaklem. „Sukcesja”, inspirowana dramatem Pedra Calderóna de la Barki „Życie jest snem”, podejmuje temat relacji władzy w rodzinie i społeczeństwie.</p>\n<p>Twórcy przyglądają się mechanizmom dziedziczenia wpływów, pozycji i przywilejów oraz napięciom między wolnością jednostki a rolami narzucanymi przez najbliższych i otoczenie. Klasyczny tekst staje się punktem wyjścia do opowieści dotykającej kluczowych wyzwań współczesności.</p>\n<p>Losy Zygmunta, porzuconego we wczesnym dzieciństwie chłopca i jego ojców: jeden obecny, drugi nieobecny. Jego życie trwa w kruchej równowadze do momentu, gdy ujawniony zostaje sekret pochodzenia bohatera.</p>\n<p>Więcej<a href=\"https://teatrstudio.pl/pl/teatr/wydarzenia/sukcesja/\" target=\"_blank\"> na stronie teatru</a></p>",
+  "title": "Sukcesja – premiera w Teatrze Studio",
+  "url": "https://kultura.um.warszawa.pl/-/sukcesja-popremierowe-w-teatrze-stud-1"
+ },
+ {
+  "address": [
+   {
+    "name": "Park im. Edwarda Szymańskiego"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34072",
+    "name": "Dla dzieci"
+   },
+   {
+    "id": "25976419",
+    "name": "Dla młodzieży i dorosłych"
+   },
+   {
+    "id": "34079",
+    "name": "Dla seniorów"
+   },
+   {
+    "id": "34067",
+    "name": "Sport"
+   },
+   {
+    "id": "34068",
+    "name": "Czas wolny"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "alt": "Biegacze startują z punktu startowego w biegu papieskim w parku Moczydło",
+    "path": "http://um.warszawa.pl/documents/43348/18342557/Bieg+Papieski+na+Woli+2022.jpg"
+   },
+   "small": {
+    "alt": "Biegacze startują z punktu startowego w biegu papieskim w parku Moczydło",
+    "path": "http://um.warszawa.pl/documents/43348/18342557/Bieg+Papieski+na+Woli+2022.jpg"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {
+    "id": "33978",
+    "name": "Wola"
+   }
+  ],
+  "map": {
+   "features": [],
+   "type": "FeatureCollection"
+  },
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2026-12-06T11:00:00+01",
+    "to": "2026-12-06T13:00:00+01"
+   }
+  ],
+  "text": "<p>Zapraszamy do udziału w tegorocznej edycji sportowego cyklu „Biegaj po Woli”. To doskonała okazja, aby zadbać o formę, aktywnie spędzić czas.</p>\n<p>Ostatni bieg w edycji 2026:&nbsp;<span aria-owns=\"action-menu-parent-container\" class=\"T286Pc\" data-complete=\"true\" data-copy-service-computed-style=\"font-family: &quot;Google Sans&quot;, Arial, sans-serif; font-size: 16px; font-weight: 400; margin: 0px; text-decoration: none; border-bottom: 0px rgb(10, 10, 10);\" data-sfc-cb=\"\" data-sfc-cp=\"\" data-sfc-root=\"c\" style=\"font-size:16px\">6 grudnia\n  <!--TgQPHd|[]--> – II Bieg Mikołajkowy (Park Szymańskiego).</span></p>\n<ul>\n <li><strong>Dla kogo</strong>:\n  <!--TgQPHd|[]--> Dorośli, młodzież oraz dzieci (odrębne kategorie wiekowe i dystanse);</li>\n <li><strong>Atrakcje</strong>:\n  <!--TgQPHd|[]--> Bieg główny (5 km lub 10 km), biegi dla dzieci, marsze Nordic Walking oraz rodzinne strefy animacji;</li>\n <li>&nbsp;<strong>Gdzie:\n   <!--TgQPHd|[]--></strong> Wolskie parki</li>\n</ul>\n<ul>\n</ul>\n<p>Szczegóły i zapisy: <a href=\"https://biegajpowoli.pl/\" target=\"_blank\">Biegaj po Woli</a></p>\n<p>&nbsp;</p>",
+  "title": "Biegaj po Woli –  II Bieg Mikołajkowy",
+  "url": "https://wola.um.warszawa.pl/-/biegaj-po-woli-5"
+ },
+ {
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34072",
+    "name": "Dla dzieci"
+   },
+   {
+    "id": "92913185",
+    "name": "Święta"
+   },
+   {
+    "id": "34068",
+    "name": "Czas wolny"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "caption": "Święty Mikołaj podczas przejazdu ulicami Ursusa – dzieci i rodziny spotykają go na trasie oraz odbierają nagrody konkursowe.",
+    "path": "http://um.warszawa.pl/documents/49065/146560546/Miko%C5%82aj.JPG/6edf4a1e-1cbe-49eb-b0a0-24c11caf73c8?t=1763990634927&imagePreview=1"
+   },
+   "small": {
+    "alt": "Święty Mikołaj podczas przejazdu ulicami Ursusa – dzieci i rodziny spotykają go na trasie oraz odbierają nagrody konkursowe.",
+    "path": "http://um.warszawa.pl/documents/49065/146560546/Miko%C5%82aj.JPG/6edf4a1e-1cbe-49eb-b0a0-24c11caf73c8?t=1763990660157&imagePreview=1"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {
+    "id": "33987",
+    "name": "Ursus"
+   }
+  ],
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2026-12-06T11:00:00+01",
+    "to": "2026-12-06T14:00:00+01"
+   }
+  ],
+  "text": "<p>6 grudnia Święty Mikołaj wyruszy w trasę po Ursusie. W godzinach 11:00–14:00 odwiedzi młodych mieszkańców dzielnicy i przekaże nagrody laureatom konkursu plastycznego.&nbsp;</p>\n<p>Laureaci konkursu będą mogli przejechać się z Mikołajem legendarnym Volkswagenem „Ogórkiem”, a pozostali uczestnicy otrzymają drobne upominki.</p>",
+  "title": "Impreza plenerowa z Mikołajem",
+  "url": "https://ursus.um.warszawa.pl/-/impreza-plenerowa-z-mikolajem"
+ },
+ {
+  "address": [
+   {
+    "name": "Watch Docs"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "34057",
+    "name": "Kultura"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/65745/162984829/wd+2026_wprow.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/65745/162984829/wd+2026_min.png"
+   }
+  },
+  "language": "pl_PL",
+  "lead": "Od 2001 roku festiwal Watch Docs prezentuje dokumenty, które łączą siłę artystycznego wyrazu z głębokim zaangażowaniem na rzecz praw człowieka. Tegoroczna, 26. edycja odbędzie się 4–13 grudnia 2026 roku.",
+  "localization": [
+   {
+    "id": "33977",
+    "name": "Śródmieście"
+   }
+  ],
+  "occurrence": [
+   {
+    "daily": false,
+    "from": "2026-12-04T10:00:00+01",
+    "to": "2026-12-13T23:59:00+01"
+   }
+  ],
+  "text": "<p><br> WATCH DOCS. Prawa Człowieka w Filmie to największy w Polsce i jeden z najbardziej cenionych festiwali dokumentalnych poświęconych prawom człowieka.</p>\n<p>Od 2001 roku łączy kino najwyższej klasy ze społecznym zaangażowaniem: w programie znajdziemy zarówno światowe premiery i retrospektywy, jak i debaty, panele i spotkania. Co roku festiwal przyciąga ponad 100 000 widzów i widzek – w Warszawie, online i w objazdowym cyklu po całej Polsce.</p>\n<p>Więcej <a href=\"https://watchdocs.pl/watch-docs/festiwal-2025/filmy\" target=\"_blank\">na stronie festiwalu</a></p>",
+  "title": "Festiwal Watch Docs 2026",
+  "url": "https://kultura.um.warszawa.pl/-/watch-docs-2026"
+ }
+]

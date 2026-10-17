@@ -1,0 +1,643 @@
+[
+ {
+  "address": [
+   {
+    "name": "Korty Falenica",
+    "postCodeAndOffice": "Warszawa",
+    "street": "Lokalna 33"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "category_147",
+    "name": "Inne"
+   }
+  ],
+  "date": [
+   "2026-10-07",
+   "2026-10-14",
+   "2026-10-21",
+   "2026-10-28",
+   "2026-11-04",
+   "2026-11-18",
+   "2026-11-25",
+   "2026-12-02",
+   "2026-12-09",
+   "2026-12-16",
+   "2026-12-23"
+  ],
+  "day": [
+   {
+    "id": "wednesday",
+    "name": "Środa"
+   }
+  ],
+  "dedicated": [
+   {
+    "id": "value_5",
+    "name": "Seniorzy"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/63411901/69973687/Aktywny+senior+tenisowe+%C5%9Brody+dla+seniora+%282%29.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/63411901/69973687/Aktywny+senior+tenisowe+%C5%9Brody+dla+seniora+%282%29.png"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {},
+   {
+    "id": "wawer",
+    "name": "Wawer"
+   }
+  ],
+  "text": "<h3>Dla kogo są zajęcia?</h3>\n<p>Zapraszamy na bezpłatne, grupowe zajęcia tenisowe dla seniorów na Kortach Falenica</p>\n<h3>Kiedy odbywają się zajęcia?</h3>\n<p>Cykl zajęć trwa od&nbsp;7&nbsp;października 2026 r. do&nbsp;23 grudnia 2026 r. (z wyłączeniem 11.11.2026 r.).&nbsp;Spotkania odbywają&nbsp;się w środy, w godzinach 11:00-12:00.</p>\n<h3>Liczba uczestników w grupie</h3>\n<p>Maksymalna liczba uczestników wynosi 6 osób w każdej grupie.</p>\n<p>Udział w zajęciach jest bezpłatny, jednak ze względu na ograniczoną liczbę miejsc obowiązują wcześniejsze zapisy. Rezerwacji można dokonać mailowo pod adresem: korty@osir-wawer.warszawa.pl. Zapisy na dany miesiąc rozpoczynają się pierwszego dnia każdego miesiąca.</p>\n<p>W celu umożliwienia udziału w zajęciach jak największej liczbie mieszkańców jedna osoba może uczestniczyć w zajęciach maksymalnie dwa razy w miesiącu.</p>\n<div class=\"figure-wrapper\">\n &nbsp;\n</div>",
+  "time": "11:00",
+  "title": "Tenisowe środy dla Seniorów - aktywny senior",
+  "url": "https://sport.um.warszawa.pl/waw/osir-wawer/-/tenisowe-srody-dla-seniorow-aktywny-senior"
+ },
+ {
+  "address": [
+   {
+    "name": "Szkoła Podstawowa nr 218",
+    "postCodeAndOffice": "04-621 Warszawa",
+    "street": "Michała Kajki 80/82"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "category_142",
+    "name": "Sporty walki"
+   }
+  ],
+  "date": [
+   "2026-10-06",
+   "2026-10-13",
+   "2026-10-20",
+   "2026-10-27",
+   "2026-11-03",
+   "2026-11-10"
+  ],
+  "day": [
+   {
+    "id": "tuesday",
+    "name": "Wtorek"
+   }
+  ],
+  "dedicated": [
+   {
+    "id": "value_1",
+    "name": "Kobiety"
+   },
+   {
+    "id": "value_4",
+    "name": "Młodzież"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/63411901/76189714/Kurs+samoobrony+jesie%C5%84+2026+z+bud%C5%BCetu+obywatelskiego+na+2026+%281%29.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/63411901/76189714/Kurs+samoobrony+jesie%C5%84+2026+z+bud%C5%BCetu+obywatelskiego+na+2026+%281%29.png"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {},
+   {
+    "id": "wawer",
+    "name": "Wawer"
+   }
+  ],
+  "text": "<h3>Dlaczego warto przyjść na zajęcia z samoobrony?</h3>\n<p>Zajęcia są doskonałą okazją, aby zdobyć praktyczne umiejętności, które mogą okazać się przydatne w codziennym życiu. Podczas kursu uczestniczki poznają techniki samoobrony, nauczą się właściwego reagowania w sytuacjach zagrożenia oraz sposobów zwiększania własnego bezpieczeństwa.</p>\n<p>Regularne treningi to również możliwość poprawy kondycji fizycznej, koordynacji i sprawności, a także wzmocnienia pewności siebie. Kurs został przygotowany z myślą zarówno o kobietach, jak i nastolatkach, które chcą poczuć się bezpieczniej i nauczyć się skuteczniej reagować w trudnych sytuacjach.</p>\n<h3>Gdzie i kiedy odbywają się zajęcia?</h3>\n<p>Zajęcia odbywają się w godzinach 18:00–20:00 w dwóch lokalizacjach:&nbsp;we wtorki w Szkole Podstawowej nr 218,&nbsp;w piątki w Zespole Szkolno-Przedszkolnym nr 9.</p>\n<ul>\n <li> <p><span style=\"font-size:11pt\"><span><span><strong><span>Szkoła Podstawowa nr 218</span></strong><span> – 06.10, 13.10, 20.10, 27.10, 03.11, 10.11;</span></span></span></span></p></li>\n <li> <p><span style=\"font-size:11pt\"><span><span><strong><span>Zespół Szkolno-Przedszkolny nr 9 –</span></strong><span> 02.10, 09.10, 16.10, 23.10, 30.10, 06.11.</span></span></span></span></p></li>\n</ul>\n<h3>Zapisy na zajęcia</h3>\n<p>Udział w kursie wymaga wcześniejszego zgłoszenia. Zapisy prowadzone są drogą mailową pod adresem:&nbsp;<a href=\"mailto:agnieszkawyzinska@op.pl\">agnieszkawyzinska@op.pl</a></p>\n<h3>Dodatkowe informacje</h3>\n<p>Zachęcamy do udziału wszystkie zainteresowane kobiety i nastolatki. To dobra okazja, aby w przyjaznej atmosferze zdobyć nowe umiejętności, zadbać o swoją sprawność oraz zwiększyć poczucie bezpieczeństwa.</p>\n<p>Projekt realizowany jest w ramach Budżetu Obywatelskiego. <a href=\"https://sport.um.warszawa.pl/documents/63411901/76189714/OSiR+-+Regulamin+kursu+samoobrony+-+cykl+jesienny+2026r._Kanc.docx/a8f059ff-98ec-9c0d-af1d-19e63eecd7ed?t=1790183749623\"><strong>Regulamin.</strong></a></p>",
+  "time": "18:00",
+  "title": "Zajęcia samoobrony dla kobiet i nastolatek",
+  "url": "https://sport.um.warszawa.pl/waw/osir-wawer/-/bezplatne-zajecia-rozbiegajmy-waw-1"
+ },
+ {
+  "address": [
+   {
+    "name": "Zespół Szkolno-Przedszkolny nr 9",
+    "postCodeAndOffice": "03-987 Warszawa",
+    "street": "ul. Kadetów 15"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "category_142",
+    "name": "Sporty walki"
+   }
+  ],
+  "date": [
+   "2026-10-02",
+   "2026-10-09",
+   "2026-10-16",
+   "2026-10-23",
+   "2026-10-30",
+   "2026-11-06"
+  ],
+  "day": [
+   {
+    "id": "friday",
+    "name": "Piątek"
+   }
+  ],
+  "dedicated": [
+   {
+    "id": "value_1",
+    "name": "Kobiety"
+   },
+   {
+    "id": "value_4",
+    "name": "Młodzież"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/63411901/76189714/Kurs+samoobrony+jesie%C5%84+2026+z+bud%C5%BCetu+obywatelskiego+na+2026+%281%29.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/63411901/76189714/Kurs+samoobrony+jesie%C5%84+2026+z+bud%C5%BCetu+obywatelskiego+na+2026+%281%29.png"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {},
+   {
+    "id": "wawer",
+    "name": "Wawer"
+   }
+  ],
+  "text": "<h3>Dlaczego warto przyjść na zajęcia z samoobrony?</h3>\n<p>Zajęcia są doskonałą okazją, aby zdobyć praktyczne umiejętności, które mogą okazać się przydatne w codziennym życiu. Podczas kursu uczestniczki poznają techniki samoobrony, nauczą się właściwego reagowania w sytuacjach zagrożenia oraz sposobów zwiększania własnego bezpieczeństwa.</p>\n<p>Regularne treningi to również możliwość poprawy kondycji fizycznej, koordynacji i sprawności, a także wzmocnienia pewności siebie. Kurs został przygotowany z myślą zarówno o kobietach, jak i nastolatkach, które chcą poczuć się bezpieczniej i nauczyć się skuteczniej reagować w trudnych sytuacjach.</p>\n<h3>Gdzie i kiedy odbywają się zajęcia?</h3>\n<p>Zajęcia odbywają się w godzinach 18:00–20:00 w dwóch lokalizacjach:&nbsp;we wtorki w Szkole Podstawowej nr 218,&nbsp;w piątki w Zespole Szkolno-Przedszkolnym nr 9.</p>\n<ul>\n <li> <p><span style=\"font-size:11pt\"><span><span><strong><span>Szkoła Podstawowa nr 218</span></strong><span> – 06.10, 13.10, 20.10, 27.10, 03.11, 10.11;</span></span></span></span></p></li>\n <li> <p><span style=\"font-size:11pt\"><span><span><strong><span>Zespół Szkolno-Przedszkolny nr 9 –</span></strong><span> 02.10, 09.10, 16.10, 23.10, 30.10, 06.11.</span></span></span></span></p></li>\n</ul>\n<h3>Zapisy na zajęcia</h3>\n<p>Udział w kursie wymaga wcześniejszego zgłoszenia. Zapisy prowadzone są drogą mailową pod adresem:&nbsp;<a href=\"mailto:agnieszkawyzinska@op.pl\">agnieszkawyzinska@op.pl</a></p>\n<h3>Dodatkowe informacje</h3>\n<p>Zachęcamy do udziału wszystkie zainteresowane kobiety i nastolatki. To dobra okazja, aby w przyjaznej atmosferze zdobyć nowe umiejętności, zadbać o swoją sprawność oraz zwiększyć poczucie bezpieczeństwa.</p>\n<p>Projekt realizowany jest w ramach Budżetu Obywatelskiego. <a href=\"https://sport.um.warszawa.pl/documents/63411901/76189714/OSiR+-+Regulamin+kursu+samoobrony+-+cykl+jesienny+2026r._Kanc.docx/a8f059ff-98ec-9c0d-af1d-19e63eecd7ed?t=1790183749623\"><strong>Regulamin.</strong></a></p>",
+  "time": "18:00",
+  "title": "Zajęcia samoobrony dla kobiet i nastolatek",
+  "url": "https://sport.um.warszawa.pl/waw/osir-wawer/-/zajecia-samoobrony-dla-kobiet-i-nastolatek"
+ },
+ {
+  "address": [
+   {
+    "name": "Korty Falenica",
+    "postCodeAndOffice": "Warszawa",
+    "street": "Lokalna 33"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "category_133",
+    "name": "Aktywności parkowe i miejskie"
+   }
+  ],
+  "date": [
+   "2026-10-03",
+   "2026-10-10",
+   "2026-10-17",
+   "2026-10-24",
+   "2026-10-31",
+   "2026-11-07",
+   "2026-11-14",
+   "2026-11-21",
+   "2026-11-28",
+   "2026-12-05",
+   "2026-12-12",
+   "2026-12-19"
+  ],
+  "day": [
+   {
+    "id": "saturday",
+    "name": "Sobota"
+   }
+  ],
+  "dedicated": [
+   {
+    "id": "value_1",
+    "name": "Kobiety"
+   },
+   {
+    "id": "value_2",
+    "name": "Mężczyźni"
+   },
+   {
+    "id": "value_3",
+    "name": "Dzieci"
+   },
+   {
+    "id": "value_4",
+    "name": "Młodzież"
+   },
+   {
+    "id": "value_5",
+    "name": "Seniorzy"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/63411901/69973687/Aktywna+rodzina+tenisowe+soboty+Korty+Falenica.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/63411901/69973687/Aktywna+rodzina+tenisowe+soboty+Korty+Falenica.png"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {},
+   {
+    "id": "wawer",
+    "name": "Wawer"
+   }
+  ],
+  "text": "<h3>Dla kogo są zajęcia?</h3>\n<p>Zapraszamy na bezpłatne, grupowe zajęcia tenisowe dla rodzin na kortach tenisowych w Falenicy.</p>\n<h3>Kiedy odbywają się zajęcia?</h3>\n<p>Cykl zajęć rozpocznie się 3 października 2026 r. na Kortach Falenica i potrwają do 20 grudnia 2026 r. Spotkania będą odbywać się w soboty, w dwóch godzinnych grupach:&nbsp;</p>\n<ul>\n <li>16:00-17:00</li>\n <li>17:00-18:00</li>\n</ul>\n<h3>Liczba uczestników w grupie</h3>\n<p>Maksymalna liczba uczestników wynosi 6 osób w każdej grupie.</p>\n<p>Udział w zajęciach jest bezpłatny, jednak ze względu na ograniczoną liczbę miejsc obowiązują wcześniejsze zapisy. Rezerwacji można dokonać mailowo pod adresem: korty@osir-wawer.warszawa.pl. Zapisy na dany miesiąc rozpoczynają się pierwszego dnia każdego miesiąca.</p>\n<p>W celu umożliwienia udziału w zajęciach jak największej liczbie mieszkańców jedna osoba może uczestniczyć w zajęciach maksymalnie dwa razy w miesiącu.</p>\n<div class=\"figure-wrapper\">\n <figure>\n  <img alt=\"Aktywna Rodzina 2026 bezpłatne zajęcia\" loading=\"lazy\" onerror=\"this.onerror=null;this.src=&quot;&quot;;this.classList.add(&quot;default-image&quot;);\" src=\"/documents/63411901/71313863/Aktywna_rodzina_www_360X270.png/d885cab6-690e-dbb6-3729-fb4ed6bc83d9?version=1.0&amp;t=1789734229853&amp;imagePreview=1\">\n  <figcaption contenteditable=\"false\">\n   <span class=\"author\" rel=\"author\">Autor: OSiR Wawer</span>\n  </figcaption>\n </figure>\n</div>\n<p>&nbsp;</p>\n<p>&nbsp;</p>",
+  "time": "16:00",
+  "title": "Aktywna rodzina - rodzinne zajęcia tenisowe na kortach w Falenicy",
+  "url": "https://sport.um.warszawa.pl/waw/osir-wawer/-/aktywna-rodzina-rodzinne-zajecia-tenisowe-na-kortach-w-falenic"
+ },
+ {
+  "address": [
+   {
+    "name": "Park Aktywności Rodzinnej",
+    "postCodeAndOffice": "04-689 Warszawa",
+    "street": "Węglarska 41 a"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "category_133",
+    "name": "Aktywności parkowe i miejskie"
+   }
+  ],
+  "date": [
+   "2026-10-03",
+   "2026-10-17"
+  ],
+  "day": [
+   {
+    "id": "saturday",
+    "name": "Sobota"
+   }
+  ],
+  "dedicated": [
+   {
+    "id": "value_3",
+    "name": "Dzieci"
+   },
+   {
+    "id": "value_4",
+    "name": "Młodzież"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/63411901/130224686/Warsztaty+przyrodniczr+przyroda+z+bliska+PAR+%281%29.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/63411901/130224686/Warsztaty+przyrodniczr+przyroda+z+bliska+PAR+%281%29.png"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {},
+   {
+    "id": "wawer",
+    "name": "Wawer"
+   }
+  ],
+  "text": "<h3>Dla kogo są przeznaczone zajęcia?</h3>\n<p>Zajęcia są adresowane dla dzieci i ich rodziców</p>\n<h3>Czy na warsztaty przyrodnicze obowiązują zapisy?</h3>\n<p>Na warsztaty przyroda z bliska nie obowiązują zapisy</p>\n<h3>Czego dotyczącą zajecia?</h3>\n<p>Zajęcia są poświęcone sowom.&nbsp;Uczestnicy poznają ich zwyczaje i odgłosy, obejrzą pióra i modele budek lęgowych, skorzystają z atlasów i książeczek, a także zobaczą zestaw do preparowania sowich wypluwek.</p>\n<h3>Miejsce zajęć</h3>\n<p>Warsztaty odbywają się w Parku Aktywności Rodzinnej w Wawrze,</p>\n<h3>Kiedy odbywają się zajęcia?</h3>\n<p>Zajęcia odbywają się w dniach 3 października i 17 października 2026 o godz. 14.00</p>\n<p>Organizatorem zajęć jest <strong>Ośrodek Sportu i Rekreacji m.st. Warszawy w Dzielnicy Wawer</strong>.</p>",
+  "time": "14:00",
+  "title": "Bezpłatne zajęcia przyrodnicze dla dzieci",
+  "url": "https://sport.um.warszawa.pl/waw/osir-wawer/-/bezplatne-zajecia-przyrodnicze-dla-dzieci"
+ },
+ {
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "category_20",
+    "name": "Fitness"
+   }
+  ],
+  "day": [
+   {},
+   {
+    "id": "monday",
+    "name": "Poniedziałek"
+   },
+   {
+    "id": "wednesday",
+    "name": "Środa"
+   }
+  ],
+  "dedicated": [
+   {
+    "id": "value_1",
+    "name": "Kobiety"
+   },
+   {
+    "id": "value_2",
+    "name": "Mężczyźni"
+   },
+   {
+    "id": "value_4",
+    "name": "Młodzież"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/20128/38273256/fitness.jpg"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/20128/38273256/fitness.jpg"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {
+    "id": "ursynow",
+    "name": "Ursynów"
+   }
+  ],
+  "text": "<p>AZS Warszawa wspólnie z KU AZS SGGW zaprasza na bezpłatne zajęcia fitness na Ursynowie.&nbsp;Zajęcia przeznaczone są dla osób pełnoletnich.</p>\n<p><strong>Termin i lokalizacja</strong></p>\n<p>Zajęcia odbywają się na obiektach&nbsp; sportowych SGGW, ul. Ciszewskiego 10 w sali fitness w poniedziałki &nbsp;i środy 19.00 - 20.00.&nbsp;Brak zajęć w dni ustawowo wolne od pracy.&nbsp;</p>\n<p><strong>Zapisy oraz szczegółowe informacje</strong></p>\n<p>Informacje dostępne są pod adresem <a data-senna-off=\"\" href=\"mailto:sggw.warszawa@azs.pl\">sggw.warszawa@azs.pl</a>.</p>",
+  "time": "19:00",
+  "title": "Fitness",
+  "url": "https://sport.um.warszawa.pl/-/fitness-36"
+ },
+ {
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "category_131",
+    "name": "Taniec"
+   }
+  ],
+  "day": [
+   {
+    "id": "friday",
+    "name": "Piątek"
+   }
+  ],
+  "dedicated": [
+   {
+    "id": "value_5",
+    "name": "Seniorzy"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/63399167/169178526/Aktywny_Senior_www_900X500.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/63399167/169178526/Aktywny_Senior_www_900X500.png"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {
+    "id": "praga_pln",
+    "name": "Praga-Północ"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       21.035758,
+       52.25002
+      ],
+      "type": "Point"
+     },
+     "properties": {
+      "district": "Praga-Północ",
+      "fullStreetName": "ulica Jagiellońska",
+      "shortStreetName": "ul. Jagiellońska",
+      "streetNumber": "7"
+     },
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "text": "<p>Serdecznie zapraszamy osoby 55+ na bezpłatne spotkania taneczne&nbsp;organizowane w ramach programu Aktywny&nbsp;Senior.</p>\n<p>Spotkania będą odbywały się na salce ośrodka przy ul. Jagiellońskiej 7 w piątki:</p>\n<ul>\n <li><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span>17.00-18.00</span></span></span></span></span></li>\n <li><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span>18.00-19.00 </span></span></span></span></span></li>\n</ul>\n<p><strong>Harmonogram:</strong></p>\n<ul>\n <li><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span>październik- 2.10, 9.10, 16.10, 23.10.</span></span></span></span></span></li>\n <li><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span>listopad- 6.11, 13.11, 20.11, 27.11.</span></span></span></span></span></li>\n <li><span style=\"font-size:12.0pt\"><span><span>grudzień- 4.12, 11.12, 18.12.</span></span></span></li>\n</ul>",
+  "time": "18:00",
+  "title": "Taneczne piątki dla seniorów",
+  "url": "https://sport.um.warszawa.pl/waw/dosir-pragapn/-/taneczne-piatki-dla-senior-1"
+ },
+ {
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "category_131",
+    "name": "Taniec"
+   }
+  ],
+  "day": [
+   {
+    "id": "friday",
+    "name": "Piątek"
+   }
+  ],
+  "dedicated": [
+   {
+    "id": "value_5",
+    "name": "Seniorzy"
+   }
+  ],
+  "image": {
+   "highlighted": {
+    "path": "http://um.warszawa.pl/documents/63399167/169178526/Aktywny_Senior_www_900X500.png"
+   },
+   "small": {
+    "path": "http://um.warszawa.pl/documents/63399167/169178526/Aktywny_Senior_www_900X500.png"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {
+    "id": "praga_pln",
+    "name": "Praga-Północ"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       21.035758,
+       52.25002
+      ],
+      "type": "Point"
+     },
+     "properties": {
+      "district": "Praga-Północ",
+      "fullStreetName": "ulica Jagiellońska",
+      "shortStreetName": "ul. Jagiellońska",
+      "streetNumber": "7"
+     },
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "text": "<p>Serdecznie zapraszamy osoby 55+ na bezpłatne spotkania taneczne&nbsp;organizowane w ramach programu Aktywny&nbsp;Senior.</p>\n<p>Spotkania będą odbywały się na salce ośrodka przy ul. Jagiellońskiej 7 w piątki:</p>\n<ul>\n <li><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span>17.00-18.00</span></span></span></span></span></li>\n <li><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span>18.00-19.00 </span></span></span></span></span></li>\n</ul>\n<p><strong>Harmonogram:</strong></p>\n<ul>\n <li><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span>październik- 2.10, 9.10, 16.10, 23.10.</span></span></span></span></span></li>\n <li><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span>listopad- 6.11, 13.11, 20.11, 27.11.</span></span></span></span></span></li>\n <li><span style=\"font-size:12.0pt\"><span><span>grudzień- 4.12, 11.12, 18.12</span></span></span></li>\n</ul>",
+  "time": "17:00",
+  "title": "Taneczne piątki dla seniorów",
+  "url": "https://sport.um.warszawa.pl/waw/dosir-pragapn/-/taneczne-piatki-dla-seniorow"
+ },
+ {
+  "address": [
+   {
+    "name": "Białe Orły",
+    "postCodeAndOffice": "Warszawa"
+   }
+  ],
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "category_147",
+    "name": "Inne"
+   }
+  ],
+  "day": [
+   {
+    "id": "sunday",
+    "name": "Niedziela"
+   }
+  ],
+  "dedicated": [
+   {
+    "id": "value_3",
+    "name": "Dzieci"
+   }
+  ],
+  "image": {
+   "small": {
+    "path": "http://um.warszawa.pl/documents/49392/17922412/pilka_nozna_fruwaj_z_orlami.png"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {
+    "id": "targowek",
+    "name": "Targówek"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       21.0449405431161,
+       52.2955022585573
+      ],
+      "type": "Point"
+     },
+     "properties": {
+      "details": "Szkoła Podstawowa nr 380 ul. Krasiczyńska 4/6"
+     },
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "text": "<div class=\"figure-wrapper\">\n <p>Zapraszamy na <strong>bezpłatne zajęcia sportowe w ramach projektu „Fruwaj z Orłami”</strong>,</p>\n <p>skierowane do dzieci i młodzieży w wieku <strong>4–18 lat</strong>, posiadających aktualne <strong>orzeczenie o niepełnosprawności</strong>.</p>\n</div>\n<p><strong>Miejsce:</strong> Szkoła Podstawowa nr 380, ul. Krasiczyńska 4/6<br> <strong>Termin:</strong> każda niedziela</p>\n<p><strong>12:00–13:00</strong> – grupa starsza<br> <strong>13:00–14:00</strong> – grupa młodsza</p>\n<p><strong>Szczegóły i zapisy:</strong></p>\n<p><br> <a href=\"https://bialeorly.com.pl/fruwaj-z-orlami/\">https://bialeorly.com.pl/fruwaj-z-orlami/</a></p>\n<p>&nbsp;</p>\n<div class=\"figure-wrapper\">\n <figure>\n  <div class=\"figure-wrapper\">\n   <figure>\n    <img alt=\"\" loading=\"lazy\" onerror=\"this.onerror=null;this.src=&quot;&quot;;this.classList.add(&quot;default-image&quot;);\" src=\"/documents/49392/163030773/fruwaj-z-orlami.jpg/16f50426-fb03-2b83-bed0-0a461834477e?version=1.0&amp;t=1790603294021&amp;imagePreview=1\">\n   </figure>\n  </div>\n  <p>&nbsp;</p>\n  <p>&nbsp;</p>\n </figure>\n</div>\n<p>&nbsp;</p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>",
+  "time": "12:00",
+  "title": "Zajęcia - Fruwaj z Orłami dla dzieci z niepełnosprawnościami",
+  "url": "https://targowek.um.warszawa.pl/-/zajecia-dla-dzieci-z-niepelnosprawnosciami"
+ },
+ {
+  "availableLanguages": [
+   "pl_PL"
+  ],
+  "category": [
+   {
+    "id": "category_137",
+    "name": "Gry zespołowe"
+   }
+  ],
+  "day": [
+   {
+    "id": "sunday",
+    "name": "Niedziela"
+   }
+  ],
+  "dedicated": [
+   {
+    "id": "value_1",
+    "name": "Kobiety"
+   },
+   {
+    "id": "value_2",
+    "name": "Mężczyźni"
+   },
+   {
+    "id": "value_3",
+    "name": "Dzieci"
+   },
+   {
+    "id": "value_4",
+    "name": "Młodzież"
+   }
+  ],
+  "image": {
+   "small": {
+    "path": "http://um.warszawa.pl/documents/63399167/169178526/Aktywna_rodzina_www_360X270.png"
+   }
+  },
+  "language": "pl_PL",
+  "localization": [
+   {
+    "id": "praga_pln",
+    "name": "Praga-Północ"
+   }
+  ],
+  "map": {
+   "features": [
+    {
+     "geometry": {
+      "coordinates": [
+       21.035727,
+       52.249961
+      ],
+      "type": "Point"
+     },
+     "properties": {
+      "district": "Praga-Północ",
+      "fullStreetName": "ulica Jagiellońska",
+      "shortStreetName": "ul. Jagiellońska",
+      "streetNumber": "7"
+     },
+     "type": "Feature"
+    }
+   ],
+   "type": "FeatureCollection"
+  },
+  "text": "<p>Serdecznie zapraszamy rodziny oraz uczestników indywidualnych na bezpłatne zajęcia z piłki nożnej organizowane w ramach programu Aktywna Rodzina.</p>\n<p>Zajęcia będą odbywały się na “Orliku” przy ul. Szanajcy 5 w niedziele:</p>\n<ul>\n <li><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span>16.00-17.00 piłkarskie mini gry i zabawy dla rodzin z dziećmi. </span></span></span></span></span></li>\n <li><span style=\"font-size:12.0pt\"><span><span>17.00-18.00 turnieje piki nożnej dla młodzieży i dorosłych</span></span></span></li>\n</ul>\n<p><span style=\"font-size:11pt\"><span><span><strong><span style=\"font-size:12.0pt\"><span>Harmonogram:</span></span></strong> </span></span></span></p>\n<p><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span></span></span></span></span></span></p>\n<p><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span></span></span></span></span></span></p>\n<ul>\n <li><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span>wrzesień- 20.09, 27.09.</span></span></span></span></span></li>\n <li><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span>październik- 4.10, 11.10, 18.10, 25.10.</span></span></span></span></span></li>\n <li><span style=\"font-size:11pt\"><span><span><span style=\"font-size:12.0pt\"><span>listopad- 8.11, 15.11, 22.11, 29.11.</span></span></span></span></span></li>\n <li><span style=\"font-size:12.0pt\"><span><span>grudzień- 6.12, 13.12, 20.12, 27.12.</span></span></span><span style=\"font-size:12.0pt\"><span><span></span></span></span><span style=\"font-size:12.0pt\"><span><span></span></span></span></li>\n</ul>",
+  "time": "16:00",
+  "title": "Piłkarskie niedziele",
+  "url": "https://sport.um.warszawa.pl/waw/dosir-pragapn/-/pilkarskie-niedziele"
+ }
+]
