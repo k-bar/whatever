@@ -1,7 +1,7 @@
-"""users: first name, last name, age (personal details like backend/db/people.db)
+"""users: first name, last name, age (private personal details, only in GET /me)
 
-Revision ID: 0008
-Revises: 0007
+Revision ID: 0009
+Revises: 0008
 Create Date: 2026-10-18 12:00:00
 
 """
@@ -11,8 +11,8 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-revision: str = "0008"
-down_revision: Union[str, Sequence[str], None] = "0007"
+revision: str = "0009"
+down_revision: Union[str, Sequence[str], None] = "0008"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

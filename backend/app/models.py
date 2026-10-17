@@ -108,7 +108,7 @@ class User(Base):
     # @username, Instagram style: unique, lowercase, chosen by the user (app/usernames.py)
     username: Mapped[str] = mapped_column(String(30), unique=True)
     gender: Mapped[str | None] = mapped_column(String(1))  # f / m / null; Polish labels: Byłam / Byłem
-    # Personal details like backend/db/people.db (ludzie): only the user sees them (Me), never public
+    # Personal details: only the user sees them (Me), never in public profiles
     first_name: Mapped[str | None] = mapped_column(String(40))
     last_name: Mapped[str | None] = mapped_column(String(60))
     age: Mapped[int | None] = mapped_column(SmallInteger)

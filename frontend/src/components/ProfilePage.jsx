@@ -134,22 +134,18 @@ function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, featu
   )
 }
 
-/**
- * My details, laid out like a row of backend/db/people.db (table ludzie): first / last name, age,
- * gender, email, member since. Only on my own profile; fields /me does not return yet show "—".
- */
+/** My private details from GET /me: first / last name, age, gender, email, member since. Only on my own profile. */
 function PersonalDetails({ gender }) {
   const { t } = useLang()
   const [me, setMe] = useState(null)
   useEffect(() => { fetchMe().then(setMe) }, [])
   if (!me) return null
-  const [first, ...rest] = (me.display_name || '').split(' ')
   const sex = me.gender ?? gender
   const rows = [
-    ['First name', me.first_name ?? first],
-    ['Last name', me.last_name ?? (me.first_name ? null : rest.join(' '))],
+    ['First name', me.first_name],
+    ['Last name', me.last_name],
     ['Age', me.age],
-    ['Gender', sex && t({ f: 'Woman', m: 'Man', kobieta: 'Woman', 'mężczyzna': 'Man' }[sex] || sex)],
+    ['Gender', sex && t({ f: 'Woman', m: 'Man' }[sex])],
     ['Email', me.email],
     ['Member since', me.created_at && new Date(me.created_at).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' })],
   ]
