@@ -15,6 +15,7 @@ backend/scripts/_cache/
 
 # local data snapshots (rebuild with backend/db/fetch_data.py, load with backend/scripts/import_sqlite.py)
 *.db
+backend/db/zdjecia/
 
 # project-local Postgres (backend/scripts/dev-postgres.sh)
 .dev/
