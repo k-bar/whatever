@@ -26,6 +26,8 @@ def invite(client, headers, **kw):
 
 def test_health_and_meta(client):
     assert client.get("/health").json()["status"] == "ok"
+    r = client.get("/", follow_redirects=False)
+    assert r.status_code == 307 and r.headers["location"] == "/docs"
     cats = client.get("/categories").json()
     assert {"slug": "music", "label": "Music"} in cats
 
