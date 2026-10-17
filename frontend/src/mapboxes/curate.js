@@ -40,7 +40,8 @@ export function curate(feature, ctx = {}) {
   const blocks = []
   const badges = (p.categories || []).slice(0, 2).map(categoryLabel)
   if (p.is_public_invite) badges.unshift('Public invite')
-  if (p.source === 'warsaw_open_data') badges.push('City data')
+  if (p.source?.startsWith('warsaw_')) badges.push('City data') // warsaw_events, warsaw_sport, ... (GET /sources)
+  if (p.source === 'kupbilecik') badges.push('Tickets')
 
   // ---- events people made with "+ Create event" (backend/app/userevents) -----------------------
   if (p.audience) {
