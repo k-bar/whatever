@@ -58,6 +58,13 @@ class ContactUser(PublicUser):
 class Me(ContactUser):
     email: str
     created_at: datetime
+    favourite_ids: list[int]
+
+
+class FavouritesIO(BaseModel):
+    """IDs of favourited events/venues (events.id); PUT replaces the whole list."""
+
+    ids: list[int] = Field(max_length=1000)
 
 
 # --- events -----------------------------------------------------------------------------------
