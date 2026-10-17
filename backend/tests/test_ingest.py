@@ -69,3 +69,34 @@ def test_occurrence_with_attendees_survives_removal(db):
     ids = set(db.scalars(select(Occurrence.id)))
     assert attended.id in ids  # kept: someone is going
     assert len(ids) == 2  # 01-02 dropped, 01-03 added
+
+
+def test_api_request_direct_and_via_relay(monkeypatch):
+    from app.config import settings
+    from app.ingest.sources import warsaw_open_data as w
+
+    monkeypatch.setattr(settings, "warsaw_api_token", "city-key")
+    monkeypatch.setattr(settings, "warsaw_relay_url", None)
+    req = w.api_request("get_be_otwarte_boiska")
+    assert req.full_url == w.API + "get_be_otwarte_boiska"
+    assert req.get_header("Authorization") == "city-key"
+
+    monkeypatch.setattr(settings, "warsaw_relay_url", "https://relay.example/")
+    monkeypatch.setattr(settings, "warsaw_relay_token", "relay-key")
+    req = w.api_request("get_be_otwarte_boiska")
+    assert req.full_url == "https://relay.example/" and req.get_method() == "POST"
+    assert req.get_header("Authorization") == "Bearer relay-key"
+    assert req.get_header("X-relay-target") == w.API + "get_be_otwarte_boiska"
+    assert req.get_header("X-relay-authorization") == "city-key"
+
+
+def test_token_secret_accepts_json(monkeypatch):
+    import app.config as config
+
+    monkeypatch.setattr(
+        config, "read_secret", lambda arn: '{"token": "k", "relay_url": "https://r/", "relay_token": "t"}'
+    )
+    s = config.Settings(warsaw_api_token_secret_arn="arn")
+    assert (s.warsaw_api_token, s.warsaw_relay_url, s.warsaw_relay_token) == ("k", "https://r/", "t")
+    monkeypatch.setattr(config, "read_secret", lambda arn: "plain\n")
+    assert config.Settings(warsaw_api_token_secret_arn="arn").warsaw_api_token == "plain"
