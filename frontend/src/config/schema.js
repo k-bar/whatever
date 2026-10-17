@@ -77,6 +77,10 @@ export const SECTIONS = [
       { id: 'cityBoundary', label: 'City boundary line', type: 'toggle', default: true },
       { id: 'busyAreas', label: 'Busy areas (golden outlines)', type: 'toggle', default: true },
       { id: 'showMe', label: 'My position (IP based)', type: 'toggle', default: true },
+      { id: 'meStyle', label: 'My position marker', type: 'select', default: 'person', options: [
+        { value: 'person', label: 'Pin with a person' }, { value: 'tag', label: 'Pin + "You are here" tag' },
+        { value: 'syrenka', label: 'Syrenka pin' }, { value: 'avatar', label: 'Round avatar' },
+        { value: 'dot', label: 'Dot with halo' }, { value: 'classic', label: 'Classic blue pin' }] },
       { id: 'routeStyle', label: 'Route line style', type: 'select', default: 'dashed', options: [
         { value: 'dashed', label: 'Dashed' }, { value: 'solid', label: 'Solid' }, { value: 'dots', label: 'Dots' }] },
     ],
@@ -96,6 +100,10 @@ export const SECTIONS = [
       { id: 'pinSights', label: 'Pins: Sights', type: 'toggle', default: true },
       { id: 'pinMusic', label: 'Pins: Music', type: 'toggle', default: true },
       { id: 'pinFood', label: 'Pins: Food', type: 'toggle', default: true },
+      // "In the city" layers in the same pin box (components/cityLayers.js); off until asked for
+      { id: 'showToilets', label: 'Map: toilets', type: 'toggle', default: false },
+      { id: 'showAed', label: 'Map: defibrillators (AED)', type: 'toggle', default: false },
+      { id: 'showWalks', label: 'Map: walking routes', type: 'toggle', default: false },
       { id: 'showEvents', label: 'Show events', type: 'toggle', default: true },
       { id: 'showPlaces', label: 'Show venues', type: 'toggle', default: true },
       { id: 'showPitches', label: 'Show open pitches', type: 'toggle', default: false },

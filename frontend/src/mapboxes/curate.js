@@ -42,6 +42,35 @@ export function curate(feature, ctx = {}) {
   if (p.source?.startsWith('warsaw_')) badges.push('City data') // warsaw_events, warsaw_sport, ... (GET /sources)
   if (p.source === 'kupbilecik') badges.push('Tickets')
 
+  // ---- "In the city" layers: toilets, defibrillators, walking routes (components/cityLayers.js) ----
+  const cats = p.categories || []
+  if (cats.includes('toilets')) {
+    const today = p.opening_hours?.[DAYS[new Date().getDay()]]
+    blocks.push({ type: 'facts', items: [
+      p.address && { icon: 'pin', text: p.address },
+      { icon: 'clock', text: /^0?0:00-24:00$/.test(today || '') ? translate('Open 24 hours') : today ? `${translate('Today')} ${today.replace('-', '–')}` : translate(p.opening_hours ? 'Closed today' : 'Opening hours unknown') },
+      p.district && { icon: 'map', text: p.district },
+    ].filter(Boolean) })
+    return { title: translate('Public toilet'), subtitle: p.venue_name, badges: [translate('Toilets'), translate('City data')], blocks }
+  }
+  if (cats.includes('aed')) {
+    blocks.push({ type: 'facts', items: [p.address && { icon: 'pin', text: p.address }, p.district && { icon: 'map', text: p.district }].filter(Boolean) })
+    blocks.push({ type: 'text', text: translate('In a cardiac arrest: call 112, start CPR and send someone for the AED. It talks you through every step.') })
+    return { title: translate('Defibrillator (AED)'), subtitle: p.venue_name, badges: ['AED', translate('City data')], blocks }
+  }
+  if (p.kind === 'walk') {
+    const stops = (p.points || []).map((s) => s.name)
+    const hours = (p.length_km || 0) / 4
+    blocks.push({ type: 'facts', items: [
+      p.length_km && { icon: 'map', text: `${p.length_km.toFixed(1)} km` },
+      p.length_km && { icon: 'clock', text: translate('about {h} h on foot, without stops', { h: hours < 1 ? hours.toFixed(1) : Math.round(hours * 2) / 2 }) },
+      stops.length && { icon: 'pin', text: translate('{n} stops, from {first}', { n: stops.length, first: stops[0] }) },
+    ].filter(Boolean) })
+    if (p.description) blocks.push({ type: 'text', text: p.description })
+    if (stops.length) blocks.push({ type: 'text', muted: true, text: stops.join(' · ') })
+    return { title: p.title, subtitle: translate('Walking route'), badges: [translate('Walking route'), translate('City data')], blocks }
+  }
+
   // ---- events people made with "+ Create event" (backend/app/userevents) -----------------------
   if (p.audience) {
     const until = p.ends_at && new Date(p.ends_at).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })
