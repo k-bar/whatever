@@ -1,0 +1,14 @@
+{
+  "prod": {
+    "api": "https://api.syrenka.me",
+    "web": "https://syrenka.me",
+    "branch": "master",
+    "instance": "i-0967b0e218956695c"
+  },
+  "dev": {
+    "api": "https://api-dev.syrenka.me",
+    "web": "https://dev.syrenka.me",
+    "branch": "dev",
+    "instance": "i-0c0288ca5854c3e5e"
+  }
+}

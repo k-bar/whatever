@@ -1,0 +1,41 @@
+{
+  "vpc-provider:account=015454941566:filter.isDefault=true:region=eu-north-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-0c416c668f1b26519",
+    "vpcCidrBlock": "172.31.0.0/16",
+    "ownerAccountId": "015454941566",
+    "availabilityZones": [],
+    "subnetGroups": [
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-07cac0568c5b11e2f",
+            "cidr": "172.31.16.0/20",
+            "availabilityZone": "eu-north-1a",
+            "routeTableId": "rtb-06488115ee4076ec6"
+          },
+          {
+            "subnetId": "subnet-098699a929c91e682",
+            "cidr": "172.31.32.0/20",
+            "availabilityZone": "eu-north-1b",
+            "routeTableId": "rtb-06488115ee4076ec6"
+          },
+          {
+            "subnetId": "subnet-0a1a1371807348472",
+            "cidr": "172.31.0.0/20",
+            "availabilityZone": "eu-north-1c",
+            "routeTableId": "rtb-06488115ee4076ec6"
+          }
+        ]
+      }
+    ]
+  },
+  "cc-api-provider:account=015454941566:expectedMatchCount=exactly-one:propertiesToReturn.0=PrefixListId:propertyMatch.PrefixListName=com.amazonaws.global.cloudfront.origin-facing:region=eu-north-1:typeName=AWS$:$:EC2$:$:PrefixList": [
+    {
+      "PrefixListId": "pl-fab65393",
+      "Identifier": "pl-fab65393"
+    }
+  ],
+  "ssm:account=015454941566:parameterName=/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64:region=eu-north-1": "ami-04e0c7320ad3a3a48"
+}

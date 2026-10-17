@@ -1,3 +1,26 @@
 AGENTS.md
-__pycache__
+
+# secrets
+.env
+apiKey*.txt
+relaytok*.txt
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# local data snapshots (rebuild with backend/db/fetch_data.py, load with backend/scripts/import_sqlite.py)
+*.db
+
+# project-local Postgres (backend/scripts/dev-postgres.sh)
+.dev/
+
+# macOS
 .DS_Store
+
+# CDK
+infra/cdk.out/
+infra/*outputs.json
