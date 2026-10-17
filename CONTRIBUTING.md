@@ -12,7 +12,7 @@
 
 ```
 fetchers (sources/*.py) ── list[RawEvent] ──> ingest/run.py ──> RDS Postgres ──> FastAPI ──> UI
-              hourly systemd timer on the EC2 box     (AWS eu-north-1)    same EC2 box, behind CloudFront
+        systemd timer on the EC2 box (prod hourly)     (AWS eu-north-1)    same EC2 box, behind CloudFront
 ```
 
 ## Environments
@@ -24,7 +24,8 @@ fetchers (sources/*.py) ── list[RawEvent] ──> ingest/run.py ──> RDS 
 | Website | see `deploy/environments.json` | see `deploy/environments.json` |
 | Database | RDS, schema `dev` | same RDS, schema `public` |
 
-Each environment is one EC2 box running the API, the hourly ingest timer and the 10-minute conditions timer.
+Each environment is one EC2 box running the API, the ingest timer (prod hourly, dev every 6 h), the 10-minute conditions timer and Kamil's
+`src/` sync service. Details: [docs/operations.md](docs/operations.md).
 
 ## Everyday flow
 
