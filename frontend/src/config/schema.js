@@ -89,7 +89,13 @@ export const SECTIONS = [
       { id: 'markerSize', label: 'Marker size', type: 'range', min: 0.5, max: 2, step: 0.1, default: 1 },
       { id: 'colorBy', label: 'Colour markers by', type: 'select', default: 'category', options: [
         { value: 'category', label: 'Category' }, { value: 'kind', label: 'Event / place' }, { value: 'mono', label: 'Accent colour' }] },
-      { id: 'showPins', label: 'Show pins (all of them; toolbar pin button)', type: 'toggle', default: true },
+      // the toolbar pin button's options (data/pinGroups.js): every pin belongs to exactly one
+      { id: 'pinFriends', label: 'Pins: New friends', type: 'toggle', default: true },
+      { id: 'pinClubs', label: 'Pins: Social Clubs', type: 'toggle', default: true },
+      { id: 'pinEvents', label: 'Pins: Events', type: 'toggle', default: true },
+      { id: 'pinSights', label: 'Pins: Sights', type: 'toggle', default: true },
+      { id: 'pinMusic', label: 'Pins: Music', type: 'toggle', default: true },
+      { id: 'pinFood', label: 'Pins: Food', type: 'toggle', default: true },
       { id: 'showEvents', label: 'Show events', type: 'toggle', default: true },
       { id: 'showPlaces', label: 'Show venues', type: 'toggle', default: true },
       { id: 'showPitches', label: 'Show open pitches', type: 'toggle', default: false },

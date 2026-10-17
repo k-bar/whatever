@@ -4,6 +4,9 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useConfig } from '../config/store'
 import { WARSAW_CENTER } from '../data/api'
 import { categoryMatchExpr } from '../data/categories'
+import { enabledPinGroups, PIN_GROUPS, pinGroup, withPinGroups } from '../data/pinGroups'
+
+const PIN_PARAMS = PIN_GROUPS.map((g) => g.param)
 import { translate, useLang } from '../i18n'
 import { applyMapDesign, firstSymbolLayer, styleFor } from './mapStyle'
 
@@ -140,15 +143,14 @@ function timeRange(window) {
 const IS_INVITE = ['any', ['to-boolean', ['get', 'is_public_invite']], ['has', 'audience']]
 
 function buildFilter(v, favourites, favOnly) {
-  if (v.showPins === false) return ['==', ['get', 'event_id'], '__none__'] // toolbar pin button: no pins at all
   const kinds = []
   const parts = ['any']
-  if (v.showEvents) parts.push(['all', ['==', ['get', 'kind'], 'event'], ['!', IS_INVITE]])
+  if (v.showEvents) parts.push(['all', ['in', ['get', 'kind'], ['literal', ['event', 'class']]], ['!', IS_INVITE]]) // classes are dated too
   if (v.showInvites) parts.push(IS_INVITE)
   if (v.showPlaces) parts.push(['all', ['==', ['get', 'kind'], 'place'], ['!=', ['get', 'venue_type'], 'pitch']])
   if (v.showPitches) parts.push(['==', ['get', 'venue_type'], 'pitch'])
   if (parts.length === 1) parts.push(false)
-  const f = ['all', parts]
+  const f = ['all', parts, ['in', ['get', 'pin_group'], ['literal', enabledPinGroups(v)]]] // toolbar pin options
   const range = timeRange(v.timeWindow)
   if (range) f.push(['any', ['!', ['has', 'starts_at']], ['all', ['>=', ['get', 'starts_at'], range[0]], ['<=', ['get', 'starts_at'], range[1]]]])
   if (favOnly) f.push(['in', ['get', 'event_id'], ['literal', [...favourites]]])
@@ -156,16 +158,23 @@ function buildFilter(v, favourites, favOnly) {
   return f
 }
 
+/** How many pins each toolbar option holds under the current settings (time window etc.), all options on. */
+export function countPinGroups(features, v, favourites, favOnly) {
+  const counts = Object.fromEntries(PIN_GROUPS.map((g) => [g.id, 0]))
+  for (const f of visiblePins(features, v, favourites, favOnly, { allGroups: true })) counts[pinGroup(f.properties)]++
+  return counts
+}
+
 /** JS twin of buildFilter(): the pins actually drawn with the current settings (keep the two in sync). */
-function visiblePins(features, v, favourites, favOnly) {
-  if (v.showPins === false) return []
+function visiblePins(features, v, favourites, favOnly, { allGroups = false } = {}) {
+  const groups = new Set(allGroups ? PIN_GROUPS.map((g) => g.id) : enabledPinGroups(v))
   const range = timeRange(v.timeWindow)
   const favs = new Set(favourites)
   return (features || []).filter(({ properties: p }) => {
     const invite = Boolean(p.is_public_invite || p.audience)
-    const shown = (v.showEvents && p.kind === 'event' && !invite) || (v.showInvites && invite)
+    const shown = (v.showEvents && (p.kind === 'event' || p.kind === 'class') && !invite) || (v.showInvites && invite)
       || (v.showPlaces && p.kind === 'place' && p.venue_type !== 'pitch') || (v.showPitches && p.venue_type === 'pitch')
-    if (!shown) return false
+    if (!shown || !groups.has(pinGroup(p))) return false
     if (range && p.starts_at != null && !(p.starts_at >= range[0] && p.starts_at <= range[1])) return false
     return !favOnly || favs.has(p.event_id)
   })
@@ -237,7 +246,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
 
   function ensureLayers(m) {
     const d = dataRef.current
-    if (!m.getSource(SRC)) m.addSource(SRC, { type: 'geojson', data: d.features || { type: 'FeatureCollection', features: [] }, promoteId: 'event_id' })
+    if (!m.getSource(SRC)) m.addSource(SRC, { type: 'geojson', data: withPinGroups(d.features) || { type: 'FeatureCollection', features: [] }, promoteId: 'event_id' })
     if (!m.getSource(BOUNDARY)) m.addSource(BOUNDARY, { type: 'geojson', data: '/warsaw_boundary.geojson' })
     if (!m.getSource(AREAS)) m.addSource(AREAS, { type: 'geojson', data: d.busyAreas || EMPTY })
     if (!m.getSource(ROUTE)) m.addSource(ROUTE, { type: 'geojson', data: d.route || EMPTY })
@@ -281,7 +290,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   }, [styleKey])
 
   // ---------- data ----------
-  useEffect(() => { const m = map.current; if (m?.getSource(SRC) && features) { m.getSource(SRC).setData(features); openOnHome(m) } }, [features])
+  useEffect(() => { const m = map.current; if (m?.getSource(SRC) && features) { m.getSource(SRC).setData(withPinGroups(features)); openOnHome(m) } }, [features])
   useEffect(() => {
     const m = map.current
     if (!m?.getSource(AREAS) || !busyAreas) return
@@ -346,15 +355,14 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     m.setFilter('wl-starred', ['all', f, ['in', ['get', 'event_id'], ['literal', [...favourites]]]])
     m.setLayoutProperty('wl-starred', 'visibility', vRef.current.starredDefault || favOnly ? 'visible' : 'none')
   }
-  useEffect(() => { refreshFilters(map.current) }, [values.showPins, values.showEvents, values.showPlaces, values.showPitches, values.showInvites, values.timeWindow, values.starredDefault, favourites, favOnly])
+  useEffect(() => { refreshFilters(map.current) }, [...PIN_PARAMS.map((k) => values[k]), values.showEvents, values.showPlaces, values.showPitches, values.showInvites, values.timeWindow, values.starredDefault, favourites, favOnly])
 
   // ---------- selected pulse ----------
   useEffect(() => {
     const m = map.current
     if (!m?.getLayer('wl-selected')) return
-    const pulse = values.showPins !== false ? selectedId : null // hidden pins hide the selected ring too
-    m.setFilter('wl-selected', ['==', ['get', 'event_id'], pulse ?? '__none__'])
-    if (!pulse) return
+    m.setFilter('wl-selected', ['==', ['get', 'event_id'], selectedId ?? '__none__'])
+    if (!selectedId) return
     let t0 = performance.now(), raf
     const tick = (t) => {
       const k = Math.min(1, Math.max(0, ((t - t0) / 1200) % 1)) // rAF timestamps can precede t0 by a frame
@@ -367,7 +375,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [selectedId, values.accent, values.showPins])
+  }, [selectedId, values.accent])
 
   // start page <-> map: fade the pins, busy areas and route in or out (MapLibre paint transitions)
   useEffect(() => {

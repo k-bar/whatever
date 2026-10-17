@@ -2,12 +2,13 @@ import { motion } from 'framer-motion'
 import { useConfig, useSpring } from '../config/store'
 import { useLang } from '../i18n'
 import { LangSwitch } from './LangSwitch'
-import { Flame, Home, Minus, Moon, Pin, Plus, Sun } from './Icons'
+import { Flame, Home, Minus, Moon, Plus, Sun } from './Icons'
+import { PinMenu } from './PinMenu'
 
 const WINDOWS = [['today', 'Today'], ['weekend', 'Weekend'], ['week', 'Week'], ['month', 'Month']]
 
 /** Centred, symmetrical: [pins] [busy areas] | [-] [home] [+] | [dark] [Today·Weekend·Week·Month] | [language] */
-export function BottomToolbar({ busy, onBusy, onZoom, onHome, pins, onPins }) {
+export function BottomToolbar({ busy, onBusy, onZoom, onHome, pinCounts }) {
   const { values, set } = useConfig()
   const spring = useSpring()
   const { t } = useLang()
@@ -16,7 +17,7 @@ export function BottomToolbar({ busy, onBusy, onZoom, onHome, pins, onPins }) {
   return (
     <motion.div className="toolbar-wrap" initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ ...spring, delay: 0.2 }}>
       <div className="toolbar surface">
-        <button className={`tb ${pins ? 'on' : ''}`} onClick={onPins} title={t('Show or hide all pins')}><Pin size={20} /><small>{t('Pins')}</small></button>
+        <PinMenu counts={pinCounts} />
         <button className={`tb busy ${busy ? 'on' : ''}`} onClick={onBusy} title={t('Busy areas')}><Flame size={20} /><small>{t('Busy')}</small></button>
         <span className="sep" />
         <button className="tb" onClick={() => onZoom(-1)} title={t('Zoom out')}><Minus size={20} /><small>{t('Out')}</small></button>

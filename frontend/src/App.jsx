@@ -11,10 +11,9 @@ import { BottomSheet } from './components/BottomSheet'
 import { BottomToolbar } from './components/BottomToolbar'
 import { InterfaceEditor } from './components/InterfaceEditor'
 import { DEV_TOOLS } from './config/env'
-import { CloseButton } from './components/CloseButton'
 import { Mermaid } from './components/Icons'
 import { MapBox } from './components/MapBox'
-import { MapView } from './components/MapView'
+import { countPinGroups, MapView } from './components/MapView'
 import { ResultsList, SearchBar } from './components/SearchBar'
 import { FavouritesPanel, MessagesPanel, ProfilePanel, SlideOver, SourcesPanel } from './components/SidePanels'
 import { Landing } from './components/Landing'
@@ -138,6 +137,7 @@ export default function App() {
   const closeAll = () => { setBoxes([]); setResults(null); setRoute(null); if (sheet) setSheet(null); say(t('Closed all map boxes')) }
   const expandBox = (key) => setBoxes((b) => b.map((x) => ({ ...x, expanded: x.key === key ? !x.expanded : false })))
   const selectedId = boxes[0]?.key
+  const pinCounts = useMemo(() => countPinGroups(featureList, values, fav.ids, favOnly), [featureList, values, fav.ids, favOnly])
 
   // ---------- search ----------
   const onSearch = async (mode, q, opts) => {
@@ -282,10 +282,12 @@ export default function App() {
             whileTap={{ scale: 0.9 }} transition={spring}>
             <Mermaid />
           </motion.button>
-          <CloseButton onClick={closeAll} label={t('Close all map boxes')} animate={{ opacity: boxes.length || results ? 1 : 0.55 }} />
         </motion.div>
       </div>,
       values.showTitle && <h1 className="app-title" key="title">{values.appTitle}</h1>,
+
+      /* under "Log in" / the account pill: close every open map box and the results list */
+      <Stage key="close-all" delay={0.5}><button className={`close-all ${boxes.length || results ? '' : 'idle'}`} onClick={closeAll}>{t('Close all')}</button></Stage>,
 
       /* top-right: editor toggle lives inside InterfaceEditor */
       DEV_TOOLS && <Stage key="top-right" delay={0.55}><div className="top-right"><InterfaceEditor open={editorOpen} onToggle={() => setEditorOpen(!editorOpen)} /></div></Stage>,
@@ -307,7 +309,7 @@ export default function App() {
       <Stage key="toolbar" delay={0.45}>
         <BottomToolbar busy={values.busyAreas} onBusy={() => { set('busyAreas', !values.busyAreas); say(t(values.busyAreas ? 'Busy areas off' : 'Busy areas on')) }}
           onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()}
-          pins={values.showPins} onPins={() => { set('showPins', !values.showPins); say(t(values.showPins ? 'Pins off' : 'Pins on')) }} />
+          pinCounts={pinCounts} />
       </Stage>,
 
       // the live API status and the land-use key live in the Data sources panel (SidePanels.jsx)
