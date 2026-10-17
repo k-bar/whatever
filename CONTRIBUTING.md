@@ -106,6 +106,7 @@ Kamil's raw tables from `src/models.py`, migration `0007`), then the systemd uni
 | `warszawa-api` | FastAPI |
 | `warszawa-ingest.timer` | `app/ingest/run.py`: fetchers -> `events`, plus tourist routes |
 | `warszawa-conditions.timer` | weather + air quality -> `weather_stations`, `air_stations` |
+| `warszawa-translate.timer` | every 10 min: PL -> EN titles and descriptions for new or changed events (`app/translate.py`) |
 | `warszawa-sync` | Kamil's `src/` scheduler -> raw tables (`toilets`, `city_events`, `streets_gl_venues`, `sync_logs`, ...), via `app/ingest/src_sync.py` |
 
 `src_sync.py` gives Kamil's code the box's DB credentials (Secrets Manager), the `<DB_SCHEMA>, public`
@@ -120,6 +121,7 @@ journalctl -u warszawa-api -f          # API
 journalctl -u warszawa-sync -f         # Kamil's src/ sync; results also in the sync_logs table
 sudo systemctl start warszawa-ingest   # run ingestion now; results in GET /sources
 sudo systemctl start warszawa-conditions  # refresh weather + air quality now
+sudo systemctl start warszawa-translate   # translate pending events now
 ```
 
 ## Connecting a DB client (DataGrip) to the dev schema

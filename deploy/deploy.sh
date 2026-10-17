@@ -43,6 +43,7 @@ systemctl enable -q warszawa-api.service
 systemctl restart warszawa-api.service
 systemctl enable -q --now warszawa-ingest.timer
 systemctl enable -q --now warszawa-conditions.timer
+systemctl enable -q --now warszawa-translate.timer
 # Kamil's src/ synchronizer (raw Open Data tables), launched by app/ingest/src_sync.py
 systemctl enable -q warszawa-sync.service
 systemctl restart warszawa-sync.service
