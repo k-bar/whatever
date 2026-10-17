@@ -1,4 +1,4 @@
-import mermaidSvg from '../../mermaid.svg'
+import mermaidSvg from '../assets/mermaid.svg'
 
 /**
  * The "you are here" marker, one look per option of `meStyle` (Interface editor -> Map design).
