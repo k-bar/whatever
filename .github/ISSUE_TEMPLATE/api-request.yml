@@ -1,0 +1,27 @@
+name: API request
+description: UI needs a new endpoint, field or filter from the backend
+title: "[api] "
+labels: ["backend"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What the UI needs
+      placeholder: "On the event card I want to show how many people want company"
+    validations:
+      required: true
+  - type: textarea
+    id: shape
+    attributes:
+      label: Suggested request / response
+      placeholder: |
+        GET /events/{id}
+        -> { "wanting_company": 3 }
+      render: text
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Needed for the demo?
+      options: ["Yes, blocking", "Nice to have"]
+    validations:
+      required: true

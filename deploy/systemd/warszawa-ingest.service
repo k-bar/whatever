@@ -1,0 +1,16 @@
+[Unit]
+Description=Warszawa Live ingest: fetchers -> events (backend/app/ingest)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=warszawa
+WorkingDirectory=@ROOT@/backend
+EnvironmentFile=/etc/warszawa/instance.env
+EnvironmentFile=/etc/warszawa/release.env
+ExecStart=@ROOT@/backend/.venv/bin/python -m app.ingest.run --geocode-limit ${INGEST_GEOCODE_LIMIT}
+TimeoutStartSec=50min
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true

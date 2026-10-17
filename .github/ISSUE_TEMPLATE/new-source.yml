@@ -1,0 +1,43 @@
+name: New data source
+description: Propose or track a new event/place source to fetch
+title: "[source] "
+labels: ["fetchers"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Source
+      placeholder: "e.g. Going.pl, Meetup Warsaw, Teatr Powszechny iCal"
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: API / feed URL or docs
+    validations:
+      required: true
+  - type: dropdown
+    id: access
+    attributes:
+      label: Access
+      options: ["Public, no key", "Free API key", "Paid / partner only", "Scraping (check ToS!)"]
+    validations:
+      required: true
+  - type: checkboxes
+    id: fields
+    attributes:
+      label: What it gives us
+      options:
+        - label: Title
+        - label: Start/end time
+        - label: Coordinates
+        - label: Address (we can geocode)
+        - label: Category
+        - label: Seats left / tickets
+        - label: Image
+  - type: textarea
+    id: sample
+    attributes:
+      label: Sample record
+      description: Paste one raw record (JSON/XML). It becomes the test fixture.
+      render: json
