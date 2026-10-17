@@ -6,12 +6,15 @@ import { CITY_LAYERS } from './cityLayers'
 import { useLang } from '../i18n'
 import { Pin } from './Icons'
 
+// one list: the kinds of pins, then the city's own layers (toilets / AED near your route, walking routes)
+const OPTIONS = [...PIN_GROUPS, ...CITY_LAYERS]
+
 /**
- * First toolbar button: tap -> a box slides up (like the language picker) with a toggle per kind of pin.
- * Tap a row to switch that kind on or off; tap outside the box or the pin button again to close it.
- * The badge on the button says how many kinds are on when some are switched off.
+ * First toolbar button: tap -> a compact box slides up (like the language picker) with a toggle per kind
+ * of thing on the map. Everything is on by default; tap a row to switch it off. Tap outside the box or
+ * the pin button again to close it. How many of each there are lives in Settings -> Data sources.
  */
-export function PinMenu({ counts, cityCounts }) {
+export function PinMenu() {
   const { values, set } = useConfig()
   const { t } = useLang()
   const spring = useSpring()
@@ -27,7 +30,6 @@ export function PinMenu({ counts, cityCounts }) {
     return () => { document.removeEventListener('pointerdown', onDoc); document.removeEventListener('keydown', onKey) }
   }, [open])
 
-  const onCount = PIN_GROUPS.filter((g) => values[g.param] !== false).length
   return (
     <div className="pinmenu" ref={ref}>
       <AnimatePresence>
@@ -35,27 +37,12 @@ export function PinMenu({ counts, cityCounts }) {
           <motion.div className="pin-menu surface" role="menu" aria-label={t('Show on the map')}
             initial={{ opacity: 0, y: 16, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.95 }} transition={spring}>
             <div className="pm-title">{t('Show on the map')}</div>
-            {PIN_GROUPS.map((g) => {
-              const on = values[g.param] !== false
+            {OPTIONS.map((o) => {
+              const on = values[o.param] !== false
               return (
-                <button key={g.id} role="menuitemcheckbox" aria-checked={on} className={`pm-opt ${on ? 'on' : ''}`} onClick={() => set(g.param, !on)}>
-                  <span className="pm-emoji" aria-hidden="true">{g.emoji}</span>
-                  <span className="pm-label">{t(g.label)}</span>
-                  <span className="pm-count">{counts?.[g.id] ?? ''}</span>
-                  <span className={`ctl-toggle ${on ? 'on' : ''}`} aria-hidden="true"><span className="ctl-knob" /></span>
-                </button>
-              )
-            })}
-            {/* Warsaw open data, fetched the first time it's needed; toilets / AEDs only along your route */}
-            <div className="pm-title pm-sub">{t('In the city')}</div>
-            <div className="pm-hint">{t('Toilets and defibrillators show up within 600 m of the route you\'re walking.')}</div>
-            {CITY_LAYERS.map((l) => {
-              const on = Boolean(values[l.param])
-              return (
-                <button key={l.id} role="menuitemcheckbox" aria-checked={on} className={`pm-opt ${on ? 'on' : ''}`} onClick={() => set(l.param, !on)}>
-                  <span className="pm-emoji" aria-hidden="true">{l.emoji}</span>
-                  <span className="pm-label">{t(l.label)}</span>
-                  <span className="pm-count">{cityCounts?.[l.id] ?? ''}</span>
+                <button key={o.id} role="menuitemcheckbox" aria-checked={on} className={`pm-opt ${on ? 'on' : ''}`} onClick={() => set(o.param, !on)}>
+                  <span className="pm-emoji" aria-hidden="true">{o.emoji}</span>
+                  <span className="pm-label">{t(o.label)}</span>
                   <span className={`ctl-toggle ${on ? 'on' : ''}`} aria-hidden="true"><span className="ctl-knob" /></span>
                 </button>
               )
@@ -65,7 +52,6 @@ export function PinMenu({ counts, cityCounts }) {
       </AnimatePresence>
       <button className={`tb pin-btn ${open ? 'open' : ''}`} onClick={() => setOpen(!open)} title={t('Show on the map')} aria-haspopup="menu" aria-expanded={open}>
         <Pin size={20} />
-        {onCount < PIN_GROUPS.length && <span className="pm-badge">{onCount}</span>}
         <small>{t('Pins')}</small>
       </button>
     </div>
