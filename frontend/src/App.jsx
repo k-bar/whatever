@@ -20,7 +20,6 @@ import { ResultsList, SearchBar } from './components/SearchBar'
 import { FavouritesPanel, MessagesPanel, ProfilePanel, SlideOver, SourcesPanel } from './components/SidePanels'
 import { Landing } from './components/Landing'
 import { flySearch } from './landing/searchFlight'
-import { SelectsRail } from './components/SelectsRail'
 import { CreateEventPanel } from './components/CreateEventPanel'
 import { AccountButton } from './components/AccountButton'
 import { AUDIENCES } from './data/categories'
@@ -53,7 +52,6 @@ export default function App() {
   const [revealed, setRevealed] = useState(false) // pins and areas shown: only once the pill has landed on the map
   const flight = useRef(null) // { from: DOMRect, text, after } for the next view change
   const [entryQuery, setEntryQuery] = useState('')
-  const [selectsOpen, setSelectsOpen] = useState(false) // the mermaid button: "Syrenka poleca" in the right bar
   const [boxes, setBoxes] = useState([]) // [{ key, feature, data, expanded }]
   const [results, setResults] = useState(null)
   const [searching, setSearching] = useState(false)
@@ -241,7 +239,6 @@ export default function App() {
       if (e.key !== 'Escape' || e.target.closest?.('input, textarea, select')) return
       if (draftPin) setDraftPin(null)
       else if (panel) closePanel()
-      else if (selectsOpen) setSelectsOpen(false)
       else if (boxes.length) setBoxes((b) => b.slice(1))
       else if (results) setResults(null)
     }
@@ -258,14 +255,9 @@ export default function App() {
 
   const pickResult = (f) => { openBox(f); if (mobile) setSheet('box') }
 
-  const toggleSelects = () => {
-    if (mobile) { setSelectsOpen(false); setSheet(sheet === 'selects' ? null : 'selects'); return }
-    setSelectsOpen((v) => !v)
-  }
 
   const sheetContent = useMemo(() => {
     if (sheet === 'results' && results) return <ResultsList results={results} onPick={pickResult} />
-    if (sheet === 'selects') return <SelectsRail inSheet features={featureList} onPick={(f) => { openBox(f); setSheet('box') }} />
     if (sheet === 'box' && boxes[0]) {
       const b = boxes[0]
       return <MapBox data={b.data} feature={b.feature} journey={b.journey} expanded starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} showImage={values.boxImages} />
@@ -286,8 +278,9 @@ export default function App() {
       <div className="top-left" key="top-left">
         <SearchBar onSearch={onSearch} onMenu={onMenu} onHome={goHome} initialQuery={entryQuery} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} features={featureList} />
         <motion.div className="side-controls" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0, transition: { ...spring, delay: 0.35 } }}>
-          <motion.button className={`btn icon mermaid-btn ${selectsOpen ? 'active' : ''}`} onClick={toggleSelects} aria-label={t('Syrenka Selects')} title={t('Syrenka Selects')}
-            whileTap={{ scale: 0.85 }} animate={selectsOpen ? { rotate: [0, -8, 8, 0] } : {}} transition={spring}>
+          {/* the Syrenka: back to the start page (a button, not a toggle) */}
+          <motion.button className="btn icon mermaid-btn" onClick={goHome} aria-label={t('Back to the start page')} title={t('Back to the start page')}
+            whileTap={{ scale: 0.9 }} transition={spring}>
             <Mermaid />
           </motion.button>
           <CloseButton onClick={closeAll} label={t('Close all map boxes')} animate={{ opacity: boxes.length || results ? 1 : 0.55 }} />
@@ -303,7 +296,6 @@ export default function App() {
         <Stage key="boxes" delay={0.4}>
           <div className="boxes">
             <AnimatePresence>
-              {selectsOpen && <SelectsRail key="selects" features={featureList} onClose={() => setSelectsOpen(false)} onPick={(f) => { setSelectsOpen(false); openBox(f) }} />}
               {boxes.map((b) => (
                 <MapBox key={b.key} layoutId={`box-${b.key}`} data={b.data} feature={b.feature} expanded={b.expanded} journey={b.journey} onClose={() => closeBox(b.key)} onExpand={() => expandBox(b.key)}
                   starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} showImage={values.boxImages} />
@@ -315,7 +307,8 @@ export default function App() {
 
       <Stage key="toolbar" delay={0.45}>
         <BottomToolbar busy={values.busyAreas} onBusy={() => { set('busyAreas', !values.busyAreas); say(t(values.busyAreas ? 'Busy areas off' : 'Busy areas on')) }}
-          onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()} layersOn={values.showPlaces} onLayers={() => set('showPlaces', !values.showPlaces)} />
+          onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()}
+          pins={values.showPins} onPins={() => { set('showPins', !values.showPins); say(t(values.showPins ? 'Pins off' : 'Pins on')) }} />
       </Stage>,
 
       <Stage key="legend" delay={0.6}><LanduseLegend getMap={() => mapRef.current?.getMap()} mobile={mobile} /></Stage>,
