@@ -29,6 +29,9 @@ CREATE TABLE IF NOT EXISTS events (
     title       TEXT,
     url         TEXT UNIQUE,
     language    TEXT,
+    categories  TEXT,   -- nazwy rozdzielone "; "
+    lead        TEXT,
+    image_url   TEXT,
     text_html   TEXT,
     text_plain  TEXT,
     starts_at   TEXT,   -- najwcześniejsze occurrence.from
@@ -159,7 +162,13 @@ def strip_html(s):
 
 
 def names(items):
-    return "; ".join(i.get("name", "") for i in items or [] if isinstance(i, dict)) or None
+    return "; ".join(i["name"] for i in items or [] if isinstance(i, dict) and i.get("name")) or None
+
+
+def image_url(rec):
+    img = rec.get("image") or {}
+    path = ((img.get("small") or img.get("highlighted") or {}).get("path") or "").replace("\n", "")
+    return path or None
 
 
 def build_events(path, records):
@@ -181,11 +190,13 @@ def build_events(path, records):
         ends = [o.get("to") for o in occ if o.get("to")]
         first = locs[0] if locs else (None, None, None)
         cur = con.execute(
-            "INSERT OR REPLACE INTO events (title, url, language, text_html, text_plain, starts_at, ends_at,"
-            " lat, lon, district, raw_json) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-            (rec.get("title"), rec.get("url"), rec.get("language"), rec.get("text"),
-             strip_html(rec.get("text")), min(starts, default=None), max(ends, default=None),
-             first[0], first[1], first[2], json.dumps(rec, ensure_ascii=False)))
+            "INSERT OR REPLACE INTO events (title, url, language, categories, lead, image_url, text_html,"
+            " text_plain, starts_at, ends_at, lat, lon, district, raw_json)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (rec.get("title"), rec.get("url"), rec.get("language"), names(rec.get("category")),
+             rec.get("lead"), image_url(rec), rec.get("text"), strip_html(rec.get("text")),
+             min(starts, default=None), max(ends, default=None), first[0], first[1],
+             names(rec.get("localization")) or first[2], json.dumps(rec, ensure_ascii=False)))
         eid = cur.lastrowid
         con.executemany("INSERT INTO event_occurrences VALUES (?,?,?,?)",
                         [(eid, o.get("from"), o.get("to"), int(bool(o.get("daily")))) for o in occ])
@@ -202,13 +213,12 @@ def build_sport(path, classes, pitches):
     con.executescript("DELETE FROM sport_class_dates; DELETE FROM sport_class_addresses; "
                       "DELETE FROM sport_classes; DELETE FROM open_pitches;")
     for rec in classes:
-        image = (((rec.get("image") or {}).get("small") or {}).get("path") or "").replace("\n", "") or None
         cur = con.execute(
             "INSERT OR REPLACE INTO sport_classes (title, url, language, time, categories, days, dedicated,"
             " districts, image_url, text_html, text_plain, raw_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
             (rec.get("title"), rec.get("url"), rec.get("language"), rec.get("time"),
              names(rec.get("category") or rec.get("kategoria")), names(rec.get("day")),
-             names(rec.get("dedicated")), names(rec.get("localization")), image, rec.get("text"),
+             names(rec.get("dedicated")), names(rec.get("localization")), image_url(rec), rec.get("text"),
              strip_html(rec.get("text")), json.dumps(rec, ensure_ascii=False)))
         cid = cur.lastrowid
         con.executemany("INSERT INTO sport_class_dates VALUES (?,?)", [(cid, d) for d in rec.get("date") or []])
