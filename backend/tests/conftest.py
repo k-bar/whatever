@@ -26,7 +26,7 @@ def fixture_records(slug: str) -> list[dict]:
     return json.loads((FIXTURES / f"{slug}.json").read_text())
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def migrated():
     cfg = Config(str(BACKEND / "alembic.ini"))
     cfg.set_main_option("script_location", str(BACKEND / "alembic"))
