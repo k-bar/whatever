@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview",
-    "mock": "python3 scripts/build_mock.py"
+    "preview": "vite preview"
   },
   "dependencies": {
     "framer-motion": "^11.11.17",

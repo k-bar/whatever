@@ -1,6 +1,6 @@
 /**
- * Thin client for the python backend (FastAPI, backend/app). Every call degrades to the
- * mock files in /public/mock when the API is unreachable, so the demo never shows an empty map.
+ * Thin client for the python backend (FastAPI, backend/app). Real data only: when the API is
+ * unreachable the map is empty and the badge says so.
  * API base: VITE_API_URL (default "/api", proxied by vite to http://localhost:8000).
  */
 import { categoryLabel } from './categories'
@@ -10,7 +10,7 @@ export const WARSAW_BBOX = [20.85, 52.1, 21.27, 52.37]
 // Our declared centre point: Rondo Romana Dmowskiego (Marszałkowska × Aleje Jerozolimskie).
 export const WARSAW_CENTER = [21.0114, 52.2306]
 
-export const dataStatus = { source: 'loading' } // 'api' | 'mock' | 'loading'
+export const dataStatus = { source: 'loading' } // 'api' | 'offline' | 'loading'
 
 async function get(path, opts = {}) {
   const ctl = new AbortController()
@@ -27,14 +27,14 @@ async function get(path, opts = {}) {
 export async function fetchFeatures() {
   try {
     const [events, places] = await Promise.all([
-      get(`/events?bbox=${WARSAW_BBOX.join(',')}&limit=2000`),
-      get(`/places?bbox=${WARSAW_BBOX.join(',')}`),
+      get(`/events?bbox=${WARSAW_BBOX.join(',')}&limit=2000`, { timeout: 15000 }),
+      get(`/places?bbox=${WARSAW_BBOX.join(',')}`, { timeout: 15000 }),
     ])
     dataStatus.source = 'api'
     return { type: 'FeatureCollection', features: [...events.features, ...places.features] }
   } catch {
-    dataStatus.source = 'mock'
-    return (await fetch('/mock/features.geojson')).json()
+    dataStatus.source = 'offline'
+    return { type: 'FeatureCollection', features: [] }
   }
 }
 
@@ -42,7 +42,7 @@ export async function fetchSources() {
   try {
     return await get('/sources')
   } catch {
-    return (await fetch('/mock/sources.json')).json()
+    return []
   }
 }
 
@@ -172,12 +172,12 @@ export function haversineKm([lng1, lat1], [lng2, lat2]) {
 
 /**
  * Busy areas: detailed golden outlines of where people bump into each other (level "busy" and its
- * "very_busy" core). Built from OpenStreetMap by backend/busyareas; GET /busyareas, mock copy offline.
+ * "very_busy" core). Built from OpenStreetMap by backend/scripts/build_busy_areas.py; served by GET /busyareas.
  */
 export async function fetchBusyAreas() {
   try {
-    return await get('/busyareas')
+    return await get('/busyareas', { timeout: 8000 })
   } catch {
-    return (await fetch('/mock/busy_areas.geojson')).json()
+    return { type: 'FeatureCollection', features: [] }
   }
 }

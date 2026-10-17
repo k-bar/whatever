@@ -5,14 +5,13 @@ React + Vite + MapLibre GL. One live map of everything social in Warsaw.
 ```bash
 cd frontend
 npm install
-npm run mock   # rebuild public/mock/*.geojson from backend/db (python3, stdlib only)
 npm run dev    # http://localhost:5173
 ```
 
 ## How it talks to the backend
-`src/data/api.js` calls the FastAPI app (`backend/app`, branch `vrouxel/backend-skeleton`) through the
-vite proxy `/api → http://localhost:8000`. Every call falls back to `public/mock/*` when the API is down,
-so the demo always has data. Endpoints used: `GET /events`, `/places`, `/sources`, `/busy`,
+`src/data/api.js` calls the FastAPI app (`backend/app`) at `VITE_API_URL` (set per environment by
+`deploy/deploy.sh`; locally the vite proxy `/api → http://localhost:8000`). Real data only: no mock
+fallback, the map is empty when the API is down. Endpoints used: `GET /events`, `/places`, `/sources`, `/busyareas`,
 `/search/{search|events|assistant}`, `/mapboxes/{id}`, `GET|PUT /ui/settings`.
 
 ## Interface editor (dev tray)
