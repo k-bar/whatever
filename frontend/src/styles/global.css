@@ -174,10 +174,10 @@ h2 { font-size: var(--titleSize); }
 .res-empty { padding: 20px; color: var(--fg-2); text-align: center; }
 
 /* ---------- map boxes ---------- */
-.boxes { position: absolute; right: 16px; top: calc(16px + var(--controlSize) + 12px); display: flex; flex-direction: column; gap: 12px; z-index: 18; width: var(--boxWidth); align-items: flex-end; pointer-events: none; }
+.boxes { position: absolute; right: 16px; top: var(--boxes-top); display: flex; flex-direction: column; gap: 12px; z-index: 18; width: var(--boxWidth); align-items: flex-end; pointer-events: none; }
 .boxes > * { pointer-events: auto; }
 .mapbox { width: var(--boxWidth); overflow: hidden; position: relative; }
-.mapbox.expanded { position: fixed; top: calc(16px + var(--controlSize) + 12px); right: 16px; bottom: 16px; width: min(460px, calc(100vw - 32px)); z-index: 35; display: flex; flex-direction: column; }
+.mapbox.expanded { position: fixed; top: var(--boxes-top); right: 16px; bottom: 16px; width: min(460px, calc(100vw - 32px)); z-index: 35; display: flex; flex-direction: column; }
 .mapbox .mb-img { height: 128px; background: var(--surface-2) center/cover; position: relative; }
 .mapbox.expanded .mb-img { height: 220px; }
 .mapbox .mb-img::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, var(--surface-solid)); }
@@ -377,7 +377,7 @@ h2 { font-size: var(--titleSize); }
 .toolbar.surface { background: var(--surface-solid); }
 .search.surface input { background: transparent; }
 .mapbox.surface, .side-panel.surface, .ed-tray.surface, .results.surface, .focus-panel.surface { background: var(--surface-solid); }
-.boxes { max-height: calc(100vh - 16px - var(--controlSize) - 12px - 110px); overflow-y: auto; overflow-x: visible; padding: 4px 4px 12px 24px; margin-right: -4px; scrollbar-width: thin; }
+.boxes { max-height: calc(100vh - var(--boxes-top) - 110px); overflow-y: auto; overflow-x: visible; padding: 4px 4px 12px 24px; margin-right: -4px; scrollbar-width: thin; }
 
 .seg { position: relative; display: grid; grid-template-columns: repeat(4, 64px); height: calc(var(--controlSize) - 10px); margin: 0 4px 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--fg) 7%, transparent); padding: 3px; }
 .seg-thumb { position: absolute; top: 3px; left: 3px; width: calc((100% - 6px) / 4); height: calc(100% - 6px); border-radius: 999px; background: var(--fg); box-shadow: var(--shadow); }
@@ -1050,7 +1050,9 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 }
 
 /* ---------- "Close all": small text button under Log in / the account pill (replaces the (x) by the Syrenka) ---------- */
-.close-all { position: fixed; top: 66px; right: 16px; z-index: 89; padding: 5px 12px; border-radius: 999px; background: var(--surface-solid); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--fg-2); transition: opacity .2s, color .15s, transform .15s; }
+/* map boxes start below it, never under it: --boxes-top is derived from the button's top + height */
+:root { --close-all-top: 66px; --close-all-h: 28px; --boxes-top: calc(var(--close-all-top) + var(--close-all-h) + 12px); }
+.close-all { position: fixed; top: var(--close-all-top); right: 16px; z-index: 89; height: var(--close-all-h); display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; background: var(--surface-solid); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--fg-2); transition: opacity .2s, color .15s, transform .15s; }
 .close-all:hover { color: var(--fg); transform: translateY(-1px); }
 .close-all.idle { opacity: .55; }
 .pm-title.pm-sub { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); } /* "In the city" section of the pin box */
