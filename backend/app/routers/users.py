@@ -46,7 +46,7 @@ def me(user: User = Depends(get_current_user)):
 def update_me(body: ProfileIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     data = body.model_dump(exclude_unset=True, mode="json")
     for field, value in data.items():
-        if value is not None:
+        if value is not None or field == "bio":  # bio: null clears it; other fields can't be emptied to null
             setattr(user, field, value)
     db.commit()
     return user

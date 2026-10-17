@@ -263,15 +263,8 @@ export const PL = {
   'No profile yet. It is created the first time you post an event or ask to join one.': 'Nie masz jeszcze profilu. Powstanie, gdy pierwszy raz dodasz wydarzenie albo poprosisz o dołączenie.',
   'wants to join · {event}': 'chce dołączyć · {event}',
   'No join requests yet.': 'Nie masz jeszcze próśb o dołączenie.',
-  // profile details (fields of backend/db/people.db)
-  'Personal details': 'Dane osobowe',
-  'First name': 'Imię',
-  'Last name': 'Nazwisko',
-  'Username': 'Nazwa użytkownika',
-  'Age': 'Wiek',
-  'Gender': 'Płeć',
-  'Man': 'Mężczyzna',
-  'Woman': 'Kobieta',
+  // profile details
+  'Account': 'Konto',
   'Member since': 'Na Syrence od',
   'Favourite places': 'Ulubione miejsca',
   'Going to': 'Wybieram się na',

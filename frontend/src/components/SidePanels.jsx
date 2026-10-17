@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { LoginRequired, assetUrl, fetchJoinRequests, fetchMe, fetchSources, logout, onAuthChange, updateMe } from '../data/api'
+import { LoginRequired, assetUrl, fetchAttending, fetchJoinRequests, fetchMe, fetchSources, logout, onAuthChange, updateMe } from '../data/api'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 import { CloseButton } from './CloseButton'
@@ -75,16 +75,12 @@ function Shell({ title, sub, children }) {
 }
 
 const catBadge = (c) => ({ background: `color-mix(in srgb, ${categoryColor(c)} 15%, transparent)`, color: categoryColor(c) })
-const GENDER = { 'mężczyzna': 'Man', 'kobieta': 'Woman' } // people.db stores gender in Polish
-const jsonList = (v) => { if (Array.isArray(v)) return v; try { const a = JSON.parse(v); return Array.isArray(a) ? a : [] } catch { return [] } }
-
 /**
- * Your profile, laid out like a row of backend/db/people.db (table ludzie): personal details, favourite
- * places, events you are going to / have been to. GET /me returns display_name, bio, photos, interests,
- * links, email, created_at; the people.db-only fields (first_name, username, age, ...) show once /me
- * returns them, "—" until then. Edit -> PATCH /me with the fields the API accepts.
+ * Your profile: GET /me (display_name, bio, photos, interests, links, email, created_at), favourite places
+ * (favourite IDs matched against the loaded map features) and events you are going to / have been to
+ * (GET /me/attending). Edit -> PATCH /me.
  */
-export function ProfilePanel() {
+export function ProfilePanel({ features = [], favourites = new Set() }) {
   const { t } = useLang()
   const [me, setMe] = useState(undefined) // undefined = loading, null = no account in this browser yet
   const [requests, setRequests] = useState([])
@@ -110,7 +106,6 @@ export function ProfilePanel() {
           <div className="profile-hero">
             <div className="big" style={photo ? { backgroundImage: `url(${assetUrl(photo)})`, backgroundSize: 'cover' } : {}}>{!photo && name[0]}</div>
             <h2 style={{ fontSize: 22 }}>{name}</h2>
-            {me.username && <div className="mb-sub">{me.username}</div>}
             {me.interests?.length > 0 && (
               <div className="chips">{me.interests.map((c) => <span className="badge" key={c} style={catBadge(c)}>{categoryLabel(c)}</span>)}</div>
             )}
@@ -125,7 +120,7 @@ export function ProfilePanel() {
               <button className="btn small" onClick={() => { logout(); setMe(null); setRequests([]) }}>{t('Log out')}</button>
             </div>
           </div>
-          <ProfileDetails me={me} />
+          <ProfileDetails me={me} features={features} favourites={favourites} />
         </>
       )}
       <div className="blk-title" style={{ padding: '0 10px' }}>{t('Join requests')}</div>
@@ -143,31 +138,30 @@ export function ProfilePanel() {
   )
 }
 
-/** The people.db columns of my profile: personal details, then places and events as lists. */
-function ProfileDetails({ me }) {
+/** Account details, then favourite places and events as lists. */
+function ProfileDetails({ me, features, favourites }) {
   const { t } = useLang()
-  const [first, ...rest] = (me.display_name || '').split(' ')
+  const [attending, setAttending] = useState([])
+  useEffect(() => { fetchAttending().then(setAttending) }, [me.id])
   const since = me.created_at ? new Date(me.created_at).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' }) : null
   const rows = [
-    ['First name', me.first_name ?? first],
-    ['Last name', me.second_name ?? rest.join(' ')],
-    ['Username', me.username],
     ['Email', me.email],
-    ['Age', me.age],
-    ['Gender', me.gender && t(GENDER[me.gender] || me.gender)],
     ['Member since', since],
   ]
+  const now = Date.now()
+  const isPast = (a) => new Date(a.ends_at || a.starts_at).getTime() < now
+  const titles = (list) => [...new Set(list.map((a) => a.title).filter(Boolean))]
   const lists = [
-    ['Favourite places', jsonList(me.favourite_locations), 'No favourite places yet.'],
-    ['Going to', jsonList(me.events_going_to), 'Not going anywhere yet.'],
-    ['Been to', jsonList(me.events_been_to), 'No past events yet.'],
+    ['Favourite places', features.filter((f) => favourites.has(f.properties.event_id)).map((f) => f.properties.title), 'No favourite places yet.'],
+    ['Going to', titles(attending.filter((a) => a.starts_at && !isPast(a))), 'Not going anywhere yet.'],
+    ['Been to', titles(attending.filter((a) => a.starts_at && isPast(a))), 'No past events yet.'],
   ]
   return (
     <div className="profile-details">
-      <div className="blk-title">{t('Personal details')}</div>
+      <div className="blk-title">{t('Account')}</div>
       <dl className="profile-grid">
         {rows.map(([label, value]) => (
-          <div key={label}><dt>{t(label)}</dt><dd>{value === undefined || value === null || value === '' ? '—' : value}</dd></div>
+          <div key={label}><dt>{t(label)}</dt><dd>{value || '—'}</dd></div>
         ))}
       </dl>
       {lists.map(([label, items, empty]) => (

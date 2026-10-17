@@ -96,6 +96,8 @@ def test_auth_and_profile(client, alice):
     public = client.get(f"/users/{r.json()['id']}").json()
     assert "email" not in public and "links" not in public
     assert client.patch("/me", headers=alice, json={"interests": ["not-a-category"]}).status_code == 422
+    r = client.patch("/me", headers=alice, json={"bio": None, "display_name": None})
+    assert r.json()["bio"] is None and r.json()["display_name"] == "Alice"  # bio cleared, name kept
 
 
 def test_come_with_me_flow(client, alice, bob):
@@ -111,6 +113,9 @@ def test_come_with_me_flow(client, alice, bob):
         f"/occurrences/{occ_id}/attendance", headers=bob, json={"wants_company": True, "max_group": 3}
     )
     assert r.status_code == 200
+    going = client.get("/me/attending", headers=bob).json()
+    assert [(g["occurrence_id"], g["title"]) for g in going] == [(occ_id, "Picnic in Pole Mokotowskie")]
+    assert going[0]["starts_at"] and going[0]["event_id"] == ev["id"]
     attendees = client.get(
         f"/occurrences/{occ_id}/attendees", headers=carol, params={"wants_company": True}
     ).json()
