@@ -6,7 +6,7 @@ import { fmtWhen } from '../mapboxes/curate'
 import { CloseButton } from './CloseButton'
 import { Brand } from './Brand'
 import { Burger, Expand, Shrink, Star } from './Icons'
-import { MENU_ITEMS } from './SearchBar'
+import { MENU_CLOSED, MENU_ITEMS, MENU_OPEN, usePush } from './SearchBar'
 import { StartPointPicker } from './StartPointPicker'
 import { ProfilePage } from './ProfilePage'
 import { LanduseLegend } from './LanduseLegend'
@@ -24,7 +24,18 @@ const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
 export function SlideOver({ section, onSection, onClose, full, onFull, onHome, mobile, children }) {
   const { t } = useLang()
   const [menu, setMenu] = useState(false)
+  const [closedClip, setClosedClip] = useState(MENU_CLOSED) // where the burger is, so the menu grows out from under it
+  const push = usePush()
   const ref = useRef(null)
+  const burgerRef = useRef(null)
+  const toggleMenu = () => {
+    const b = burgerRef.current?.getBoundingClientRect(), menuLeft = (ref.current?.getBoundingClientRect().left ?? 0) + 14, w = 290 // .so-menu
+    if (b) {
+      const pct = (x) => Math.min(96, Math.max(0, (x / w) * 100)).toFixed(1)
+      setClosedClip(`inset(0% ${pct(w - (b.right - menuLeft))}% 88% ${pct(b.left - menuLeft)}% round 12px)`)
+    }
+    setMenu(!menu)
+  }
   useEffect(() => {
     if (!menu) return
     const onDoc = (e) => { if (!ref.current?.contains(e.target)) setMenu(false) }
@@ -36,7 +47,7 @@ export function SlideOver({ section, onSection, onClose, full, onFull, onHome, m
       transition={{ type: 'spring', stiffness: 260, damping: 34 }}>
       <header className="so-bar" ref={ref}>
         <Brand onHome={onHome} />
-        <button className={`so-burger ${menu ? 'open' : ''}`} onClick={() => setMenu(!menu)} aria-label={t('Menu')} aria-expanded={menu}><Burger size={22} /></button>
+        <button ref={burgerRef} className={`so-burger ${menu ? 'open' : ''}`} onClick={toggleMenu} aria-label={t('Menu')} aria-expanded={menu}><Burger size={22} /></button>
         <div className="so-actions">
           {!mobile && (
             <button className="btn icon so-expand" style={{ width: 34, height: 34, minWidth: 34 }} onClick={onFull} aria-label={t(full ? 'Shrink' : 'Full screen')} title={t(full ? 'Shrink' : 'Full screen')}>
@@ -47,7 +58,10 @@ export function SlideOver({ section, onSection, onClose, full, onFull, onHome, m
         </div>
         <AnimatePresence>
           {menu && (
-            <motion.div className="so-menu surface" initial={{ opacity: 0, y: -8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.96 }} transition={{ duration: 0.18 }}>
+            <motion.div className="so-menu surface" style={{ willChange: 'clip-path' }}
+              initial={{ clipPath: closedClip, opacity: 0 }} animate={{ clipPath: MENU_OPEN, opacity: 1 }}
+              exit={{ clipPath: closedClip, opacity: [1, 1, 0], transition: { ...push, opacity: { ...push, times: [0, 0.75, 1] } } }}
+              transition={{ ...push, opacity: { duration: push.duration * 0.25, ease: 'linear' } }}>
               {MENU_ITEMS.map((it) => (
                 <button key={it.id} className={`bm-item ${it.id === section ? 'on' : ''}`} onClick={() => { setMenu(false); onSection(it.id) }}>
                   <span className="ic"><it.Icon size={18} /></span>{t(it.label)}<small>{it.hint && t(it.hint)}</small>
