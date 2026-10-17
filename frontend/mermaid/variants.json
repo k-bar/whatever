@@ -1,0 +1,52 @@
+[
+  {
+    "file": "00-heraldic-master.svg",
+    "name": "Heraldic master",
+    "note": "The historic arms 1:1: closed royal crown, scaled tail, sunburst shield."
+  },
+  {
+    "file": "01-flat-official.svg",
+    "name": "Flat official",
+    "note": "No outlines, the city's three colours. The baseline."
+  },
+  {
+    "file": "02-line.svg",
+    "name": "Line",
+    "note": "Single-weight outline on cream. Light, editorial."
+  },
+  {
+    "file": "03-gradient.svg",
+    "name": "Gradient",
+    "note": "Warm red-to-crimson shield, gilded tail and crown, soft top light."
+  },
+  {
+    "file": "04-knockout.svg",
+    "name": "Bold knockout",
+    "note": "One colour cut out of the shield; red gaps separate the parts. Built for 16-32px."
+  },
+  {
+    "file": "05-pastel.svg",
+    "name": "Pastel",
+    "note": "Coral, cream and sand. The gentle version."
+  },
+  {
+    "file": "06-ink-sticker.svg",
+    "name": "Ink sticker",
+    "note": "Thick ink outlines, punchy fills, white die-cut border."
+  },
+  {
+    "file": "07-app-tile.svg",
+    "name": "App tile",
+    "note": "Inverted: red mermaid on a cream shield, on a red rounded tile."
+  },
+  {
+    "file": "08-night.svg",
+    "name": "Night",
+    "note": "Warszawa never sleeps: crimson shield and gold on midnight navy."
+  },
+  {
+    "file": "09-mono.svg",
+    "name": "Mono stamp",
+    "note": "Single red ink on white. For print, stamps and favicons."
+  }
+]
