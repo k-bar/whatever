@@ -18,8 +18,6 @@ import { useSocial } from '../data/social'
 const TILES = [
   { label: 'Concerts', category: 'music', Icon: Music },
   { label: 'Theatre & film', category: 'theatre', Icon: Ticket },
-  { label: 'Nightlife', category: 'nightlife', Icon: Flame },
-  { label: 'Exhibitions', category: 'exhibitions', Icon: Layers },
   { label: 'Picnic together', category: 'meetups', people: true, Icon: Sparkle },
   { label: 'Concert together', category: 'music', people: true, Icon: Music },
   { label: 'Sightseeing tour', category: 'culture', people: true, Icon: MapIcon },
@@ -106,14 +104,8 @@ export function Landing({ features, onEnter, getMap }) {
       </section>
 
       <section className="selects" id="syrenka-selects">
-        <motion.div className="selects-head" initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-20px' }} transition={spring}>
-          <span className="selects-badge"><Mermaid variant="09-mono" size={44} /></span>
-          <div>
-            <div className="selects-kicker"><Sparkle size={13} /> {t('Hand-picked, every day')}</div>
-            <h2>{t('Syrenka Selects')}</h2>
-            <p>{t('The best of Warsaw in the next two weeks, picked automatically from real events.')}</p>
-          </div>
-          <div className="selects-count">{selects.length} <small>{t('picks')}</small></div>
+        <motion.div className="selects-head" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-20px' }} transition={spring}>
+          <h2>{t('Syrenka Selects')}</h2>
         </motion.div>
         <div className="selects-grid">
           {loading && Array.from({ length: 6 }).map((_, i) => <div key={i} className={`sel-card skeleton ${i === 0 ? 'wide' : ''}`} />)}

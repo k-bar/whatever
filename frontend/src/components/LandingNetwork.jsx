@@ -23,6 +23,14 @@ const SPOTS = [
   [20.97, 52.14, 'study', 'C'], [20.9, 52.16, 'sport', null], [20.86, 52.21, 'exhibition', 'H'], [21.0, 52.11, 'games', null],
   [20.88, 52.3, 'theatre', null], [21.23, 52.2, 'run', 'G'],
 ]
+// Screen-relative spots along the hero's margins ([x fraction, y fraction, plan, face]); the hero is
+// short now, so these guarantee a crowd even when the map-projected spots fall under the headline.
+const EDGE = [
+  [0.05, 0.28, 'picnic', 'O'], [0.1, 0.5, 'run', null], [0.04, 0.72, 'concert', 'M'], [0.14, 0.88, 'games', null],
+  [0.95, 0.3, 'club', 'K'], [0.9, 0.52, 'yoga', 'Z'], [0.96, 0.74, 'film', null], [0.86, 0.9, 'meetup', 'A'],
+  [0.2, 0.22, 'theatre', null], [0.8, 0.2, 'party', 'J'], [0.3, 0.92, 'study', 'T'], [0.7, 0.93, 'sport', null],
+]
+const ALL = [...SPOTS, ...EDGE.map(([, , plan, face]) => [null, null, plan, face])]
 const PLANS = { // plan -> [category (colour), emoji]
   film: ['film', '🎬'], run: ['running', '🏃'], picnic: ['meetups', '🌳'], club: ['nightlife', '🪩'], concert: ['music', '🎸'],
   yoga: ['yoga', '🧘'], games: ['meetups', '🎲'], exhibition: ['exhibitions', '🖼️'], study: ['study_buddies', '📚'],
@@ -31,9 +39,9 @@ const PLANS = { // plan -> [category (colour), emoji]
 
 const POP_MS = 380
 const SWAP_MS = 2200 // one person pops out, another pops in
-const LINK_EVERY_MS = 1700 // a new line starts
+const LINK_EVERY_MS = 600 // a new set of lines starts (about three times as many as before)
 const DRAW_MS = 1500 // a line travels from one person to the other
-const HOLD_MS = 900 // then stays a moment before fading
+const HOLD_MS = 1600 // then stays a moment before fading
 const FADE_MS = 600
 
 const Person = () => <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.6" r="4.3" /><path d="M3.4 22c0-5 3.9-8.4 8.6-8.4s8.6 3.4 8.6 8.4z" /></svg>
@@ -44,14 +52,15 @@ function placeSpots(map, layer) {
   const keepClear = [...layer.parentElement.querySelectorAll('.landing-head, .hero-center > *, .hero-more')]
     .map((el) => el.getBoundingClientRect()).filter((r) => r.width && r.height)
   const out = []
-  SPOTS.forEach((s, i) => {
-    const pt = map.project([s[0], s[1]])
-    const x = pt.x - box.left, y = pt.y - box.top
-    const r = { left: pt.x - 30, right: pt.x + 90, top: pt.y - 64, bottom: pt.y + 10 } // pin + tile, with room
-    if (x < 30 || y < 70 || x > box.width - 100 || y > box.height - 20) return
+  const consider = (i, x, y) => {
+    const px = x + box.left, py = y + box.top
+    const r = { left: px - 24, right: px + 72, top: py - 56, bottom: py + 6 } // pin + tile
+    if (x < 20 || y < 60 || x > box.width - 80 || y > box.height - 10) return
     if (keepClear.some((k) => r.left < k.right && r.right > k.left && r.top < k.bottom && r.bottom > k.top)) return
     out.push({ i, x, y })
-  })
+  }
+  SPOTS.forEach((s, i) => { const pt = map.project([s[0], s[1]]); consider(i, pt.x - box.left, pt.y - box.top) })
+  EDGE.forEach(([fx, fy], k) => consider(SPOTS.length + k, fx * box.width, fy * box.height))
   return out
 }
 
@@ -84,7 +93,7 @@ export function LandingNetwork({ getMap, mobile }) {
     const timers = []
     const later = (fn, ms) => timers.push(setTimeout(fn, ms))
     const scene = s.current
-    const max = Math.min(spots.length, mobile ? 6 : 10)
+    const max = Math.min(spots.length, mobile ? 6 : 12)
     let uid = 0
     scene.shown = []
     scene.links = []
@@ -105,15 +114,16 @@ export function LandingNetwork({ getMap, mobile }) {
     const link = () => {
       const people = live()
       if (people.length < 2) return
+      // one person reaches out to a few others at once, so everyone ends up connected to several people
       const a = people[Math.floor(Math.random() * people.length)]
-      const others = people.filter((b) => b !== a)
-      const b = others[Math.floor(Math.random() * others.length)]
-      const l = { key: ++uid, a: a.spot, b: b.spot, fading: false }
-      scene.links.push(l)
+      const others = people.filter((b) => b !== a).sort(() => Math.random() - 0.5).slice(0, 1 + Math.floor(Math.random() * 3))
+      for (const b of others) {
+        const l = { key: ++uid, a: a.spot, b: b.spot, fading: false }
+        scene.links.push(l)
+        later(() => { l.fading = true; render() }, DRAW_MS + HOLD_MS)
+        later(() => { scene.links = scene.links.filter((x) => x !== l); render() }, DRAW_MS + HOLD_MS + FADE_MS)
+      }
       render()
-      later(() => { scene.pings[b.spot.i] = (scene.pings[b.spot.i] || 0) + 1; render() }, DRAW_MS) // arrives: ping
-      later(() => { l.fading = true; render() }, DRAW_MS + HOLD_MS)
-      later(() => { scene.links = scene.links.filter((x) => x !== l); render() }, DRAW_MS + HOLD_MS + FADE_MS)
     }
 
     for (let n = 0; n < max; n++) later(show, 200 + n * 220) // pop in one after another
@@ -126,7 +136,7 @@ export function LandingNetwork({ getMap, mobile }) {
     return () => { timers.forEach(clearTimeout); clearInterval(swap); if (lines) clearInterval(lines) }
   }, [spots, mobile, values.reduceMotion])
 
-  const { shown, links, pings } = s.current
+  const { shown, links } = s.current
   return (
     <div className="ln-layer" ref={layer} aria-hidden="true">
       <svg className="ln-links">
@@ -134,7 +144,7 @@ export function LandingNetwork({ getMap, mobile }) {
           const ax = l.a.x, ay = l.a.y - 32, bx = l.b.x, by = l.b.y - 32 // from face to face
           const lift = Math.min(160, Math.hypot(bx - ax, by - ay) * 0.3) // arc gently upwards
           const d = `M${ax},${ay} Q${(ax + bx) / 2},${Math.min(ay, by) - lift} ${bx},${by}`
-          const color = categoryColor(PLANS[SPOTS[l.a.i][2]][0])
+          const color = categoryColor(PLANS[ALL[l.a.i][2]][0])
           return (
             <g key={l.key} className={`ln-link ${l.fading ? 'fading' : ''}`} style={{ '--c': color }}>
               <mask id={`ln-m${l.key}`} maskUnits="userSpaceOnUse"><path d={d} className="ln-reveal" pathLength="1" /></mask>
@@ -145,7 +155,7 @@ export function LandingNetwork({ getMap, mobile }) {
         })}
       </svg>
       {shown.map((b) => {
-        const [, , plan, face] = SPOTS[b.spot.i]
+        const [, , plan, face] = ALL[b.spot.i]
         const [category, emoji] = PLANS[plan]
         return (
           <div key={b.key} className="ln-bubble" style={{ left: b.spot.x - 20, top: b.spot.y - 52, '--c': categoryColor(category) }}>
@@ -156,7 +166,6 @@ export function LandingNetwork({ getMap, mobile }) {
               </span>
               <span className="lb-tile"><span className="lb-person"><Person /></span><span className="lb-emoji">{emoji}</span></span>
             </span>
-            {pings[b.spot.i] > 0 && <span key={pings[b.spot.i]} className="ln-ping" />}
           </div>
         )
       })}
