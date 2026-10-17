@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { assetUrl, fetchJoinRequests, fetchMe, fetchSources } from '../data/api'
-import { categoryColor, categoryLabel } from '../data/categories'
+import { LoginRequired, assetUrl, fetchJoinRequests, fetchMe, fetchSources, logout, onAuthChange, updateMe } from '../data/api'
+import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 import { CloseButton } from './CloseButton'
 import { Brand } from './Brand'
 import { Burger, Expand, Shrink, Star } from './Icons'
 import { MENU_ITEMS } from './SearchBar'
 import { StartPointPicker } from './StartPointPicker'
+import { LoginForm } from './LoginForm'
 import { locale, useLang } from '../i18n'
 
 const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
@@ -73,31 +74,59 @@ function Shell({ title, sub, children }) {
   )
 }
 
+const catBadge = (c) => ({ background: `color-mix(in srgb, ${categoryColor(c)} 15%, transparent)`, color: categoryColor(c) })
+const GENDER = { 'mężczyzna': 'Man', 'kobieta': 'Woman' } // people.db stores gender in Polish
+const jsonList = (v) => { if (Array.isArray(v)) return v; try { const a = JSON.parse(v); return Array.isArray(a) ? a : [] } catch { return [] } }
+
+/**
+ * Your profile, laid out like a row of backend/db/people.db (table ludzie): personal details, favourite
+ * places, events you are going to / have been to. GET /me returns display_name, bio, photos, interests,
+ * links, email, created_at; the people.db-only fields (first_name, username, age, ...) show once /me
+ * returns them, "—" until then. Edit -> PATCH /me with the fields the API accepts.
+ */
 export function ProfilePanel() {
   const { t } = useLang()
   const [me, setMe] = useState(undefined) // undefined = loading, null = no account in this browser yet
   const [requests, setRequests] = useState([])
-  useEffect(() => { fetchMe().then(setMe); fetchJoinRequests().then(setRequests) }, [])
+  const [editing, setEditing] = useState(false)
+  const load = () => { fetchMe().then(setMe); fetchJoinRequests().then(setRequests) }
+  useEffect(() => { load(); return onAuthChange(load) }, [])
   const name = me?.display_name || t('Guest')
   const photo = me?.photos?.[0]
   return (
     <Shell title={t('Your profile')} sub={t('What others see when you ask to join')}>
       {me === undefined && <div className="res-empty">{t('Loading…')}</div>}
-      {me !== undefined && (
+      {me === null && (
         <div className="profile-hero">
-          <div className="big" style={photo ? { backgroundImage: `url(${assetUrl(photo)})`, backgroundSize: 'cover' } : {}}>{!photo && name[0]}</div>
+          <div className="big">{name[0]}</div>
           <h2 style={{ fontSize: 22 }}>{name}</h2>
-          {!me && <p className="mb-text" style={{ marginTop: 8 }}>{t('No profile yet. It is created the first time you post an event or ask to join one.')}</p>}
-          {me?.interests?.length > 0 && (
-            <div className="chips">{me.interests.map((c) => <span className="badge" key={c} style={{ background: `color-mix(in srgb, ${categoryColor(c)} 15%, transparent)`, color: categoryColor(c) }}>{categoryLabel(c)}</span>)}</div>
-          )}
-          {me?.bio && <p className="mb-text" style={{ marginTop: 12 }}>{me.bio}</p>}
-          {me?.links && Object.keys(me.links).length > 0 && (
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
-              {Object.entries(me.links).map(([label, url]) => <a key={label} className="btn small" href={url} target="_blank" rel="noreferrer">{label}</a>)}
-            </div>
-          )}
+          <p className="mb-text" style={{ margin: '8px 0 14px' }}>{t('No profile yet. It is created the first time you post an event or ask to join one.')}</p>
+          <div style={{ textAlign: 'left' }}><LoginForm onDone={load} /></div>
         </div>
+      )}
+      {me && editing && <ProfileEditor me={me} onCancel={() => setEditing(false)} onSaved={(m) => { setMe(m); setEditing(false) }} />}
+      {me && !editing && (
+        <>
+          <div className="profile-hero">
+            <div className="big" style={photo ? { backgroundImage: `url(${assetUrl(photo)})`, backgroundSize: 'cover' } : {}}>{!photo && name[0]}</div>
+            <h2 style={{ fontSize: 22 }}>{name}</h2>
+            {me.username && <div className="mb-sub">{me.username}</div>}
+            {me.interests?.length > 0 && (
+              <div className="chips">{me.interests.map((c) => <span className="badge" key={c} style={catBadge(c)}>{categoryLabel(c)}</span>)}</div>
+            )}
+            {me.bio && <p className="mb-text" style={{ marginTop: 12 }}>{me.bio}</p>}
+            {me.links && Object.keys(me.links).length > 0 && (
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
+                {Object.entries(me.links).map(([label, url]) => <a key={label} className="btn small" href={url} target="_blank" rel="noreferrer">{label}</a>)}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 14 }}>
+              <button className="btn small primary" onClick={() => setEditing(true)}>{t('Edit profile')}</button>
+              <button className="btn small" onClick={() => { logout(); setMe(null); setRequests([]) }}>{t('Log out')}</button>
+            </div>
+          </div>
+          <ProfileDetails me={me} />
+        </>
       )}
       <div className="blk-title" style={{ padding: '0 10px' }}>{t('Join requests')}</div>
       {requests.map((r) => (
@@ -111,6 +140,117 @@ export function ProfilePanel() {
       <div className="blk-title" style={{ padding: '0 10px', marginTop: 18 }}>{t('Set my location to')}</div>
       <StartPointPicker />
     </Shell>
+  )
+}
+
+/** The people.db columns of my profile: personal details, then places and events as lists. */
+function ProfileDetails({ me }) {
+  const { t } = useLang()
+  const [first, ...rest] = (me.display_name || '').split(' ')
+  const since = me.created_at ? new Date(me.created_at).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' }) : null
+  const rows = [
+    ['First name', me.first_name ?? first],
+    ['Last name', me.second_name ?? rest.join(' ')],
+    ['Username', me.username],
+    ['Email', me.email],
+    ['Age', me.age],
+    ['Gender', me.gender && t(GENDER[me.gender] || me.gender)],
+    ['Member since', since],
+  ]
+  const lists = [
+    ['Favourite places', jsonList(me.favourite_locations), 'No favourite places yet.'],
+    ['Going to', jsonList(me.events_going_to), 'Not going anywhere yet.'],
+    ['Been to', jsonList(me.events_been_to), 'No past events yet.'],
+  ]
+  return (
+    <div className="profile-details">
+      <div className="blk-title">{t('Personal details')}</div>
+      <dl className="profile-grid">
+        {rows.map(([label, value]) => (
+          <div key={label}><dt>{t(label)}</dt><dd>{value === undefined || value === null || value === '' ? '—' : value}</dd></div>
+        ))}
+      </dl>
+      {lists.map(([label, items, empty]) => (
+        <div key={label} style={{ marginTop: 16 }}>
+          <div className="blk-title">{t(label)}</div>
+          {items.length ? <div className="chips" style={{ justifyContent: 'flex-start' }}>{items.map((x) => <span className="badge" key={x}>{x}</span>)}</div>
+            : <div className="mb-text muted">{t(empty)}</div>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const isUrl = (s) => /^https?:\/\/\S+$/i.test(s)
+
+/** Edit what PATCH /me accepts: name, bio, main photo, interests, links. */
+function ProfileEditor({ me, onCancel, onSaved }) {
+  const { t } = useLang()
+  const [name, setName] = useState(me.display_name || '')
+  const [bio, setBio] = useState(me.bio || '')
+  const [photo, setPhoto] = useState(me.photos?.[0] || '')
+  const [interests, setInterests] = useState(new Set(me.interests || []))
+  const [links, setLinks] = useState(() => [...Object.entries(me.links || {}), ['', '']])
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const toggle = (c) => setInterests((s) => { const n = new Set(s); n.has(c) ? n.delete(c) : n.add(c); return n })
+  const setLink = (i, j) => (e) => setLinks((ls) => {
+    const n = ls.map((l, k) => (k === i ? (j ? [l[0], e.target.value] : [e.target.value, l[1]]) : l))
+    return n[n.length - 1].some(Boolean) ? [...n, ['', '']] : n // always one empty row at the end
+  })
+  const filled = links.filter(([l, u]) => l.trim() || u.trim())
+  const problem = !name.trim() ? 'Enter your name'
+    : photo && !isUrl(photo) ? 'The photo must be a link starting with http(s)://'
+      : filled.some(([l, u]) => !l.trim() || !isUrl(u.trim())) ? 'Each link needs a name and an address starting with http(s)://'
+        : null
+
+  const save = async (e) => {
+    e.preventDefault()
+    if (problem || saving) return
+    setSaving(true); setError(null)
+    try {
+      const photos = photo ? [photo, ...(me.photos || []).slice(1)] : (me.photos || []).slice(1)
+      onSaved(await updateMe({
+        display_name: name.trim(), bio: bio.trim() || null, photos,
+        interests: [...interests], links: Object.fromEntries(filled.map(([l, u]) => [l.trim(), u.trim()])),
+      }))
+    } catch (err) {
+      setError(err instanceof LoginRequired ? 'Log in to continue' : 'Could not save. Try again.')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form className="profile-edit" onSubmit={save}>
+      <label className="ce-field"><span className="ce-label">{t('Your name')}</span>
+        <input className="ce-input" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} /></label>
+      <label className="ce-field"><span className="ce-label">{t('About me')}</span>
+        <textarea className="ce-input" value={bio} maxLength={2000} onChange={(e) => setBio(e.target.value)} placeholder={t('A few words others see when you ask to join')} /></label>
+      <label className="ce-field"><span className="ce-label">{t('Photo (link)')}</span>
+        <input className="ce-input" value={photo} onChange={(e) => setPhoto(e.target.value.trim())} placeholder="https://…" /></label>
+      <div className="ce-field"><span className="ce-label">{t('Interests')}</span>
+        <div className="chips" style={{ justifyContent: 'flex-start' }}>
+          {Object.keys(CATEGORIES).map((c) => (
+            <button type="button" key={c} className={`badge profile-chip ${interests.has(c) ? 'on' : ''}`} style={interests.has(c) ? catBadge(c) : {}} onClick={() => toggle(c)} aria-pressed={interests.has(c)}>
+              {categoryLabel(c)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="ce-field"><span className="ce-label">{t('Links')}</span>
+        {links.map(([l, u], i) => (
+          <div className="ce-row" key={i} style={{ marginBottom: 6 }}>
+            <input className="ce-input" style={{ flex: '0 0 34%' }} value={l} onChange={setLink(i, 0)} placeholder={t('e.g. Instagram')} />
+            <input className="ce-input" value={u} onChange={setLink(i, 1)} placeholder="https://…" />
+          </div>
+        ))}
+      </div>
+      {(error || problem) && <div className="mb-text" style={{ color: error ? 'var(--accent)' : 'var(--fg-3)', marginBottom: 10 }}>{t(error || problem)}</div>}
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <button type="button" className="btn small" onClick={onCancel}>{t('Cancel')}</button>
+        <button type="submit" className="btn small primary" disabled={Boolean(problem) || saving}>{t(saving ? 'One moment…' : 'Save')}</button>
+      </div>
+    </form>
   )
 }
 
