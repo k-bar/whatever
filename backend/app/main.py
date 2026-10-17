@@ -4,7 +4,7 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.db import engine
-from app.routers import events, social, users
+from app.routers import events, map, social, users
 
 app = FastAPI(
     title="Warszawa Live API",
@@ -20,6 +20,7 @@ app.add_middleware(
 app.include_router(events.router)
 app.include_router(users.router)
 app.include_router(social.router)
+app.include_router(map.router)
 
 
 @app.get("/health", tags=["meta"])

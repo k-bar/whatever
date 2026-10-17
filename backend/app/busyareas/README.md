@@ -1,4 +1,4 @@
-# backend/busyareas
+# backend/app/busyareas
 
 The golden areas on the map: detailed outlines of the parts of Warsaw where people are most likely
 to bump into each other and make new friends. They replace the old rectangular "high-traffic boxes".
@@ -6,9 +6,9 @@ to bump into each other and make new friends. They replace the old rectangular "
 | file | what |
 |---|---|
 | `busy_areas.geojson` | the data (committed). Served as `GET /busyareas`, copied to `frontend/public/mock/busy_areas.geojson` as the offline fallback |
-| `build_busy_areas.py` | rebuilds it from OpenStreetMap (stdlib only) |
+| `../../scripts/build_busy_areas.py` | rebuilds it from OpenStreetMap (stdlib only) |
 | `__init__.py` | `load()` for the API, plus the property contract |
-| `_cache/osm.json` | raw Overpass download (gitignored) |
+| `../../scripts/_cache/osm.json` | raw Overpass download (gitignored) |
 
 ## How the outlines are made
 1. **Pull from OpenStreetMap (Overpass):** bars, pubs, clubs, cafés, restaurants, cinemas, theatres,
@@ -22,9 +22,9 @@ to bump into each other and make new friends. They replace the old rectangular "
 5. **Names:** the streets and plazas most of the venues inside are on (e.g. "Chmielna / Nowy Świat").
 
 ```bash
-python3 backend/busyareas/build_busy_areas.py            # uses the cache
-python3 backend/busyareas/build_busy_areas.py --refresh  # re-download OSM (~40 s)
-python3 backend/busyareas/build_busy_areas.py --stats    # density percentiles, to tune --busy / --very
+python3 backend/scripts/build_busy_areas.py            # uses the cache
+python3 backend/scripts/build_busy_areas.py --refresh  # re-download OSM (~40 s)
+python3 backend/scripts/build_busy_areas.py --stats    # density percentiles, to tune --busy / --very
 ```
 
 Thresholds default to `--busy 18 --very 45` (about the city's top 2% and top 0.5% of social density).

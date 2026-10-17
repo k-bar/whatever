@@ -172,7 +172,7 @@ export function haversineKm([lng1, lat1], [lng2, lat2]) {
 
 /**
  * Busy areas: detailed golden outlines of where people bump into each other (level "busy" and its
- * "very_busy" core). Built from OpenStreetMap by backend/busyareas; GET /busyareas, mock copy offline.
+ * "very_busy" core). Built from OpenStreetMap by backend/scripts/build_busy_areas.py; GET /busyareas, mock copy offline.
  */
 export async function fetchBusyAreas() {
   try {

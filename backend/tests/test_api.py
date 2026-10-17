@@ -160,3 +160,15 @@ def test_come_with_me_flow(client, alice, bob):
 
     assert client.delete(f"/occurrences/{occ_id}/attendance", headers=bob).status_code == 204
     assert client.get(f"/events/{ev['id']}").json()["occurrences"][0]["attendees"] == 1
+
+
+def test_busyareas_serves_the_committed_geojson():
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    r = TestClient(app).get("/busyareas")
+    assert r.status_code == 200
+    fc = r.json()
+    assert fc["type"] == "FeatureCollection" and fc["features"]
+    assert {f["properties"]["level"] for f in fc["features"]} <= {"busy", "very_busy"}

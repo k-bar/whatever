@@ -1,6 +1,6 @@
 /**
  * Map box curation: decide what the small info box shows for a clicked feature.
- * Returns an ordered list of blocks. backend/mapboxes/curate.py is the server-side twin;
+ * Returns an ordered list of blocks. GET /mapboxes/{id} (backend/UI_CONTRACT.md) is the server-side twin;
  * when it answers (fetchMapbox), its `blocks` replace these.
  *
  * Block types rendered by <MapBox>: posters, hours, pitch, live, social, text, facts, tickets
