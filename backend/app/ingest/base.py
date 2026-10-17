@@ -54,6 +54,8 @@ class SourceSpec:
     # Pure function: records -> RawEvents. CI runs it on tests/fixtures/<slug>.json.
     parse: Callable[[list[dict]], list[RawEvent]]
     is_reliable: bool = True
+    # 0 = every ingest run; slow-changing sources set e.g. 24 so the hourly timer skips them
+    refresh_hours: int = 0
 
     def fetch(self) -> list[RawEvent]:
         return self.parse(self.fetch_records())

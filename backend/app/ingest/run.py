@@ -9,7 +9,7 @@ import argparse
 import json
 import sys
 import traceback
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from shapely.geometry import Point, shape
@@ -144,6 +144,19 @@ def record_error(db: Session, spec: SourceSpec, err: str) -> None:
     db.commit()
 
 
+def recently_ok(db: Session, spec: SourceSpec) -> bool:
+    """True when a slow source (refresh_hours > 0) last succeeded within its refresh window."""
+    if not spec.refresh_hours:
+        return False
+    src = db.scalar(select(Source).where(Source.slug == spec.slug))
+    return bool(
+        src
+        and src.last_status == "ok"
+        and src.last_run_at
+        and datetime.now(UTC) - src.last_run_at < timedelta(hours=spec.refresh_hours)
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--source", choices=sorted(SOURCES), help="run only this source")
@@ -154,6 +167,9 @@ def main(argv: list[str] | None = None) -> int:
     for slug in [args.source] if args.source else sorted(SOURCES):
         spec = SOURCES[slug]
         with SessionLocal() as db:
+            if not args.source and recently_ok(db, spec):
+                print(f"{slug}: skipped (refreshed less than {spec.refresh_hours} h ago)")
+                continue
             try:
                 raws = spec.fetch()
                 geocoder = Geocoder(db, args.geocode_limit) if args.geocode_limit else None

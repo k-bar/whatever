@@ -131,3 +131,37 @@ def test_conditions_and_routes_parse():
     routes = parse_routes(as_records(fixture_records("warsaw_routes")))
     assert routes and routes[0]["path"].startswith("SRID=4326;LINESTRING(20.")  # lng first
     assert routes[0]["points"] and {"id", "name", "lat", "lng"} <= routes[0]["points"][0].keys()
+
+
+def test_osm_venues_parse():
+    from datetime import datetime
+
+    from app.categories import map_categories
+    from app.ingest.sources.osm_venues import osm_hours
+    from app.routers.events import is_open
+
+    records = fixture_records("osm_venues")
+    venues = SOURCES["osm_venues"].parse(records)
+    assert len(venues) == len([r for r in records if (r.get("tags") or {}).get("name")])  # unnamed dropped
+    assert all(v.kind == "place" and v.external_key.startswith(("node/", "way/")) for v in venues)
+    assert all(52 < v.lat < 53 and 20 < v.lng < 22 for v in venues)  # ways use their center
+    assert map_categories(["osm:nightclub"], "Gatsby Warsaw") == ["nightlife"]
+
+    assert osm_hours("24/7")["sunday"] == "00:00-24:00"
+    assert osm_hours("Su-Fr 09:00-16:00") == {
+        d: "09:00-16:00" for d in ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday"]
+    }
+    assert osm_hours("We-Su 12:00-17:00; Nov 11: 11:00-16:00")["wednesday"] == "12:00-17:00"
+    assert osm_hours("Fr-Sa 19:00+") is None
+    late = osm_hours("We-Th 19:00-01:00; Fr-Sa 19:00-04:00")["friday"]
+    assert is_open(late, datetime(2026, 10, 17, 2, 30)) and not is_open(late, datetime(2026, 10, 17, 12))
+
+
+def test_slow_sources_are_skipped_within_their_window(db):
+    from app.ingest.run import load, recently_ok
+
+    spec = SOURCES["osm_venues"]
+    assert not recently_ok(db, spec)
+    load(db, spec, spec.parse(fixture_records("osm_venues")), None)
+    db.commit()
+    assert recently_ok(db, spec) and not recently_ok(db, SOURCES["warsaw_events"])
