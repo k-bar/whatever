@@ -52,8 +52,6 @@ export const SECTIONS = [
       { id: 'searchHeight', label: 'Search bar height', type: 'range', min: 46, max: 72, step: 2, unit: 'px', default: 58 },
       { id: 'searchPanel', label: 'Focus panel (recents / categories / chat)', type: 'toggle', default: true },
       { id: 'searchPlaceholder', label: 'Placeholder text', type: 'text', default: "What's the plan today?" },
-      { id: 'menuStyle', label: 'Burger menu style', type: 'select', default: 'liquid', options: [
-        { value: 'liquid', label: 'Liquid glass' }, { value: 'sheet', label: 'Flat sheet' }, { value: 'bubbles', label: 'Bubbles' }] },
     ],
   },
   {

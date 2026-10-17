@@ -17,7 +17,8 @@ import { Mermaid } from './components/Icons'
 import { MapBox } from './components/MapBox'
 import { countPinGroups, MapView } from './components/MapView'
 import { ResultsList, SearchBar } from './components/SearchBar'
-import { FavouritesPanel, MessagesPanel, ProfilePanel, SlideOver, SourcesPanel } from './components/SidePanels'
+import { FavouritesPanel, MessagesPanel, ProfilePanel, SettingsPanel, SlideOver } from './components/SidePanels'
+import { SelectsRail } from './components/SelectsRail'
 import { Landing } from './components/Landing'
 import { flySearch } from './landing/searchFlight'
 import { CreateEventPanel } from './components/CreateEventPanel'
@@ -184,13 +185,16 @@ export default function App() {
     m?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 100, bottom: window.innerHeight * 0.5, left: 30, right: 30 } : { top: 100, bottom: 100, left: 620, right: 380 }, maxZoom: 15, duration: 900 })
   }
 
-  // the map shows only favourite spots while that section of the slide-over is open
+  // ---------- the slide-over tray: the burger opens it on its menu ('menu'), items open inside it ----------
+  // the map shows only favourite spots while that section is open
   const onMenu = (id) => { if (id === 'create') { startCreate(); return } setFavOnly(id === 'favourites'); setPanel(id) }
   const closePanel = () => { setPanel(null); setPanelFull(false); setFavOnly(false) }
+  const toggleTray = () => (panel ? closePanel() : setPanel('menu'))
+  const backToMenu = () => { setFavOnly(false); setPanel('menu') }
 
   // ---------- "+ Create event": its own full-height panel on the right ----------
   const startCreate = () => {
-    setBoxes([]); setRoute(null); setResults(null); setSheet(null); setSelectsOpen(false)
+    setBoxes([]); setRoute(null); setResults(null); setSheet(null)
     if (mobile || panelFull) closePanel()
     setDraftPin(mapRef.current?.center() || me)
   }
@@ -268,6 +272,17 @@ export default function App() {
     setFlying(true); setRevealed(false)
     closePanel(); setDraftPin(null); setResults(null); setSheet(null); setView('landing')
   }
+  // maximise on Syrenka Selects: back to the start page, then glide down to its Syrenka Selects section
+  const showSelectsPage = () => {
+    goHome()
+    const t0 = Date.now()
+    const glide = () => {
+      const el = document.getElementById('syrenka-selects')
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 650) // once the start page has faded in
+      else if (Date.now() - t0 < 3000) requestAnimationFrame(glide)
+    }
+    requestAnimationFrame(glide)
+  }
 
   const pickResult = (f) => { openBox(f); if (mobile) setSheet('box') }
 
@@ -293,7 +308,7 @@ export default function App() {
       <AnimatePresence>{view === 'map' && [
 
       <div className="top-left" key="top-left">
-        <SearchBar onSearch={onSearch} onMenu={onMenu} onHome={goHome} initialQuery={entryQuery} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} features={featureList} />
+        <SearchBar onSearch={onSearch} trayOpen={!!panel} onBurger={toggleTray} initialQuery={entryQuery} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} features={featureList} />
         <motion.div className="side-controls" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0, transition: { ...spring, delay: 0.35 } }}>
           {/* the Syrenka: back to the start page (a button, not a toggle) */}
           <motion.button className="btn icon mermaid-btn" onClick={goHome} aria-label={t('Back to the start page')} title={t('Back to the start page')}
@@ -338,11 +353,13 @@ export default function App() {
       {/* the slide-over: profiles, messages, favourite spots, sources; switched from its own burger */}
       <AnimatePresence>
         {view === 'map' && panel && (
-          <SlideOver key="slideover" section={panel} onSection={onMenu} onClose={closePanel} full={panelFull} onFull={() => setPanelFull((f) => !f)} onHome={goHome} mobile={mobile}>
-            {panel === 'profile' && <ProfilePanel features={featureList} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
+          <SlideOver key="slideover" section={panel} onSection={onMenu} onBack={backToMenu} onClose={closePanel} full={panelFull}
+            onFull={panel === 'selects' && !panelFull ? showSelectsPage : () => setPanelFull((f) => !f)} onHome={goHome} mobile={mobile}>
+            {panel === 'selects' && <SelectsRail features={featureList} inSheet single onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
+            {panel === 'profile' && <ProfilePanel features={featureList} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} onFavourites={() => onMenu('favourites')} />}
             {panel === 'messages' && <MessagesPanel />}
             {panel === 'favourites' && <FavouritesPanel features={featureList} favourites={fav.ids} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
-            {panel === 'sources' && <SourcesPanel pins={featureList.length} getMap={() => mapRef.current?.getMap()} mobile={mobile} />}
+            {panel === 'settings' && <SettingsPanel pins={featureList.length} getMap={() => mapRef.current?.getMap()} mobile={mobile} />}
           </SlideOver>
         )}
       </AnimatePresence>
