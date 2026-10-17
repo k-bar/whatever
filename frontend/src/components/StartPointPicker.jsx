@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLang } from '../i18n'
 import { locateByDevice, searchAddress } from '../data/api'
 import { setStartPoint, useStartPoint } from '../hooks/useStartPoint'
 
@@ -8,6 +9,7 @@ import { setStartPoint, useStartPoint } from '../hooks/useStartPoint'
  * or use the device's GPS. The point is saved in the browser and shared via useStartPoint.
  */
 export function StartPointPicker() {
+  const { t } = useLang()
   const start = useStartPoint()
   const onSet = setStartPoint
   const [q, setQ] = useState('')
@@ -39,16 +41,16 @@ export function StartPointPicker() {
       <div className="sp-current">
         <PinGlyph />
         <span>
-          <div className="t">{start ? start.label : 'Approximate (from your IP)'}</div>
-          <div className="s">{start ? (start.sub || 'Your starting point') : 'Pick an address for accurate travel times'}</div>
+          <div className="t">{start ? start.label : t('Approximate (from your IP)')}</div>
+          <div className="s">{start ? (start.sub || t('Your starting point')) : t('Pick an address for accurate travel times')}</div>
         </span>
-        {start && <button className="btn small" onClick={() => onSet(null)}>{'Use IP'}</button>}
+        {start && <button className="btn small" onClick={() => onSet(null)}>{t('Use IP')}</button>}
       </div>
 
       <label className="start-input">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={'Address or postcode, e.g. 02-591'}
-          onKeyDown={(e) => { if (e.key === 'Enter' && hits[0]) pick(hits[0]) }} aria-label={'Search an address or postcode'} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Address or postcode, e.g. 02-591')}
+          onKeyDown={(e) => { if (e.key === 'Enter' && hits[0]) pick(hits[0]) }} aria-label={t('Search an address or postcode')} />
         {state === 'searching' && <span className="spin" />}
       </label>
 
@@ -61,12 +63,12 @@ export function StartPointPicker() {
           ))}
         </div>
       )}
-      {q.trim().length >= 2 && state === 'idle' && !hits.length && <div className="start-note">{'No address found in Warsaw'}</div>}
-      {state === 'error' && <div className="start-note">{'Could not get a location. Try typing the address instead.'}</div>}
+      {q.trim().length >= 2 && state === 'idle' && !hits.length && <div className="start-note">{t('No address found in Warsaw')}</div>}
+      {state === 'error' && <div className="start-note">{t('Could not get a location. Try typing the address instead.')}</div>}
 
       <button className="btn small start-gps" onClick={useDevice} disabled={state === 'locating'}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>
-        {state === 'locating' ? 'Locating…' : 'Use my device location'}
+        {state === 'locating' ? t('Locating…') : t('Use my device location')}
       </button>
     </div>
   )

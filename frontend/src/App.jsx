@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
+import { useLang } from './i18n'
 import { dataStatus, fetchBusyAreas, fetchFeatures, fetchMapbox, locateByIp, routeTo, runSearch } from './data/api'
 import { useFavourites } from './hooks/useFavourites'
 import { useStartPoint } from './hooks/useStartPoint'
@@ -15,11 +16,21 @@ import { Mermaid } from './components/Icons'
 import { MapBox } from './components/MapBox'
 import { MapView } from './components/MapView'
 import { ResultsList, SearchBar } from './components/SearchBar'
-import { FavouritesPanel, MessagesPanel, ProfilePanel, SourcesPanel } from './components/SidePanels'
+import { FavouritesPanel, MessagesPanel, ProfilePanel, SlideOver, SourcesPanel } from './components/SidePanels'
+import { Landing } from './components/Landing'
+import { SelectsRail } from './components/SelectsRail'
+import { CreateEventPanel } from './components/CreateEventPanel'
+import { AUDIENCES } from './data/categories'
+
+/** Map controls arrive part by part after the start page, never all at once. */
+const Stage = ({ delay = 0, children }) => (
+  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay, duration: 0.45 } }} exit={{ opacity: 0, transition: { duration: 0.25 } }}>{children}</motion.div>
+)
 
 export default function App() {
   const { values, set } = useConfig()
   const spring = useSpring()
+  const { lang, t } = useLang()
   const mobile = useIsMobile()
   const mapRef = useRef(null)
   const fav = useFavourites()
@@ -28,6 +39,10 @@ export default function App() {
   const [editorOpen, setEditorOpen] = useState(false)
   const [favOnly, setFavOnly] = useState(false)
   const [panel, setPanel] = useState(null)
+  const [panelFull, setPanelFull] = useState(false) // desktop mode 3: the slide-over fills the screen
+  const [view, setView] = useState('landing') // every visit starts on the start page ("Search")
+  const [entryQuery, setEntryQuery] = useState('')
+  const [selectsOpen, setSelectsOpen] = useState(false) // the mermaid button: "Syrenka poleca" in the right bar
   const [boxes, setBoxes] = useState([]) // [{ key, feature, data, expanded }]
   const [results, setResults] = useState(null)
   const [searching, setSearching] = useState(false)
@@ -39,6 +54,7 @@ export default function App() {
   const start = useStartPoint() // picked in Profile; beats the IP guess
   const firstPosition = useRef(true)
   const [route, setRoute] = useState(null)
+  const [draftPin, setDraftPin] = useState(null) // "+ Create event" is open: where the new event happens
   const meRef = useRef(null)
   useEffect(() => { meRef.current = me }, [me])
   const [chat, setChat] = useState(() => { try { return JSON.parse(localStorage.getItem('warszawa-live.chat.v1') || '[]') } catch { return [] } })
@@ -58,11 +74,11 @@ export default function App() {
       if (!first) {
         const m = mapRef.current?.getMap()
         m?.flyTo({ center: start.lngLat, zoom: Math.max(m.getZoom(), 14), duration: 1100, essential: true })
-        say(`Starting point · ${start.label}`)
+        say(t('Starting point · {label}', { label: start.label }))
       }
       return
     }
-    locateByIp().then((loc) => { setMe(loc.lngLat); say(first ? 'Approximate location from your IP · set yours in Profile' : 'Using your approximate IP location') })
+    locateByIp().then((loc) => { setMe(loc.lngLat); say(t(first ? 'Approximate location from your IP · set yours in Profile' : 'Using your approximate IP location')) })
     const poll = setInterval(() => locateByIp().then((loc) => setMe(loc.lngLat)), 5 * 60 * 1000)
     return () => clearInterval(poll)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -90,11 +106,16 @@ export default function App() {
       })
     }
     const remote = await fetchMapbox(feature) // backend/mapboxes curation wins when available
-    if (remote?.blocks) setBoxes((b) => b.map((x) => (x.key === key ? { ...x, data: { ...x.data, ...remote } } : x)))
+    if (remote?.blocks) setBoxes((b) => b.map((x) => (x.key === key ? { ...x, remote, data: { ...x.data, ...remote } } : x)))
   }, [mobile, values.maxBoxes])
 
+  // re-curate open boxes so their text follows a language switch
+  useEffect(() => {
+    setBoxes((b) => b.map((x) => ({ ...x, data: { ...curate(x.feature), ...x.remote } })))
+  }, [lang])
+
   const closeBox = (key) => setBoxes((b) => { const n = b.filter((x) => x.key !== key); if (!n.length) setRoute(null); return n })
-  const closeAll = () => { setBoxes([]); setResults(null); setRoute(null); if (sheet) setSheet(null); say('Closed all map boxes') }
+  const closeAll = () => { setBoxes([]); setResults(null); setRoute(null); if (sheet) setSheet(null); say(t('Closed all map boxes')) }
   const expandBox = (key) => setBoxes((b) => b.map((x) => ({ ...x, expanded: x.key === key ? !x.expanded : false })))
   const selectedId = boxes[0]?.key
 
@@ -113,74 +134,137 @@ export default function App() {
     }
   }
 
-  const onMenu = (id) => {
-    if (id === 'favourites') { setFavOnly(true); setPanel('favourites'); return }
-    setPanel(id)
+  // the map shows only favourite spots while that section of the slide-over is open
+  const onMenu = (id) => { if (id === 'create') { startCreate(); return } setFavOnly(id === 'favourites'); setPanel(id) }
+  const closePanel = () => { setPanel(null); setPanelFull(false); setFavOnly(false) }
+
+  // ---------- "+ Create event": its own full-height panel on the right ----------
+  const startCreate = () => {
+    setBoxes([]); setRoute(null); setResults(null); setSheet(null); setSelectsOpen(false)
+    if (mobile || panelFull) closePanel()
+    setDraftPin(mapRef.current?.center() || me)
   }
+  // Done: the new pin goes straight onto this map (others get public ones from GET /events), then its box opens
+  const onCreated = (feature, event) => {
+    setFeatures((fc) => ({ type: 'FeatureCollection', features: [...(fc?.features || []).filter((f) => f.properties.event_id !== feature.properties.event_id), feature] }))
+    setDraftPin(null)
+    if (!values.showInvites) set('showInvites', true)
+    say(t('Event created · {audience}', { audience: t(AUDIENCES[event.audience].label) }))
+    openBox(feature)
+  }
+
+  // ---------- start page <-> map ----------
+  const enterMap = ({ q = '', window, category, label, feature } = {}) => {
+    setEntryQuery(category ? label : q)
+    setView('map')
+    if (window) set('timeWindow', window)
+    // act once the search pill has landed in its corner, so the scene improves instead of jumping
+    setTimeout(() => {
+      if (feature) openBox(feature)
+      else if (category) onSearch('events', label || category, { category })
+      else if (q.trim()) onSearch('search', q)
+      else mapRef.current?.home()
+    }, 520)
+  }
+  // Escape closes the topmost thing: create panel, then slide-over, then the newest map box / results
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || e.target.closest?.('input, textarea, select')) return
+      if (draftPin) setDraftPin(null)
+      else if (panel) closePanel()
+      else if (selectsOpen) setSelectsOpen(false)
+      else if (boxes.length) setBoxes((b) => b.slice(1))
+      else if (results) setResults(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+  const goHome = () => { closePanel(); setDraftPin(null); setResults(null); setSheet(null); setView('landing') }
 
   const pickResult = (f) => { openBox(f); if (mobile) setSheet('box') }
 
-  const toggleFavOnly = () => { setFavOnly((v) => !v); say(favOnly ? 'Showing everything' : 'Showing your favourite spots') }
+  const toggleSelects = () => {
+    if (mobile) { setSelectsOpen(false); setSheet(sheet === 'selects' ? null : 'selects'); return }
+    setSelectsOpen((v) => !v)
+  }
 
   const sheetContent = useMemo(() => {
     if (sheet === 'results' && results) return <ResultsList results={results} onPick={pickResult} />
+    if (sheet === 'selects') return <SelectsRail inSheet features={featureList} onPick={(f) => { openBox(f); setSheet('box') }} />
     if (sheet === 'box' && boxes[0]) {
       const b = boxes[0]
       return <MapBox data={b.data} feature={b.feature} journey={b.journey} expanded starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} showImage={values.boxImages} />
     }
     return null
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sheet, results, boxes, fav.ids, values.boxImages])
+  }, [sheet, results, boxes, fav.ids, values.boxImages, featureList, lang])
 
   return (
-    <div className="app">
+    <div className={`app ${view === 'map' && panel && !mobile ? (panelFull ? 'slide-full' : 'slide-open') : ''}`}>
       <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
-        onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} />
+        onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={view === 'map'} draftPin={draftPin} onDraftPin={setDraftPin} />
 
-      {/* top-left: search pill + mermaid (as tall as the search bar) + (x) */}
-      <div className="top-left">
-        <SearchBar onSearch={onSearch} onMenu={onMenu} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} />
-        <div className="side-controls">
-          <motion.button className={`btn icon mermaid-btn ${favOnly ? 'active' : ''}`} onClick={toggleFavOnly} aria-label="My favourite spots" title="My favourite spots"
-            whileTap={{ scale: 0.85 }} animate={favOnly ? { rotate: [0, -8, 8, 0] } : {}} transition={spring}>
+      <AnimatePresence>{view === 'landing' && <Landing key="landing" features={features ? featureList : null} onEnter={enterMap} />}</AnimatePresence>
+
+      <AnimatePresence>{view === 'map' && [
+
+      <div className="top-left" key="top-left">
+        <SearchBar onSearch={onSearch} onMenu={onMenu} onHome={goHome} initialQuery={entryQuery} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} />
+        <motion.div className="side-controls" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0, transition: { ...spring, delay: 0.35 } }}>
+          <motion.button className={`btn icon mermaid-btn ${selectsOpen ? 'active' : ''}`} onClick={toggleSelects} aria-label={t('Syrenka Selects')} title={t('Syrenka Selects')}
+            whileTap={{ scale: 0.85 }} animate={selectsOpen ? { rotate: [0, -8, 8, 0] } : {}} transition={spring}>
             <Mermaid />
           </motion.button>
-          <CloseButton onClick={closeAll} label="Close all map boxes" animate={{ opacity: boxes.length || results ? 1 : 0.55 }} />
-        </div>
-      </div>
-      {values.showTitle && <h1 className="app-title">{values.appTitle}</h1>}
+          <CloseButton onClick={closeAll} label={t('Close all map boxes')} animate={{ opacity: boxes.length || results ? 1 : 0.55 }} />
+        </motion.div>
+      </div>,
+      values.showTitle && <h1 className="app-title" key="title">{values.appTitle}</h1>,
 
-      {/* top-right: editor toggle lives inside InterfaceEditor */}
-      <div className="top-right"><InterfaceEditor open={editorOpen} onToggle={() => setEditorOpen(!editorOpen)} /></div>
+      /* top-right: editor toggle lives inside InterfaceEditor */
+      <Stage key="top-right" delay={0.55}><div className="top-right"><InterfaceEditor open={editorOpen} onToggle={() => setEditorOpen(!editorOpen)} /></div></Stage>,
 
-      {/* desktop map boxes */}
-      {!mobile && (
-        <div className="boxes">
-          <AnimatePresence>
-            {boxes.map((b) => (
-              <MapBox key={b.key} layoutId={`box-${b.key}`} data={b.data} feature={b.feature} expanded={b.expanded} journey={b.journey} onClose={() => closeBox(b.key)} onExpand={() => expandBox(b.key)}
-                starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} showImage={values.boxImages} />
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
+      /* desktop map boxes */
+      !mobile && (
+        <Stage key="boxes" delay={0.4}>
+          <div className="boxes">
+            <AnimatePresence>
+              {selectsOpen && <SelectsRail key="selects" features={featureList} onClose={() => setSelectsOpen(false)} onPick={(f) => { setSelectsOpen(false); openBox(f) }} />}
+              {boxes.map((b) => (
+                <MapBox key={b.key} layoutId={`box-${b.key}`} data={b.data} feature={b.feature} expanded={b.expanded} journey={b.journey} onClose={() => closeBox(b.key)} onExpand={() => expandBox(b.key)}
+                  starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} showImage={values.boxImages} />
+              ))}
+            </AnimatePresence>
+          </div>
+        </Stage>
+      ),
 
-      {/* side panels from the burger menu */}
+      <Stage key="toolbar" delay={0.45}>
+        <BottomToolbar busy={values.busyAreas} onBusy={() => { set('busyAreas', !values.busyAreas); say(t(values.busyAreas ? 'Busy areas off' : 'Busy areas on')) }}
+          onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()} layersOn={values.showPlaces} onLayers={() => set('showPlaces', !values.showPlaces)} />
+      </Stage>,
+
+      <Stage key="legend" delay={0.6}><LanduseLegend getMap={() => mapRef.current?.getMap()} mobile={mobile} /></Stage>,
+      values.apiBadge && <Stage key="badge" delay={0.65}><div className={`data-badge surface ${dataStatus.source}`}><i />{t(dataStatus.source === 'api' ? 'live API' : dataStatus.source === 'offline' ? 'API offline' : 'loading…')} · {featureList.length} {t('pins')}</div></Stage>,
+    ]}</AnimatePresence>
+
+      {/* the slide-over: profiles, messages, favourite spots, sources; switched from its own burger */}
       <AnimatePresence>
-        {panel === 'profile' && <ProfilePanel key="p" onClose={() => setPanel(null)} />}
-        {panel === 'messages' && <MessagesPanel key="m" onClose={() => setPanel(null)} />}
-        {panel === 'favourites' && <FavouritesPanel key="f" onClose={() => setPanel(null)} features={featureList} favourites={fav.ids} onPick={(f) => { setPanel(null); openBox(f) }} />}
-        {panel === 'sources' && <SourcesPanel key="s" onClose={() => setPanel(null)} />}
+        {view === 'map' && panel && (
+          <SlideOver key="slideover" section={panel} onSection={onMenu} onClose={closePanel} full={panelFull} onFull={() => setPanelFull((f) => !f)} onHome={goHome} mobile={mobile}>
+            {panel === 'profile' && <ProfilePanel />}
+            {panel === 'messages' && <MessagesPanel />}
+            {panel === 'favourites' && <FavouritesPanel features={featureList} favourites={fav.ids} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
+            {panel === 'sources' && <SourcesPanel />}
+          </SlideOver>
+        )}
       </AnimatePresence>
 
-      <BottomToolbar busy={values.busyAreas} onBusy={() => { set('busyAreas', !values.busyAreas); say(values.busyAreas ? 'Busy areas off' : 'Busy areas on') }}
-        onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()} layersOn={values.showPlaces} onLayers={() => set('showPlaces', !values.showPlaces)} />
-
-      <LanduseLegend getMap={() => mapRef.current?.getMap()} mobile={mobile} />
+      <AnimatePresence>
+        {view === 'map' && draftPin && <CreateEventPanel key="create" pin={draftPin} onClose={() => setDraftPin(null)} onCreated={onCreated} />}
+      </AnimatePresence>
 
       {mobile && <BottomSheet open={!!sheet && !!sheetContent} onClose={() => setSheet(null)} initial="half">{sheetContent}</BottomSheet>}
 
-      {values.apiBadge && <div className={`data-badge surface ${dataStatus.source}`}><i />{dataStatus.source === 'api' ? 'live API' : dataStatus.source === 'offline' ? 'API offline' : 'loading…'} · {featureList.length} pins</div>}
       {values.debugOverlay && <div className="debug surface">z {zoom.toFixed(2)} · boxes {boxes.length} · fav {fav.ids.size} · {mobile ? 'mobile' : 'desktop'}</div>}
 
       <AnimatePresence>{toast && <motion.div className="toast surface" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 10, opacity: 0 }}>{toast}</motion.div>}</AnimatePresence>

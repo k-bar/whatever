@@ -4,7 +4,9 @@ import { useConfig, useSpring } from '../config/store'
 import { Burger, Calendar, Chevron, Database, History, Message, Plus, Search, Sparkle, Star, User, X, Minus } from './Icons'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
+import { Brand } from './Brand'
 import { CloseButton } from './CloseButton'
+import { useLang } from '../i18n'
 
 export const MODES = [
   { id: 'search', label: 'Search', hint: 'Places, venues, districts', Icon: Search },
@@ -15,6 +17,7 @@ export const MODES = [
 export const MENU_ITEMS = [
   { id: 'profile', label: 'Profiles', Icon: User, hint: 'you' },
   { id: 'messages', label: 'Messages', Icon: Message, hint: '3 new' },
+  { id: 'create', label: 'Create event', Icon: Plus, hint: '', accent: true },
   { id: 'favourites', label: 'Favourite spots', Icon: Star, hint: '' },
   { id: 'sources', label: "APIs I'm plugged in to", Icon: Database, hint: '5 sources' },
 ]
@@ -27,11 +30,13 @@ const readRecent = () => { try { return JSON.parse(localStorage.getItem(RECENT_K
  * The Gemini-style pill: burger (plain) · input · mode dropdown · spyglass (circle).
  * Focusing the input opens the focus panel (recents / category pills / assistant thread).
  */
-export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searching, mobile, chat, onChatClear }) {
+export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, searching, mobile, chat, onChatClear, initialQuery = '' }) {
   const { values } = useConfig()
+  const { t } = useLang()
   const spring = useSpring()
   const bouncy = useSpring({ stiffness: 520, damping: 18 })
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(initialQuery)
+  const placeholder = values.searchPlaceholder === 'Search Warsaw tonight…' ? "What's the plan today?" : values.searchPlaceholder
   const [mode, setMode] = useState('search')
   const [modeOpen, setModeOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -73,21 +78,22 @@ export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searchin
   return (
     <div className="search-wrap" ref={wrapRef}>
       <span className="search-glow" />
-      <motion.div className="search surface" animate={pushed ? { y: 10, scale: 0.985 } : { y: 0, scale: 1 }} transition={spring}>
-        <motion.button className="btn icon burger-btn" aria-label="Menu" onClick={() => { setMenuOpen(!menuOpen); setModeOpen(false); setFocused(false) }}
+      {/* layoutId: the same pill as the start page's big search, so it flies here instead of reappearing */}
+      <motion.div className="search surface" layoutId="search-pill" animate={pushed ? { y: 10, scale: 0.985 } : { y: 0, scale: 1 }} transition={spring}>
+        <motion.button className="btn icon burger-btn" aria-label={t('Menu')} onClick={() => { setMenuOpen(!menuOpen); setModeOpen(false); setFocused(false) }}
           animate={{ rotate: menuOpen ? 90 : 0 }} transition={bouncy}>
           {menuOpen ? <X size={26} stroke={2.2} /> : <Burger />}
         </motion.button>
-        <input ref={inputRef} value={q} placeholder={mode === 'assistant' ? 'Ask the assistant…' : values.searchPlaceholder} onChange={(e) => setQ(e.target.value)}
+        <input ref={inputRef} value={q} placeholder={mode === 'assistant' ? t('Ask the assistant…') : t(placeholder)} onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setFocused(false); inputRef.current?.blur() } }}
           onFocus={() => { setMenuOpen(false); setModeOpen(false); setFocused(true) }} />
-        {(q || results) && <button className="btn icon small ghost" onClick={clear} aria-label="Clear"><X size={20} stroke={2.2} /></button>}
+        {(q || results) && <button className="btn icon small ghost" onClick={clear} aria-label={t('Clear')}><X size={20} stroke={2.2} /></button>}
         <button className={`mode-btn ${modeOpen ? 'open' : ''}`} onClick={() => { setModeOpen(!modeOpen); setMenuOpen(false) }}>
-          {!mobile && <Mode.Icon size={15} />}{!mobile && Mode.label}
+          {!mobile && <Mode.Icon size={15} />}{!mobile && t(Mode.label)}
           {mobile && <Mode.Icon size={16} />}
           <Chevron size={14} className="chev" />
         </button>
-        <motion.button className={`btn icon go ${mode === 'assistant' ? 'accent' : ''}`} onClick={() => submit()} aria-label="Run search"
+        <motion.button className={`btn icon go ${mode === 'assistant' ? 'accent' : ''}`} onClick={() => submit()} aria-label={t('Run search')}
           whileTap={{ scale: 0.85 }} animate={searching ? { rotate: 360 } : { rotate: 0 }} transition={searching ? { repeat: Infinity, duration: 0.9, ease: 'linear' } : spring}>
           {mode === 'assistant' ? <Sparkle /> : <Search />}
         </motion.button>
@@ -100,7 +106,7 @@ export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searchin
             exit={{ opacity: 0, scale: 0.9, y: -6 }} transition={bouncy}>
             {MODES.map((m) => (
               <button key={m.id} className={m.id === mode ? 'on' : ''} onClick={() => { setMode(m.id); setModeOpen(false); setFocused(true); inputRef.current?.focus() }}>
-                <m.Icon size={18} /><span>{m.label}<small>{m.hint}</small></span>
+                <m.Icon size={18} /><span>{t(m.label)}<small>{t(m.hint)}</small></span>
               </button>
             ))}
           </motion.div>
@@ -113,11 +119,11 @@ export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searchin
           <motion.div className="burger-menu surface" initial={{ opacity: 0, scaleX: 0.3, scaleY: 0.1 }}
             animate={{ opacity: 1, scaleX: [0.3, 1.06, 1], scaleY: [0.1, 1.08, 1] }} exit={{ opacity: 0, scaleX: 0.5, scaleY: 0.3 }}
             transition={values.reduceMotion ? { duration: 0.1 } : { duration: 0.42 / (values.animSpeed || 1), times: [0, 0.65, 1], ease: ['easeOut', 'easeInOut'] }}>
-            <div className="bm-title">{values.appTitle}</div>
+            <div className="bm-title"><Brand onHome={() => { setMenuOpen(false); onHome?.() }} /></div>
             {MENU_ITEMS.map((it, i) => (
-              <motion.button key={it.id} className="bm-item" onClick={() => { setMenuOpen(false); onMenu(it.id) }}
+              <motion.button key={it.id} className={`bm-item ${it.accent ? 'accent' : ''}`} onClick={() => { setMenuOpen(false); onMenu(it.id) }}
                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.12 + i * 0.04 }}>
-                <span className="ic"><it.Icon size={18} /></span>{it.label}<small>{it.hint}</small>
+                <span className="ic"><it.Icon size={18} /></span>{t(it.label)}<small>{it.hint && t(it.hint)}</small>
               </motion.button>
             ))}
           </motion.div>
@@ -133,19 +139,19 @@ export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searchin
             {mode === 'search' && (
               <div className="fp-scroll">
                 {recent.length > 0 && <>
-                  <div className="blk-title fp-title"><History size={12} /> Recent</div>
+                  <div className="blk-title fp-title"><History size={12} /> {t('Recent')}</div>
                   <div className="fp-list">{recent.map((r) => <button key={r} className="fp-item" onClick={() => { setQ(r); submit(r, 'search') }}><History size={15} />{r}</button>)}</div>
                 </>}
-                <div className="blk-title fp-title"><Sparkle size={12} /> Suggested</div>
+                <div className="blk-title fp-title"><Sparkle size={12} /> {t('Suggested')}</div>
                 <div className="fp-list">{SUGGESTED.map((r) => <button key={r} className="fp-item" onClick={() => { setQ(r); submit(r, 'search') }}><Search size={15} />{r}</button>)}</div>
               </div>
             )}
             {mode === 'events' && (
               <div className="fp-scroll">
-                <div className="blk-title fp-title"><Calendar size={12} /> Pick a category</div>
+                <div className="blk-title fp-title"><Calendar size={12} /> {t('Pick a category')}</div>
                 <div className="pills">
                   {Object.entries(CATEGORIES).map(([slug, c]) => (
-                    <button key={slug} className="pill-cat" style={{ '--c': c.color }} onClick={() => pickCategory(slug)}><i />{c.label}</button>
+                    <button key={slug} className="pill-cat" style={{ '--c': c.color }} onClick={() => pickCategory(slug)}><i />{categoryLabel(slug)}</button>
                   ))}
                 </div>
               </div>
@@ -153,7 +159,7 @@ export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searchin
             {mode === 'assistant' && (
               <>
                 <div className="fp-scroll chat">
-                  {!chat?.length && <div className="chat-empty"><Sparkle size={22} /><p>One continuous thread. Ask things like “what's on in Praga tonight?” or “free things with kids on Saturday”.</p></div>}
+                  {!chat?.length && <div className="chat-empty"><Sparkle size={22} /><p>{t("One continuous thread. Ask things like “what's on in Praga tonight?” or “free things with kids on Saturday”.")}</p></div>}
                   {chat?.map((m, i) => (
                     <div key={i} className={`msg ${m.role}`}>
                       <div className="bubble">{m.text}</div>
@@ -167,9 +173,9 @@ export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searchin
                   {searching && <div className="msg assistant"><div className="bubble typing"><i /><i /><i /></div></div>}
                 </div>
                 <div className="fp-foot">
-                  <button className="btn icon small primary" onClick={() => setChatFull(!chatFull)} aria-label={chatFull ? 'Shrink' : 'Expand'}>{chatFull ? <Minus size={18} /> : <Plus size={18} />}</button>
-                  <span className="fp-hint">{chat?.length ? `${chat.length} messages` : 'assistant · stub'}</span>
-                  {chat?.length > 0 && <button className="btn text small" onClick={onChatClear}>Clear thread</button>}
+                  <button className="btn icon small primary" onClick={() => setChatFull(!chatFull)} aria-label={t(chatFull ? 'Shrink' : 'Expand')}>{chatFull ? <Minus size={18} /> : <Plus size={18} />}</button>
+                  <span className="fp-hint">{chat?.length ? t('{n} messages', { n: chat.length }) : t('assistant · stub')}</span>
+                  {chat?.length > 0 && <button className="btn text small" onClick={onChatClear}>{t('Clear thread')}</button>}
                 </div>
               </>
             )}
@@ -191,12 +197,13 @@ export function SearchBar({ onSearch, onMenu, results, onPick, onClear, searchin
 }
 
 export function ResultsList({ results, onPick, onClear }) {
+  const { t } = useLang()
   const list = results.results || []
   return (
     <>
       <div className="results-h">
-        <h3>{results.mode === 'assistant' ? 'Assistant' : `${list.length} result${list.length === 1 ? '' : 's'}`}{results.q ? ` · “${results.q}”` : ''}</h3>
-        {onClear && <CloseButton size={34} onClick={onClear} label="Close results" />}
+        <h3>{results.mode === 'assistant' ? t('Assistant') : t(list.length === 1 ? '{n} result' : '{n} results', { n: list.length })}{results.q ? ` · “${results.q}”` : ''}</h3>
+        {onClear && <CloseButton size={34} onClick={onClear} label={t('Close results')} />}
       </div>
       <div className="results-scroll">
         {results.answer && <div className="assistant"><b>✦ </b>{results.answer}</div>}
@@ -211,7 +218,7 @@ export function ResultsList({ results, onPick, onClear }) {
               <span>
                 <div className="t">{p.title}</div>
                 <div className="s">
-                  {p.kind === 'event' ? fmtWhen(p.starts_at) : (p.venue_type || 'venue').replace('_', ' ')}
+                  {p.kind === 'event' ? fmtWhen(p.starts_at) : (p.venue_type || t('venue')).replace('_', ' ')}
                   {p.venue_name && p.kind === 'event' ? ` · ${p.venue_name}` : ''}
                   {' · '}<span style={{ color: c, fontWeight: 600 }}>{categoryLabel(p.categories?.[0])}</span>
                 </div>
@@ -219,7 +226,7 @@ export function ResultsList({ results, onPick, onClear }) {
             </button>
           )
         })}
-        {!list.length && !results.answer && <div className="res-empty">Nothing found. Try “jazz”, “Praga”, “run” or “teatr”.</div>}
+        {!list.length && !results.answer && <div className="res-empty">{t('Nothing found. Try “jazz”, “Praga”, “run” or “teatr”.')}</div>}
       </div>
     </>
   )

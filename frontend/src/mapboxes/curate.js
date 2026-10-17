@@ -1,3 +1,4 @@
+import { locale, translate } from '../i18n'
 /**
  * Map box curation: decide what the small info box shows for a clicked feature.
  * Returns an ordered list of blocks. GET /mapboxes/{id} (backend/UI_CONTRACT.md) is the server-side twin;
@@ -5,7 +6,7 @@
  *
  * Block types rendered by <MapBox>: posters, hours, pitch, live, social, text, facts, tickets
  */
-import { categoryLabel } from '../data/categories'
+import { AUDIENCES, EVENT_TYPES, categoryLabel } from '../data/categories'
 
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
@@ -16,9 +17,9 @@ export function fmtWhen(iso) {
   const now = new Date()
   const sameDay = d.toDateString() === now.toDateString()
   const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1)
-  const day = sameDay ? 'Today' : d.toDateString() === tomorrow.toDateString() ? 'Tomorrow'
-    : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-  const time = d.getHours() + d.getMinutes() === 0 ? '' : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  const day = sameDay ? translate('Today') : d.toDateString() === tomorrow.toDateString() ? translate('Tomorrow')
+    : d.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' })
+  const time = d.getHours() + d.getMinutes() === 0 ? '' : d.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })
   return time ? `${day} · ${time}` : day
 }
 
@@ -29,21 +30,36 @@ export function curate(feature, ctx = {}) {
   if (p.is_public_invite) badges.unshift('Public invite')
   if (p.source === 'warsaw_open_data') badges.push('City data')
 
+  // ---- events people made with "+ Create event" (backend/app/userevents) -----------------------
+  if (p.audience) {
+    const until = p.ends_at && new Date(p.ends_at).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })
+    blocks.push({ type: 'facts', items: [
+      p.starts_at && { icon: 'clock', text: until ? `${fmtWhen(p.starts_at)} – ${until}` : fmtWhen(p.starts_at) },
+      (p.venue_name || p.address) && { icon: 'pin', text: [p.venue_name, p.address].filter(Boolean).join(' · ') },
+    ].filter(Boolean) })
+    blocks.push({ type: 'social', host: p.host?.display_name, attendees: p.attendees, wanting: p.wanting_company,
+      cta: translate(p.audience === 'public' ? 'Join' : p.audience === 'public_confirm' ? 'Ask to join' : "I'm going") })
+    if (p.lead) blocks.push({ type: 'text', text: p.lead })
+    const type = EVENT_TYPES[p.event_type]
+    return { title: p.title, subtitle: p.subtitle || p.venue_name || p.address, image: p.image_url, blocks,
+      badges: [type && translate(type.label), translate(AUDIENCES[p.audience]?.label || p.audience)].filter(Boolean) }
+  }
+
   // ---- events ---------------------------------------------------------------------------------
   if (p.kind === 'event') {
     blocks.push({ type: 'facts', items: [
       p.starts_at && { icon: 'clock', text: fmtWhen(p.starts_at) },
       p.venue_name && { icon: 'pin', text: p.venue_name },
       p.district && { icon: 'map', text: p.district },
-      p.is_recurring && { icon: 'repeat', text: 'Recurring' },
+      p.is_recurring && { icon: 'repeat', text: translate('Recurring') },
     ].filter(Boolean) })
     if (p.is_public_invite) {
       blocks.push({ type: 'social', host: p.host?.display_name, attendees: p.attendees, wanting: p.wanting_company,
-        seats: p.seats_left, capacity: p.capacity, cta: 'Ask to join' })
+        seats: p.seats_left, capacity: p.capacity, cta: translate('Ask to join') })
     } else if (p.attendees || p.wanting_company) {
-      blocks.push({ type: 'social', attendees: p.attendees, wanting: p.wanting_company, cta: "I'm going, come with me" })
+      blocks.push({ type: 'social', attendees: p.attendees, wanting: p.wanting_company, cta: translate("I'm going, come with me") })
     } else {
-      blocks.push({ type: 'social', attendees: 0, wanting: 0, cta: "I'm going, come with me" })
+      blocks.push({ type: 'social', attendees: 0, wanting: 0, cta: translate("I'm going, come with me") })
     }
     if (p.lead) blocks.push({ type: 'text', text: p.lead })
     return { title: p.title, subtitle: p.venue_name || p.address, badges, image: p.image_url, blocks, url: p.url }

@@ -17,21 +17,31 @@ async function get(path, opts = {}) {
   const t = setTimeout(() => ctl.abort(), opts.timeout ?? 2500)
   try {
     const r = await fetch(`${BASE}${path}`, { signal: ctl.signal, ...opts })
-    if (!r.ok) throw new Error(r.status)
+    if (!r.ok) {
+      const body = await r.json().catch(() => null)
+      const detail = Array.isArray(body?.detail) ? body.detail.map((d) => d.msg).join(', ') : body?.detail
+      throw Object.assign(new Error(detail || String(r.status)), { status: r.status })
+    }
+    if (r.status === 204) return null
     return await r.json()
   } finally {
     clearTimeout(t)
   }
 }
 
+/** Image paths the API serves itself (user event photos) come back as "/userevents/…": point them at the API. */
+export const assetUrl = (url) => (url?.startsWith('/') ? `${BASE}${url}` : url)
+const withAssets = (f) => (f.properties.image_url?.startsWith('/') ? { ...f, properties: { ...f.properties, image_url: assetUrl(f.properties.image_url) } } : f)
+
 export async function fetchFeatures() {
   try {
-    const [events, places] = await Promise.all([
+    const [events, places, mine] = await Promise.all([
       get(`/events?bbox=${WARSAW_BBOX.join(',')}&limit=2000`, { timeout: 15000 }),
       get(`/places?bbox=${WARSAW_BBOX.join(',')}`, { timeout: 15000 }),
+      fetchPrivateUserEvents(),
     ])
     dataStatus.source = 'api'
-    return { type: 'FeatureCollection', features: [...events.features, ...places.features] }
+    return { type: 'FeatureCollection', features: [...events.features, ...places.features, ...mine].map(withAssets) }
   } catch {
     dataStatus.source = 'offline'
     return { type: 'FeatureCollection', features: [] }
@@ -230,5 +240,68 @@ export async function fetchBusyAreas() {
     return await get('/busyareas', { timeout: 8000 })
   } catch {
     return { type: 'FeatureCollection', features: [] }
+  }
+}
+
+/* ---------- session + user events (backend/app/userevents) ---------- */
+
+const TOKEN_KEY = 'syrenka.token.v1'
+const readToken = () => { try { return localStorage.getItem(TOKEN_KEY) } catch { return null } }
+
+/**
+ * The bearer token for everything a person does (create events, …). There's no sign-up screen yet,
+ * so the first time it's needed the app opens a guest account (POST /auth/guest) and keeps its token.
+ */
+async function session() {
+  const saved = readToken()
+  if (saved) return saved
+  const { access_token } = await get('/auth/guest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}', timeout: 8000 })
+  try { localStorage.setItem(TOKEN_KEY, access_token) } catch { /* private mode: token lives for this page only */ }
+  return access_token
+}
+
+async function authed(path, { body, ...opts } = {}) {
+  const call = async (token) => get(path, {
+    timeout: 15000, ...opts,
+    headers: { authorization: `Bearer ${token}`, ...(body !== undefined && { 'content-type': 'application/json' }) },
+    ...(body !== undefined && { body: JSON.stringify(body) }),
+  })
+  try {
+    return await call(await session())
+  } catch (e) {
+    if (e.status !== 401) throw e
+    try { localStorage.removeItem(TOKEN_KEY) } catch { /* ignore */ } // stale token (DB reset): open a new guest session
+    return call(await session())
+  }
+}
+
+/** Shrink a photo in the browser (longest side 1600 px, JPEG) so uploads stay small. */
+async function shrinkPhoto(file, max = 1600) {
+  const img = await createImageBitmap(file)
+  const k = Math.min(1, max / Math.max(img.width, img.height))
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(img.width * k); canvas.height = Math.round(img.height * k)
+  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+  return canvas.toDataURL('image/jpeg', 0.85)
+}
+
+/**
+ * "+ Create event": upload the photo (if any), then create. Public audiences land on the Syrenka Users API
+ * (so they're in everyone's GET /events); the returned feature goes straight onto this map.
+ */
+export async function createUserEvent(values, photoFile) {
+  let photo_id = null
+  if (photoFile) photo_id = (await authed('/userevents/photos', { method: 'POST', body: { data_url: await shrinkPhoto(photoFile) } })).id
+  const r = await authed('/userevents', { method: 'POST', body: { ...values, photo_id } })
+  return { event: r.event, feature: withAssets(r.feature) }
+}
+
+/** Friends-only / invitation-only events I can see. Only asked for once this browser has a session. */
+async function fetchPrivateUserEvents() {
+  if (!readToken()) return []
+  try {
+    return (await authed('/userevents/private', { timeout: 8000 })).features
+  } catch {
+    return []
   }
 }

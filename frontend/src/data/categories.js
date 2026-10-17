@@ -1,3 +1,5 @@
+import { translate } from '../i18n'
+
 // Mirrors backend/app/categories.py. Colours are the only frontend addition.
 export const CATEGORIES = {
   music: { label: 'Music', color: '#e7392b' },
@@ -22,7 +24,7 @@ export const CATEGORIES = {
 }
 
 export const categoryColor = (slug) => CATEGORIES[slug]?.color || CATEGORIES.other.color
-export const categoryLabel = (slug) => CATEGORIES[slug]?.label || slug
+export const categoryLabel = (slug) => (CATEGORIES[slug] ? translate(CATEGORIES[slug].label) : slug)
 
 /** MapLibre `match` expression: first category -> colour. */
 export const categoryMatchExpr = () => [
@@ -30,3 +32,29 @@ export const categoryMatchExpr = () => [
   ...Object.entries(CATEGORIES).flatMap(([slug, c]) => [slug, c.color]),
   CATEGORIES.other.color,
 ]
+
+// "+ Create event" types. Mirrors EVENT_TYPES in backend/app/userevents/__init__.py: type -> category (colour).
+export const EVENT_TYPES = {
+  club: { label: 'Club', category: 'nightlife' },
+  concert: { label: 'Concert', category: 'music' },
+  run: { label: 'Run', category: 'running' },
+  sport: { label: 'Sport', category: 'sports' },
+  studying: { label: 'Studying', category: 'study_buddies' },
+  theatre: { label: 'Theatre', category: 'theatre' },
+  film: { label: 'Film', category: 'film' },
+  exhibition: { label: 'Exhibition', category: 'exhibitions' },
+  picnic: { label: 'Picnic', category: 'meetups' },
+  meetup: { label: 'Meetup', category: 'meetups' },
+  party: { label: 'Party', category: 'nightlife' },
+  yoga: { label: 'Yoga', category: 'yoga' },
+  games: { label: 'Games', category: 'meetups' },
+  other: { label: 'Other', category: 'other' },
+}
+
+// Who sees a user event. The first two are public and go onto the Syrenka Users API.
+export const AUDIENCES = {
+  public: { label: 'Fully public', hint: 'Everyone sees it on the map, anyone can join' },
+  public_confirm: { label: 'Public, you confirm', hint: 'Everyone sees it, you approve who joins' },
+  friends: { label: 'Friends only', hint: 'Only your friends see it' },
+  invite: { label: 'Invitation only', hint: 'Only people you invite see it' },
+}
