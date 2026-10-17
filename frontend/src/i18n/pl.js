@@ -371,4 +371,12 @@ export const PL = {
   '{n} stops, from {first}': '{n} przystanków, start: {first}',
   'City data': 'Dane miasta',
   'Open 24 hours': 'Otwarte całą dobę',
+  'You are here': 'Tu jesteś',
+  'My position marker': 'Znacznik mojej pozycji',
+  'Pin with a person': 'Pinezka z postacią',
+  'Pin + "You are here" tag': 'Pinezka + etykieta „Tu jesteś”',
+  'Syrenka pin': 'Pinezka z Syrenką',
+  'Round avatar': 'Okrągły awatar',
+  'Dot with halo': 'Kropka z poświatą',
+  'Classic blue pin': 'Klasyczna niebieska pinezka',
 }

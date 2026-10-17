@@ -77,6 +77,10 @@ export const SECTIONS = [
       { id: 'cityBoundary', label: 'City boundary line', type: 'toggle', default: true },
       { id: 'busyAreas', label: 'Busy areas (golden outlines)', type: 'toggle', default: true },
       { id: 'showMe', label: 'My position (IP based)', type: 'toggle', default: true },
+      { id: 'meStyle', label: 'My position marker', type: 'select', default: 'person', options: [
+        { value: 'person', label: 'Pin with a person' }, { value: 'tag', label: 'Pin + "You are here" tag' },
+        { value: 'syrenka', label: 'Syrenka pin' }, { value: 'avatar', label: 'Round avatar' },
+        { value: 'dot', label: 'Dot with halo' }, { value: 'classic', label: 'Classic blue pin' }] },
       { id: 'routeStyle', label: 'Route line style', type: 'select', default: 'dashed', options: [
         { value: 'dashed', label: 'Dashed' }, { value: 'solid', label: 'Solid' }, { value: 'dots', label: 'Dots' }] },
     ],
