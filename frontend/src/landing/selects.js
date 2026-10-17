@@ -5,7 +5,8 @@
  *   score = soon × kind of event × (photo, description, big-name venue, people going) bonuses
  * Year-long "daily" listings (social services, permanent offers) and things that already ended are
  * dropped. Picking is greedy with penalties for repeating a category or a venue, so the grid reads
- * as a mix. The two best picks that have a photo become the 2-wide headliners.
+ * as a mix. Every pick has a poster. The top row is two normal cards (so more than one shows above
+ * the fold); the two best picks become 2-wide headliners further down.
  *
  * Later: people going / "wants company" counts from our own users, and paid slots (sponsored: true),
  * which the grid already knows how to place.
@@ -38,7 +39,7 @@ export function pickSelects(features, { now = new Date(), count = 12, social = n
     if (!Number.isFinite(start)) continue
     if (p.daily || end - start > 3 * DAY) continue // year-long listings, permanent offers
     if (end < t0 || start - t0 > HORIZON_DAYS * DAY) continue // over, or too far ahead
-    if (!p.image_url && !userMade && !acted) continue // posters only, except the user-generated layer
+    if (!p.image_url) continue // posters only: Syrenka Selects is a visual pick
     const key = p.title.trim().toLowerCase()
     if (seenTitle.has(key)) continue // the same show on several dates: keep the soonest only
     seenTitle.add(key)
@@ -71,11 +72,11 @@ export function pickSelects(features, { now = new Date(), count = 12, social = n
     if (c.venue) venueCount[c.venue] = (venueCount[c.venue] || 0) + 1
   }
 
-  // headliners: the two best picks with a photo; laid out at the top and in the middle of the grid
-  const withPhoto = picked.filter((c) => c.f.properties.image_url)
-  const heads = withPhoto.slice(0, 2)
-  const rest = picked.filter((c) => !heads.includes(c))
-  const order = []
+  // top row: the two best picks side by side; the next two best become wide headliners lower down
+  const top = picked.slice(0, 2)
+  const heads = picked.slice(2, 4)
+  const rest = picked.slice(4)
+  const order = [...top]
   if (heads[0]) order.push({ ...heads[0], wide: true })
   order.push(...rest.slice(0, 4))
   if (heads[1]) order.push({ ...heads[1], wide: true })

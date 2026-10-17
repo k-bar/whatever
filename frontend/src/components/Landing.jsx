@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
@@ -57,6 +57,28 @@ export function Landing({ features, onEnter, getMap }) {
   const loading = !features
   const allCats = Object.keys(CATEGORIES).filter((slug) => slug !== 'other')
 
+  // Keep the search pill in the middle of the screen: the space above the headline is whatever puts the
+  // pill's centre at half the viewport. Syrenka Selects follows the tiles directly, so its first cards
+  // peek in at the bottom. Re-measured when the headline / pill change size or the window resizes.
+  const center = useRef(null)
+  useLayoutEffect(() => {
+    const el = center.current
+    const pill = el?.querySelector('.hero-search')
+    if (!pill) return
+    const fit = () => {
+      const pad = parseFloat(getComputedStyle(el).paddingTop) || 0
+      const pillMid = el.offsetTop + pill.offsetTop + pill.offsetHeight / 2 // layout position, ignores entrance transforms
+      const view = scroller.current?.clientHeight || window.innerHeight
+      el.style.paddingTop = `${Math.max(12, pad + view / 2 - pillMid)}px`
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(pill); ro.observe(el.querySelector('h1'))
+    window.addEventListener('resize', fit)
+    document.fonts?.ready.then(fit)
+    return () => { ro.disconnect(); window.removeEventListener('resize', fit) }
+  }, [])
+
   return (
     <motion.div className="landing" ref={scroller} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.65, ease: 'easeInOut' } }}>
       <section className="hero">
@@ -75,7 +97,7 @@ export function Landing({ features, onEnter, getMap }) {
           </nav>
         </motion.header>
 
-        <div className="hero-center">
+        <div className="hero-center" ref={center}>
           <motion.h1 initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -24 }} transition={{ ...spring, delay: 0.05 }}>
             {t("What's the plan in Warsaw today?")}
           </motion.h1>
@@ -108,7 +130,7 @@ export function Landing({ features, onEnter, getMap }) {
           <h2>{t('Syrenka Selects')}</h2>
         </motion.div>
         <div className="selects-grid">
-          {loading && Array.from({ length: 6 }).map((_, i) => <div key={i} className={`sel-card skeleton ${i === 0 ? 'wide' : ''}`} />)}
+          {loading && Array.from({ length: 6 }).map((_, i) => <div key={i} className={`sel-card skeleton ${i === 2 ? 'wide' : ''}`} />)}
           {!loading && !selects.length && <p className="selects-empty">{t('Nothing picked yet. Open the map to see everything.')}</p>}
           {selects.map(({ feature: f, wide, going, asked, userMade }, i) => {
             const p = f.properties

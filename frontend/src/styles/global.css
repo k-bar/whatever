@@ -883,3 +883,19 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .hero { min-height: 94svh; padding-bottom: 20px; }
 .hero-center { flex: 1; justify-content: center; padding: 10vh 16px 3vh; gap: 26px; }
 @media (max-width: 767px) { .hero-center { padding-top: 6vh; } }
+
+/* ---------- start page v5: search pill exactly mid-screen (Landing.jsx sets .hero-center's padding-top),
+   Syrenka Selects immediately under the six tiles so its first cards peek in at the bottom ---------- */
+.hero { min-height: 0; padding-bottom: 22px; }
+.hero-center { flex: none; justify-content: flex-start; padding-bottom: 0; }
+.hero-more { display: none; }
+@media (max-width: 767px) {
+  /* phones: tighter tiles + gap so the first Syrenka Selects cards still peek in under a centred search */
+  .hero { padding-bottom: 10px; }
+  .hero-tile { min-height: 64px; }
+  .selects > .selects-head { margin-bottom: 10px; }
+  .account-login { height: 36px; padding: 0 13px; font-size: 13px; }
+}
+@media (max-width: 420px) {
+  .landing-nav > button { display: none; } /* "Map": the search, tiles and "Open the map" lead there too; leaves room for Log in */
+}
