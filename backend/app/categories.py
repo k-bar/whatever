@@ -69,6 +69,19 @@ LABEL_MAP = {
     "osm:stadium": "sports",
     "osm:museum": "exhibitions",
     "osm:gallery": "exhibitions",
+    # KupBilecik categories and schema.org event types
+    "teatr": "theatre",
+    "muzyka": "music",
+    "kabaret": "theatre",
+    "stand-up": "nightlife",
+    "impro": "theatre",
+    "festiwal": "festivals",
+    "dzieci": "family",
+    "theaterevent": "theatre",
+    "musicevent": "music",
+    "comedyevent": "nightlife",
+    "sportsevent": "sports",
+    "festivalevent": "festivals",
 }
 
 # Title keywords refine broad labels like "Kultura".

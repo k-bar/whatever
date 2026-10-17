@@ -71,21 +71,84 @@ Rules for `RawEvent`:
 - No coordinates? Fill `address`. The loader geocodes it.
 - Put the source's own category labels in `categories_raw`. The backend maps them in `app/categories.py`.
 
-## Using the API (Philip)
+## Using the API / Fetching data from AWS RDS (Philip & consumers)
 
-- Interactive docs and schemas: `<api-url>/docs`. OpenAPI JSON: `<api-url>/openapi.json`.
-- Map: `GET /events?bbox=west,south,east,north&from=&to=&category=music` returns GeoJSON, one feature per occurrence.
+The entire backend runs on EC2 in the same AWS VPC (`eu-north-1`) as the PostgreSQL RDS instance (`warszawa`) and serves data directly from RDS behind CloudFront:
+
+- **Dev API** (reads from RDS schema `dev`): `https://api-dev.syrenka.me`
+- **Prod API** (reads from RDS schema `public`): `https://api.syrenka.me`
+- **Interactive docs & schemas**: `<api-url>/docs` | **OpenAPI JSON**: `<api-url>/openapi.json`
+
+### Endpoints reading from AWS RDS
+
+| Endpoint | Description | Key query parameters |
+|---|---|---|
+| `GET /events` | GeoJSON `FeatureCollection` of events & classes (one feature per occurrence) | `bbox=west,south,east,north`, `from=ISO8601`, `to=ISO8601`, `category=music,sport,...`, `kind=event\|class\|place`, `q=<search>`, `district=<name>`, `free_only=true`, `lang=pl\|en`, `limit=1000` |
+| `GET /events/now` | GeoJSON `FeatureCollection` of events happening right now or starting within `within_hours` | `within_hours=3` (`1`–`24`), `lang=pl\|en` |
+| `GET /events/{id}` | Full details of a single event / place / class (including all occurrences and social counts) | `lang=pl\|en` |
+| `GET /places` | GeoJSON `FeatureCollection` of static places & amenities (AEDs, public toilets, open pitches, OSM venues) | `bbox=west,south,east,north`, `category=sport,utility,culture,...`, `q=<search>`, `district=<name>`, `lang=pl\|en` |
+| `GET /conditions` | Latest weather (`weather_stations`) and air quality (`air_stations`) readings from RDS as GeoJSON points + summary | — |
+| `GET /routes` | Tourist routes (`tourist_routes` LineStrings) from RDS as GeoJSON `FeatureCollection` | `lang=pl\|en` |
+| `GET /sources` | Ingestion status (`last_status`, `last_run_at`, `item_count`) for all registered RDS data sources (`warsaw_events`, `kupbilecik`, `osm_venues`, `warsaw_sport`, `warsaw_pitches`, `warsaw_aed`, `warsaw_toilets`, `warsaw_air`, `warsaw_weather`, `warsaw_routes`) | — |
+| `GET /categories` | Available map categories (`music`, `art`, `film`, `theatre`, `sport`, `science`, `kids`, `food`, `market`, `tour`, `workshop`, `party`, `talks`, `outdoor`, `community`, `utility`, `other`) | `lang=pl\|en` |
+| `GET /busy-areas` | GeoJSON polygons of busy areas in Warsaw | — |
+
+### Example API requests (`curl`)
+
+```bash
+# 1. Check all RDS data sources and record counts
+curl -s https://api-dev.syrenka.me/sources | jq
+
+# 2. Fetch upcoming events in Warsaw (GeoJSON)
+curl -s "https://api-dev.syrenka.me/events?limit=100&lang=pl" | jq '.features | length'
+
+# 3. Filter events by bounding box and category (e.g. music & theatre)
+curl -s "https://api-dev.syrenka.me/events?bbox=20.85,52.10,21.27,52.37&category=music,theatre" | jq
+
+# 4. Fetch static places/amenities (AEDs, toilets, open pitches, OSM venues)
+curl -s "https://api-dev.syrenka.me/places?category=utility,sport" | jq
+
+# 5. Fetch current weather & air quality conditions and tourist routes
+curl -s https://api-dev.syrenka.me/conditions | jq '.summary'
+curl -s https://api-dev.syrenka.me/routes | jq
+```
+
 - Login: `POST /auth/login` returns `access_token`. Send it as `Authorization: Bearer <token>`.
 - Need something else? Open an **API request** issue.
 
-## On the box (needs AWS access to account 015454941566, ask @JustCodeMeV)
+## On the box & EC2 + RDS deployment setup (needs AWS access to account 015454941566, ask @JustCodeMeV)
+
+> **Important for whoever deploys on EC2:** The entire backend (`warszawa-api`, `warszawa-ingest`, `warszawa-conditions`, and the `src/` RDS synchronizer) runs on the EC2 instance in the **same AWS VPC (`eu-north-1`) as the RDS PostgreSQL database** (`warszawalivedb-postgres9dc8bb04-covqyqx6uo8t.cba6qiu6ipoi.eu-north-1.rds.amazonaws.com`, database `warszawa`). It connects directly to RDS over the internal AWS network (never through a developer laptop tunnel). Whoever deploys or provisions the EC2 box must make sure the environment, schema migrations, and systemd timers are configured as described below.
+
+1. **Environment configuration (`/etc/warszawa/instance.env`) on the EC2 box** — must be present before running `deploy/deploy.sh` or starting the systemd services:
+   ```ini
+   APP_ENV=dev                                 # "dev" or "prod"
+   DB_SCHEMA=dev                               # "dev" on the dev EC2 box, "public" on prod
+   DATABASE_URL=postgresql+psycopg://<db_user>:<db_password>@warszawalivedb-postgres9dc8bb04-covqyqx6uo8t.cba6qiu6ipoi.eu-north-1.rds.amazonaws.com:5432/warszawa?sslmode=require
+   WARSAW_API_TOKEN=<api-key-for-dane.um.warszawa.pl>
+   INGEST_GEOCODE_LIMIT=200
+   INGEST_SCHEDULE=*-*-* *:05:00
+   API_URL=https://api-dev.syrenka.me          # or https://api.syrenka.me on prod
+   ```
+2. **Database migrations & systemd services (`deploy/deploy.sh`)** — when deploying on EC2, ensure:
+   - Alembic migrations are applied to the target RDS schema: `cd backend && .venv/bin/alembic upgrade head`
+   - All 13 raw/historical tables in RDS (`tourist_routes`, `tourist_points`, `toilets`, `weather_measurements`, `defibrillators`, `sports_activities`, `open_sports_fields`, `city_events`, `air_quality_stations`, `air_quality_measurements`, `kupbilecik_events`, `streets_gl_venues`, `sync_logs`) are initialized and synced:
+     ```bash
+     DB_SCHEMA=dev DATABASE_URL="..." WARSAW_API_KEY="..." python -m src.main
+     ```
+   - The systemd services and timers are enabled and running so `events`, `event_occurrences`, `sources`, `weather_stations`, `air_stations`, and `tourist_routes` in RDS stay populated for FastAPI:
+     ```bash
+     sudo systemctl enable --now warszawa-api.service
+     sudo systemctl enable --now warszawa-ingest.timer
+     sudo systemctl enable --now warszawa-conditions.timer
+     ```
 
 No SSH: use Session Manager (`aws ssm start-session --target <instance from deploy/environments.json>`).
 
 ```bash
 journalctl -u warszawa-agent -f        # deploys
 journalctl -u warszawa-api -f          # API
-sudo systemctl start warszawa-ingest   # run ingestion now; results in GET /sources
+sudo systemctl start warszawa-ingest   # run ingestion now (including kupbilecik, osm_venues, warsaw_*); results in GET /sources
 sudo systemctl start warszawa-conditions  # refresh weather + air quality now
 ```
 

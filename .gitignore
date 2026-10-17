@@ -7,9 +7,11 @@ relaytok*.txt
 
 # python
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
+venv/
 .pytest_cache/
+.mypy_cache/
 .ruff_cache/
 backend/scripts/_cache/
 
@@ -19,6 +21,7 @@ backend/db/zdjecia/
 
 # project-local Postgres (backend/scripts/dev-postgres.sh)
 .dev/
+pgdata/
 
 # macOS
 .DS_Store
@@ -29,3 +32,4 @@ infra/*outputs.json
 
 # personal editor / agent config
 .claude/
+.idea/
