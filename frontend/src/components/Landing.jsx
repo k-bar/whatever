@@ -1,36 +1,68 @@
-import { useMemo, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { useMemo, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useSpring } from '../config/store'
-import { categoryColor, categoryLabel } from '../data/categories'
+import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { useLang } from '../i18n'
 import { pickSelects, secureImage } from '../landing/selects'
 import { fmtWhen } from '../mapboxes/curate'
 import { Brand } from './Brand'
 import { LandingSearch } from './LandingSearch'
 import { FlagPL, FlagUK } from './LangSwitch'
+import { Calendar as CalendarIcon, Chevron, Flame, Layers, MapIcon, Mermaid, Music, Sparkle, Ticket, Users } from './Icons'
+import { LandingNetwork } from './LandingNetwork'
+import { useIsMobile } from '../hooks/useMedia'
 
-const CHIPS = [
-  { label: 'Today', window: 'today' }, { label: 'This weekend', window: 'weekend' },
-  { label: 'Concerts', category: 'music' }, { label: 'For kids', category: 'family' },
-  { label: 'Cinema', category: 'film' }, { label: 'Exhibitions', category: 'exhibitions' },
+// Quick tiles under the search. Colours come from our category palette; the "together" tiles carry a
+// people badge to say this is user-made content (public invitations), not just listings.
+const TILES = [
+  { label: 'Concerts', category: 'music', Icon: Music },
+  { label: 'Theatre & film', category: 'theatre', Icon: Ticket },
+  { label: 'Nightlife', category: 'nightlife', Icon: Flame },
+  { label: 'Exhibitions', category: 'exhibitions', Icon: Layers },
+  { label: 'Picnic together', category: 'meetups', people: true, Icon: Sparkle },
+  { label: 'Concert together', category: 'music', people: true, Icon: Music },
+  { label: 'Sightseeing tour', category: 'culture', people: true, Icon: MapIcon },
+  { label: 'More', more: true, Icon: Chevron },
 ]
+
+function Tile({ tile, onClick, small, delay = 0, open }) {
+  const { t } = useLang()
+  const c = tile.more ? 'var(--fg)' : categoryColor(tile.category)
+  const I = tile.Icon
+  return (
+    <motion.button className={`hero-tile ${tile.people ? 'people' : ''} ${tile.more ? 'more' : ''} ${small ? 'small' : ''}`} style={{ '--c': c }} onClick={onClick}
+      layout initial={{ opacity: 0, y: 14, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+      transition={{ type: 'spring', stiffness: 420, damping: 28, delay }} whileHover={{ y: -3, scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+      <span className="tile-ic">{I && <I size={small ? 16 : 20} />}</span>
+      {tile.people && <span className="tile-people" title={t('Made by people like you')}><Users size={14} /></span>}
+      <span className="tile-label">{t(tile.label)}</span>
+      {tile.more && <motion.span className="tile-chev" animate={{ rotate: open ? 180 : 0 }}><Chevron size={16} /></motion.span>}
+    </motion.button>
+  )
+}
 
 /**
  * The start page ("Search"): headline + big search over the live map (washed out), quick chips, and
  * "Syrenka poleca" below. Nothing here reloads the map: entering just fades the wash away while the
  * search pill (shared layoutId "search-pill") flies to its top-left spot on the map.
  */
-export function Landing({ features, onEnter }) {
+export function Landing({ features, onEnter, getMap }) {
   const { t, lang, setLang } = useLang()
+  const mobile = useIsMobile()
   const spring = useSpring()
   const scroller = useRef(null)
-  const selects = useMemo(() => pickSelects(features), [features])
+  const [more, setMore] = useState(false)
+  const [broken, setBroken] = useState(() => new Set()) // posters that failed to load drop out of Syrenka Selects
+  const selects = useMemo(() => pickSelects(features).filter(({ feature: f }) => !broken.has(f.properties.event_id)), [features, broken])
   const loading = !features
+  const allCats = Object.keys(CATEGORIES).filter((slug) => slug !== 'other')
 
   return (
     <motion.div className="landing" ref={scroller} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.65, ease: 'easeInOut' } }}>
       <section className="hero">
         <div className="hero-wash" />
+        {/* made-up people connecting over the map; fades out with the start page */}
+        {getMap && <LandingNetwork getMap={getMap} mobile={mobile} />}
         <motion.header className="landing-head" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={spring}>
           <Brand size="lg" onHome={() => scroller.current?.scrollTo({ top: 0, behavior: 'smooth' })} />
           <nav className="landing-nav">
@@ -48,11 +80,22 @@ export function Landing({ features, onEnter }) {
             {t("What's the plan in Warsaw today?")}
           </motion.h1>
           <LandingSearch layoutId="search-pill" features={features} onSearch={onEnter} />
-          <motion.div className="hero-chips" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ ...spring, delay: 0.12 }}>
-            {CHIPS.map((c, i) => (
-              <button key={c.label} className={`hero-chip ${i % 2 ? 'warm' : 'cool'}`} onClick={() => onEnter({ window: c.window, category: c.category, label: t(c.label) })}>{t(c.label)}</button>
+          <motion.div className="hero-tiles" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ ...spring, delay: 0.12 }}>
+            {TILES.map((tile, i) => (
+              <Tile key={tile.label} tile={tile} delay={0.15 + i * 0.04} open={more}
+                onClick={() => (tile.more ? setMore((m) => !m) : onEnter({ category: tile.category, label: t(tile.label), people: tile.people }))} />
             ))}
           </motion.div>
+          <AnimatePresence>
+            {more && (
+              <motion.div className="hero-tiles all" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}>
+                {allCats.map((slug, i) => (
+                  <Tile key={slug} small delay={i * 0.025} tile={{ label: CATEGORIES[slug].label, category: slug }}
+                    onClick={() => onEnter({ category: slug, label: categoryLabel(slug) })} />
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         <motion.button className="hero-more" onClick={() => document.getElementById('syrenka-selects')?.scrollIntoView({ behavior: 'smooth' })}
           initial={{ opacity: 0 }} animate={{ opacity: 1, y: [0, 6, 0] }} transition={{ delay: 0.6, y: { repeat: Infinity, duration: 2.2 } }}>
@@ -61,10 +104,15 @@ export function Landing({ features, onEnter }) {
       </section>
 
       <section className="selects" id="syrenka-selects">
-        <div className="selects-head">
-          <h2>{t('Syrenka Selects')}</h2>
-          <p>{t('The best of Warsaw in the next two weeks, picked automatically from real events.')}</p>
-        </div>
+        <motion.div className="selects-head" initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-20px' }} transition={spring}>
+          <span className="selects-badge"><Mermaid variant="09-mono" size={44} /></span>
+          <div>
+            <div className="selects-kicker"><Sparkle size={13} /> {t('Hand-picked, every day')}</div>
+            <h2>{t('Syrenka Selects')}</h2>
+            <p>{t('The best of Warsaw in the next two weeks, picked automatically from real events.')}</p>
+          </div>
+          <div className="selects-count">{selects.length} <small>{t('picks')}</small></div>
+        </motion.div>
         <div className="selects-grid">
           {loading && Array.from({ length: 6 }).map((_, i) => <div key={i} className={`sel-card skeleton ${i === 0 ? 'wide' : ''}`} />)}
           {!loading && !selects.length && <p className="selects-empty">{t('Nothing picked yet. Open the map to see everything.')}</p>}
@@ -74,7 +122,8 @@ export function Landing({ features, onEnter }) {
             return (
               <motion.button key={p.event_id} className={`sel-card ${wide ? 'wide' : ''}`} onClick={() => onEnter({ feature: f })}
                 initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ ...spring, delay: (i % 4) * 0.05 }}>
-                <div className="sel-img" style={p.image_url ? { backgroundImage: `url(${secureImage(p.image_url)})` } : { background: `linear-gradient(135deg, ${categoryColor(cat)}, color-mix(in srgb, ${categoryColor(cat)} 40%, #fff))` }}>
+                <div className="sel-img">
+                  <img className="sel-photo" src={secureImage(p.image_url)} alt="" loading="lazy" onError={() => setBroken((b) => new Set(b).add(p.event_id))} />
                   <span className="sel-cat" style={{ color: categoryColor(cat) }}>{categoryLabel(cat)}</span>
                 </div>
                 <div className="sel-body">

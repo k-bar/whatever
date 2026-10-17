@@ -35,6 +35,7 @@ export default function App() {
   const { lang, t } = useLang()
   const mobile = useIsMobile()
   const mapRef = useRef(null)
+  const getMap = useCallback(() => mapRef.current?.getMap(), []) // stable: the start page's network visual keeps its timers across renders
   const fav = useFavourites()
 
   const [features, setFeatures] = useState(null)
@@ -233,7 +234,7 @@ export default function App() {
       <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
         onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={view === 'map'} draftPin={draftPin} onDraftPin={setDraftPin} />
 
-      <AnimatePresence>{view === 'landing' && <Landing key="landing" features={features ? featureList : null} onEnter={enterMap} />}</AnimatePresence>
+      <AnimatePresence>{view === 'landing' && <Landing key="landing" features={features ? featureList : null} onEnter={enterMap} getMap={getMap} />}</AnimatePresence>
 
       <AnimatePresence>{view === 'map' && [
 

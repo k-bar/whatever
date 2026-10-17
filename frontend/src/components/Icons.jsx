@@ -44,6 +44,7 @@ export const Walk = (p) => <S {...p}><circle cx="13" cy="4" r="1.8" /><path d="M
 export const Bike = (p) => <S {...p}><circle cx="5.5" cy="17" r="3.5" /><circle cx="18.5" cy="17" r="3.5" /><path d="M5.5 17 10 9h5l3.5 8" /><path d="M10 9l3 8" /><path d="M13 6h3" /></S>
 export const Send = (p) => <S {...p}><path d="m3 11 18-8-8 18-2-8Z" /></S>
 export const History = (p) => <S {...p}><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /><path d="M12 7v5l3 2" /></S>
+export const Music = (p) => <S {...p}><path d="M9 18V6l11-2v12" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" /></S>
 export const FACT_ICON = { clock: Clock, pin: Pin, map: MapIcon, repeat: Repeat, users: Users, access: Access, phone: Phone }
 
 /** The Warsaw mermaid (Syrenka): the city's red shield, frontend/mermaid.svg. */

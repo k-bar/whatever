@@ -23,7 +23,7 @@ const KIND = {
 
 const BIG_VENUE = /stadion|narodow|teatr wielki|filharmoni|torwar|progresj|stodo|palladium|tama|hala koszyki|kopernik|zachęt|muzeum|łazienk|pałac kultury|plac defilad|koneser|elektrowni/i
 
-export function pickSelects(features, { now = new Date(), count = 10 } = {}) {
+export function pickSelects(features, { now = new Date(), count = 12 } = {}) {
   const t0 = now.getTime()
   const seenTitle = new Set()
   const candidates = []
@@ -34,6 +34,7 @@ export function pickSelects(features, { now = new Date(), count = 10 } = {}) {
     if (!Number.isFinite(start)) continue
     if (p.daily || end - start > 3 * DAY) continue // year-long listings, permanent offers
     if (end < t0 || start - t0 > HORIZON_DAYS * DAY) continue // over, or too far ahead
+    if (!p.image_url) continue // Syrenka Selects shows posters only
     const key = p.title.trim().toLowerCase()
     if (seenTitle.has(key)) continue // the same show on several dates: keep the soonest only
     seenTitle.add(key)
