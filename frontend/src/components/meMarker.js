@@ -20,7 +20,7 @@ export const ME_STYLES = {
   person: () => RINGS + GROUND + pin(PERSON),
   // the same pin with a small white "You are here" tag beside it
   tag: (label = 'You are here') => RINGS + GROUND + pin(PERSON) + `<span class="me-label">${esc(label)}</span>`,
-  // white pin with an accent rim, the Syrenka shield in the face
+  // white pin with an accent rim, the Syrenka shield in the face (default)
   syrenka: () => RINGS + GROUND + pin(`<img src="${mermaidSvg}" alt="" draggable="false">`),
   // round avatar: white face with a figure, accent ring, wide soft halo
   avatar: () => '<span class="halo"></span>' + RINGS + `<span class="me-face">${PERSON}</span>`,

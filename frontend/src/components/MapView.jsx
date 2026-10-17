@@ -349,8 +349,8 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     meMarker.current?.remove(); meMarker.current = null
     if (!me || !values.showMe) return
     const el = document.createElement('div')
-    el.className = `me-marker me-${ME_STYLES[values.meStyle] ? values.meStyle : 'person'}`
-    el.innerHTML = ME_STYLES[values.meStyle] ? ME_STYLES[values.meStyle](t('You are here')) : ME_STYLES.person()
+    el.className = `me-marker me-${ME_STYLES[values.meStyle] ? values.meStyle : 'syrenka'}`
+    el.innerHTML = ME_STYLES[values.meStyle] ? ME_STYLES[values.meStyle](t('You are here')) : ME_STYLES.syrenka()
     meMarker.current = new maplibregl.Marker({ element: el }).setLngLat(me).addTo(m)
   }, [me, values.showMe, values.meStyle, t])
 
