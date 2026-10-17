@@ -297,4 +297,7 @@ export const PL = {
   'District': 'Dzielnica',
   'Venue': 'Lokal',
   'Address': 'Adres',
+  // ongoing events in search results
+  'Now · until {time}': 'Teraz · do {time}',
+  'On until {date}': 'Trwa do {date}',
 }

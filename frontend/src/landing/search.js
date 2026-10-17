@@ -3,7 +3,7 @@
  * event type, or an address). Every part is optional; with nothing filled in it simply opens the map.
  */
 import { CATEGORIES, EVENT_TYPES, categoryLabel } from '../data/categories'
-import { haversineKm } from '../data/api'
+import { haversineKm, upcoming } from '../data/api'
 import { translate } from '../i18n'
 
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
@@ -63,7 +63,7 @@ const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); retur
 
 /** Run the three-part search over the loaded pins. Returns the matches, best first. */
 export function landingSearch({ q = '', when, where }, features) {
-  let pool = features || []
+  let pool = upcoming(features) // past events are kept, but never searched
   if (when) {
     const from = startOfDay(when.from), to = startOfDay(when.to); to.setDate(to.getDate() + 1)
     pool = pool.filter(({ properties: p }) => {

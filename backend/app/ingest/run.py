@@ -13,7 +13,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from shapely.geometry import Point, shape
-from sqlalchemy import delete, exists, select, true, update
+from sqlalchemy import delete, exists, func, select, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -105,11 +105,13 @@ def upsert_event(db: Session, source: Source, raw: RawEvent, geocoder: Geocoder 
                 set_={"ends_at": o.excluded.ends_at, "daily": o.excluded.daily},
             )
         )
-    # drop occurrences the source no longer lists, unless people already attend them
+    # drop upcoming occurrences the source no longer lists (cancelled / moved), unless people already
+    # attend them. Finished ones stay: sources stop listing past dates, but we keep them as history.
     db.execute(
         delete(Occurrence).where(
             Occurrence.event_id == event_id,
             Occurrence.starts_at.not_in(starts) if starts else true(),
+            func.coalesce(Occurrence.ends_at, Occurrence.starts_at) >= datetime.now(UTC),
             ~exists().where(Attendance.occurrence_id == Occurrence.id),
             ~exists().where(JoinRequest.occurrence_id == Occurrence.id),
         )

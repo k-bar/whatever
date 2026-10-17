@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from '../config/store'
 import { Burger, Calendar, Chevron, Database, History, Message, Plus, Search, Sparkle, Star, User, X, Minus } from './Icons'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
-import { fmtWhen } from '../mapboxes/curate'
+import { fmtWhenFor } from '../mapboxes/curate'
 import { Brand } from './Brand'
 import { CloseButton } from './CloseButton'
 import { useLang } from '../i18n'
@@ -186,7 +186,7 @@ export function SearchBar({ onSearch, onMenu, onHome, results, onPick, onClear, 
                       {m.results?.length > 0 && <div className="msg-results">{m.results.slice(0, 4).map((f) => (
                         <button key={f.id} className="res-item mini" onClick={() => onPick(f)}>
                           <span className="thumb" style={f.properties.image_url ? { backgroundImage: `url(${f.properties.image_url})` } : { background: categoryColor(f.properties.categories?.[0]) }}>{!f.properties.image_url && f.properties.title[0]}</span>
-                          <span><div className="t">{f.properties.title}</div><div className="s">{f.properties.kind === 'event' ? fmtWhen(f.properties.starts_at) : f.properties.venue_name}</div></span>
+                          <span><div className="t">{f.properties.title}</div><div className="s">{f.properties.kind === 'event' ? fmtWhenFor(f.properties) : f.properties.venue_name}</div></span>
                         </button>))}</div>}
                     </div>
                   ))}
@@ -238,7 +238,7 @@ export function ResultsList({ results, onPick, onClear }) {
               <span>
                 <div className="t">{p.title}</div>
                 <div className="s">
-                  {p.kind === 'event' ? fmtWhen(p.starts_at) : (p.venue_type || t('venue')).replace('_', ' ')}
+                  {p.kind === 'event' ? fmtWhenFor(p) : (p.venue_type || t('venue')).replace('_', ' ')}
                   {p.venue_name && p.kind === 'event' ? ` · ${p.venue_name}` : ''}
                   {' · '}<span style={{ color: c, fontWeight: 600 }}>{categoryLabel(p.categories?.[0])}</span>
                 </div>
