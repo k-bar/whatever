@@ -51,6 +51,7 @@ Planowane tabele:
 - `src/main.py` — punkt wejścia CLI (obsługa flag `--dataset`, `--group {fast,slow}`, `--watch`, `--init-only`)
 - `tests/test_ingestor.py` — testy jednostkowe transformacji i zapisu danych
 - `tests/test_scheduler.py` — testy jednostkowe harmonogramu (`src/scheduler.py`) oraz konfiguracji AWS RDS
+- `man.md` — kompletna instrukcja uruchomienia lokalnego i wdrożenia w AWS (RDS + EC2 / Lambda) w języku angielskim
 
 ---
 
@@ -75,3 +76,4 @@ Planowane tabele:
 - **2026-10-17 (Aktualizacja planu — Harmonogram i AWS)**: Zaktualizowano plan o **Krok 5** i **Krok 6** — wbudowany harmonogram Pythona (10 min dla pogody/powietrza, 2h dla pozostałych) oraz bezpośrednie wsparcie dla zarządzanej bazy PostgreSQL w AWS (Amazon RDS) i wywołań cyklicznych (tryb `--watch` dla EC2/ECS lub `--group fast|slow` / `lambda_handler` dla AWS EventBridge + Lambda).
 - **2026-10-17 (Krok 5)**: Rozszerzono `src/config.py` o obsługę zmiennych środowiskowych AWS RDS (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE`), utworzono `src/scheduler.py` (`DatasetScheduler`, `get_specs_for_group`, `lambda_handler`) oraz dodano flagi `--watch` i `--group` w `src/main.py`. Zweryfikowano `flake8`, `mypy` (0 błędów w 8 plikach) oraz synchronizację grupy `fast`.
 - **2026-10-17 (Krok 6)**: Utworzono `tests/test_scheduler.py`. Zweryfikowano cały projekt: `flake8 src tests` (0 błędów), `mypy src tests` (0 błędów w 9 plikach) oraz `pytest -v` (7/7 testów zaliczonych).
+- **2026-10-17 (Dokumentacja wdrożenia)**: Dodano `man.md` z instrukcją uruchomienia i wdrożenia w AWS w języku angielskim.
