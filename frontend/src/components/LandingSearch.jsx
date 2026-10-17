@@ -9,15 +9,15 @@ import { Calendar as CalendarIcon, MapIcon, Pin, Search, Sparkle, X } from './Ic
 
 const WHERE_ICON = { type: Sparkle, district: MapIcon, venue: Pin, place: Pin }
 
-function whenLabel(w) {
+export function whenLabel(w) {
   if (!w) return null
   if (w.preset) return w.label
   const same = w.from.toDateString() === w.to.toDateString()
   return same ? fmtDay(w.from) : `${w.from.toLocaleDateString(locale(), { day: 'numeric', month: 'short' })} – ${w.to.toLocaleDateString(locale(), { day: 'numeric', month: 'short' })}`
 }
 
-/** "When": quick picks + a range calendar. Optional. */
-function WhenPart({ value, onChange }) {
+/** "When": quick picks + a range calendar. Optional. onDone: a quick pick or Done was pressed. */
+export function WhenPart({ value, onChange, onDone }) {
   const { t } = useLang()
   const spring = useSpring()
   const { open, setOpen, ref } = usePopover()
@@ -35,14 +35,14 @@ function WhenPart({ value, onChange }) {
           <motion.div className="hs-pop cal-pop surface" initial={{ opacity: 0, y: -8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.97 }} transition={spring}>
             <div className="when-presets">
               {presets.map((p) => (
-                <button type="button" key={p.label} className={`when-chip ${value?.label === p.label ? 'on' : ''}`} onClick={() => { onChange({ ...p, preset: true }); setOpen(false) }}>{p.label}</button>
+                <button type="button" key={p.label} className={`when-chip ${value?.label === p.label ? 'on' : ''}`} onClick={() => { onChange({ ...p, preset: true }); setOpen(false); onDone?.() }}>{p.label}</button>
               ))}
             </div>
             <Calendar mode="range" selected={range} defaultMonth={value?.from}
               onSelect={(r) => { if (r?.from) onChange({ from: r.from, to: r.to || r.from }) }} />
             <div className="when-foot">
               <button type="button" className="btn text small" onClick={() => onChange(null)}>{t('Any time')}</button>
-              <button type="button" className="btn small primary" onClick={() => setOpen(false)}>{t('Done')}</button>
+              <button type="button" className="btn small primary" onClick={() => { setOpen(false); onDone?.() }}>{t('Done')}</button>
             </div>
           </motion.div>
         )}
@@ -52,7 +52,7 @@ function WhenPart({ value, onChange }) {
 }
 
 /** "Where": type a district, venue, event type or address. Optional. */
-function WherePart({ value, onChange, features }) {
+export function WherePart({ value, onChange, features }) {
   const { t } = useLang()
   const spring = useSpring()
   const { open, setOpen, ref } = usePopover()
