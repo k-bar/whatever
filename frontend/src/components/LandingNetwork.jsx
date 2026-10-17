@@ -43,6 +43,8 @@ const LINK_EVERY_MS = 600 // a new set of lines starts (about three times as man
 const DRAW_MS = 1950 // a line travels from one person to the other (slowed 30% from 1.5 s); keep .ln-reveal in sync
 const HOLD_MS = 1600 // then stays a moment before fading
 const FADE_MS = 600
+const START_MS = 1200 // a moment of just the map before the first person appears
+const STAGGER_MS = 440 // then they arrive one after another (twice as spread out as before)
 
 const Person = () => <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.6" r="4.3" /><path d="M3.4 22c0-5 3.9-8.4 8.6-8.4s8.6 3.4 8.6 8.4z" /></svg>
 
@@ -143,13 +145,13 @@ export function LandingNetwork({ getMap, mobile }) {
       render()
     }
 
-    for (let n = 0; n < max; n++) later(show, 200 + n * 220) // pop in one after another
+    for (let n = 0; n < max; n++) later(show, START_MS + n * STAGGER_MS) // pop in one after another
     const swap = setInterval(() => {
       const people = live(), spots = spotsRef.current, max = Math.min(spots.length, cap)
       if (people.length >= max && spots.length > max) { hide(people[0]); later(show, POP_MS / 2) } else if (people.length < max) show()
     }, SWAP_MS)
     const lines = values.reduceMotion ? null : setInterval(link, LINK_EVERY_MS)
-    later(link, 200 + max * 220)
+    later(link, START_MS + max * STAGGER_MS)
     return () => { timers.forEach(clearTimeout); clearInterval(swap); if (lines) clearInterval(lines) }
   }, [ready, mobile, values.reduceMotion])
 
