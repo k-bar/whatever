@@ -5,6 +5,7 @@ import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { useLang } from '../i18n'
 import { pickSelects, secureImage } from '../landing/selects'
 import { fmtWhen } from '../mapboxes/curate'
+import { Brand } from './Brand'
 import { LandingSearch } from './LandingSearch'
 import { FlagPL, FlagUK } from './LangSwitch'
 import { Calendar as CalendarIcon, Chevron, Flame, Layers, MapIcon, Mermaid, Music, Sparkle, Ticket, Users } from './Icons'
@@ -91,6 +92,7 @@ export function Landing({ features, onEnter, getMap }) {
         {/* made-up people connecting over the map; fades out with the start page */}
         {getMap && <LandingNetwork getMap={getMap} mobile={mobile} />}
         <motion.header className="landing-head" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={spring}>
+          <Brand size="lg" onHome={() => scroller.current?.scrollTo({ top: 0, behavior: 'smooth' })} />
           <nav className="landing-nav">
             <button onClick={() => onEnter({})}>{t('Map')}</button>
             <span className="landing-lang">
@@ -101,12 +103,6 @@ export function Landing({ features, onEnter, getMap }) {
         </motion.header>
 
         <div className="hero-center" ref={center}>
-          {/* the logo, centred and big, right above the headline (it used to sit small in the top-left corner) */}
-          <motion.button className="hero-logo" onClick={() => scroller.current?.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="syrenka.me"
-            initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -24 }} transition={spring}>
-            <Mermaid size={92} className="hero-logo-mark" />
-            <span className="hero-logo-name">syrenka.me</span>
-          </motion.button>
           <motion.h1 initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -24 }} transition={{ ...spring, delay: 0.05 }}>
             {t("What's the plan in Warsaw today?")}
           </motion.h1>

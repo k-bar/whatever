@@ -13,13 +13,14 @@ import { Mermaid } from './Icons'
  * "Syrenka poleca" in the right-hand bar, opened by the mermaid button next to the search bar.
  * Same picks as the start page: headliners get a big photo, the rest are compact rows.
  */
-export function SelectsRail({ features, onPick, onClose, inSheet = false }) {
+/** single: one column of full posters (the slide-over tray's "1 wide" view). */
+export function SelectsRail({ features, onPick, onClose, inSheet = false, single = false }) {
   const { t } = useLang()
   const spring = useSpring()
   const social = useSocial()
   const selects = useMemo(() => pickSelects(features, { social }), [features, social])
   return (
-    <motion.section className={`selects-rail ${inSheet ? 'in-sheet' : 'surface'}`} layout
+    <motion.section className={`selects-rail ${inSheet ? 'in-sheet' : 'surface'} ${single ? 'single' : ''}`} layout
       initial={{ opacity: 0, x: 24, scale: 0.97 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 24, scale: 0.97 }} transition={spring}>
       <header className="sr-head">
         <Mermaid size={22} />
@@ -28,7 +29,8 @@ export function SelectsRail({ features, onPick, onClose, inSheet = false }) {
       </header>
       <div className="sr-list">
         {!selects.length && <p className="res-empty">{t('Nothing picked yet. Open the map to see everything.')}</p>}
-        {selects.map(({ feature: f, wide, going, asked }) => {
+        {selects.map(({ feature: f, wide: headliner, going, asked }) => {
+          const wide = single || headliner
           const p = f.properties
           const cat = p.categories?.[0]
           const img = p.image_url ? { backgroundImage: `url(${secureImage(p.image_url)})` } : { background: categoryColor(cat) }
