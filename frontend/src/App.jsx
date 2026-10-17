@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
 import { useLang } from './i18n'
-import { fetchBusyAreas, fetchFeatures, fetchMapbox, locateByIp, routeTo, runSearch } from './data/api'
+import { fetchBusyAreas, fetchFeatures, locateByIp, routeTo, runSearch } from './data/api'
 import { useFavourites } from './hooks/useFavourites'
 import { useStartPoint } from './hooks/useStartPoint'
 import { useIsMobile } from './hooks/useMedia'
@@ -112,8 +112,6 @@ export default function App() {
         setRoute({ type: 'FeatureCollection', features: [{ type: 'Feature', geometry: j.geometry, properties: {} }] })
       })
     }
-    const remote = await fetchMapbox(feature) // backend/mapboxes curation wins when available
-    if (remote?.blocks) setBoxes((b) => b.map((x) => (x.key === key ? { ...x, remote, data: { ...x.data, ...remote } } : x)))
   }, [mobile, values.maxBoxes])
 
   // events in the new language after a PL/EN switch (the server sends Claude's translations)
@@ -124,13 +122,13 @@ export default function App() {
       setFeatures(fc)
       // open boxes swap to the same event in the new language
       const byId = new Map(fc.features.map((f) => [String(f.properties.event_id), f]))
-      setBoxes((b) => b.map((x) => { const f = byId.get(x.key); return f ? { ...x, feature: f, data: { ...curate(f), ...x.remote } } : x }))
+      setBoxes((b) => b.map((x) => { const f = byId.get(x.key); return f ? { ...x, feature: f, data: curate(f) } : x }))
     })
   }, [lang])
 
   // re-curate open boxes so their text follows a language switch
   useEffect(() => {
-    setBoxes((b) => b.map((x) => ({ ...x, data: { ...curate(x.feature), ...x.remote } })))
+    setBoxes((b) => b.map((x) => ({ ...x, data: curate(x.feature) })))
   }, [lang])
 
   const closeBox = (key) => setBoxes((b) => { const n = b.filter((x) => x.key !== key); if (!n.length) setRoute(null); return n })

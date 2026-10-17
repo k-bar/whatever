@@ -1,0 +1,104 @@
+# Stan implementacji i Plan Zadania (API.md)
+
+## 1. Analiza źródeł danych z `dane.txt`
+
+W pliku `dane.txt` znajduje się 9 wierszy (8 unikalnych usług z portalu Otwarte Dane Warszawy — pozycja 4 i 9 to ten sam zasób AED). Wszystkie endpointy wywoływane są metodą `POST` z nagłówkiem `Authorization: <token>` (klucz z `apiKey.txt`):
+
+| # | Zbiór danych | Endpoint (`POST`) | Struktura odpowiedzi | Strategia zapisu w SQL |
+|---|---|---|---|---|
+| 1 | **Trasy turystyczne** | `https://dane.um.warszawa.pl/api/action/get_sbt_trasy_turystyczne` | `{"result": [...]}` (9 tras; pola: `title`, `length`, `description`, `traces` JSONB, `tourist_points` JSONB + tabela punktów) | **Upsert** po `title` (oraz punkty po `id_point`) |
+| 2 | **Toalety** | `https://dane.um.warszawa.pl/api/action/get_m_toalety` | Lista 695 obiektów GeoJSON (`geometry.coordinates` `[lon, lat]`, `properties`: `zarzadca`, `typ`, `lokalizacja`, `dzielnica`, `dostepnosc`, `platnosc`, `przewijak`, `aktu_dan`, `poch_dan`, `godziny`, `uwagi`) | **Upsert / Replace** po kluczu naturalnym (`lokalizacja`, `lon`, `lat`) |
+| 3 | **Pogoda** | `https://dane.um.warszawa.pl/api/action/get_zom_pogoda` | Lista 16 stacji (`lokalizacja`, `lat`, `lon`, `czas`, `temp_pow`, `temp_naw`, `wilg_pow`, `pred_wiatru`, `kier_wiatru`, `int_opadu`) | **Historia (Append / ON CONFLICT DO NOTHING)** po (`lokalizacja`, `czas`) |
+| 4 | **Defibrylatory (AED)** | `https://dane.um.warszawa.pl/api/action/get_scb_lokalizacja_defibrylatorow` | Lista 710 obiektów (`geometry.coordinates` `[[lon, lat]]`, `properties`: `defibrillator_id`, `device_*`, `location_*`) | **Upsert** po `defibrillator_id` |
+| 5 | **Zajęcia sportowe** | `https://dane.um.warszawa.pl/api/action/get_bmm_zajecia_sportowe` | Lista 592 zajęć (`title`, `url`, `time`, `text`, `language`, `category` JSONB, `day` JSONB, `dedicated` JSONB, `localization` JSONB, `address` JSONB, `image` JSONB) | **Upsert** po `url` |
+| 6 | **Otwarte boiska** | `https://dane.um.warszawa.pl/api/action/get_be_otwarte_boiska` | Lista 1227 obiektów (`Dzielnica`, `Adres obiektu`, `Nazwa placówki oświatowej`, `Typ obiektu`, `Boisk uniwersalne zawiera`, `Rodzaj nawierzchni`, trybuny, piłkochwyty, dni tygodnia, `Uwagi`, `Data aktualizacji`) | **Upsert / Replace** po (`nazwa_placowki`, `adres_obiektu`, `typ_obiektu`, `wyposazenie`) |
+| 7 | **Kalendarz wydarzeń** | `https://dane.um.warszawa.pl/api/action/get_bmm_kalendarz_wydarzen` | Lista 652 wydarzeń (`title`, `url`, `lead`, `text`, `language`, `category` JSONB, `localization` JSONB, `address` JSONB, `map` JSONB + wyciągnięte `lat`/`lon`/`district`, `occurrence` JSONB) | **Upsert** po `url` |
+| 8 | **Monitoring jakości powietrza** | `https://dane.um.warszawa.pl/api/action/get_bopipk_monitoring_jakosci_powietrza` | Lista 141 stacji (`name`, `station`, `station_type`, `owner`, `data_source`, `lat`, `lon`, `address`, `ijp`, `data`: lista pomiarów `param_code`, `param_name`, `time`, `unit`, `value`, `ijp`) | **Upsert** słownika stacji po `name` + **Historia (Append / ON CONFLICT DO NOTHING)** pomiarów po (`station_name`, `param_code`, `measurement_time`) |
+
+| 9 | **Wydarzenia biletowane (`kupbilecik.pl`)** | `GET https://www.kupbilecik.pl/pl/<listing>?page=<n>` (JSON-LD `schema.org` z `fetch_kupbilecik.py`) | Elementy `ItemList` z JSON-LD (`id` z URL `/event/(\d+)/`, `name`, `startDate`, `endDate`, `location`, `offers`, `eventStatus`, `image`, `description`) | **Upsert** po `id` (z zachowaniem kategorii przez `COALESCE(excluded.category, kupbilecik_events.category)`) |
+| 10 | **Miejsca wydarzeń (`OpenStreetMap / streets.gl`)** | `POST https://overpass-api.de/api/interpreter` (zapytanie Overpass QL z `fetch_streets_gl.py`) | Elementy OSM `node`/`way`/`relation` dla Warszawy (`theatre`, `cinema`, `arts_centre`, `concert_hall`, `music_venue`, `events_venue`, `nightclub`, `conference_centre`, `exhibition_centre`, `stadium`, `museum`, `gallery`) | **Upsert** po `id` (`type/osm_id`, np. `node/123`) |
+
+---
+
+## 2. Schemat bazy danych PostgreSQL
+
+Projekt wykorzysta **SQLAlchemy 2.0** oraz sterownik **psycopg (v3)** z obsługą typów natywnych PostgreSQL (`JSONB`, `TIMESTAMPTZ`, `DOUBLE PRECISION`, `INSERT ... ON CONFLICT`).
+
+Planowane tabele:
+1. `tourist_routes` — trasy turystyczne (`id`, `title` UNIQUE, `length_km`, `description`, `traces` JSONB, `tourist_points` JSONB, `updated_at`)
+2. `tourist_points` — punkty turystyczne powiązane z trasami (`id_point` PK, `name`, `city`, `lat`, `lng`, `updated_at`)
+3. `toilets` — toalety miejskie (`id` PK, `zarzadca`, `typ`, `lokalizacja`, `dzielnica`, `dostepnosc`, `platnosc`, `przewijak`, `aktu_dan`, `poch_dan`, `godziny`, `uwagi`, `lon`, `lat`, `updated_at`, UNIQUE(`lokalizacja`, `lon`, `lat`))
+4. `weather_measurements` — historia pomiarów pogodowych (`id` PK, `lokalizacja`, `lat`, `lon`, `czas` TIMESTAMP, `temp_pow`, `temp_naw`, `wilg_pow`, `pred_wiatru`, `kier_wiatru`, `int_opadu`, `fetched_at`, UNIQUE(`lokalizacja`, `czas`))
+5. `defibrillators` — urządzenia AED (`defibrillator_id` PK, `lon`, `lat`, `device_access_description`, `device_availability`, `device_location`, `device_manufacturer`, `device_public_access`, `device_specifications`, `location_building`, `location_city`, `location_description`, `location_object_name`, `location_postcode`, `location_street`, `updated_at`)
+6. `sports_activities` — zajęcia sportowe (`id` PK, `url` UNIQUE, `title`, `time`, `text`, `language`, `category` JSONB, `day` JSONB, `dedicated` JSONB, `localization` JSONB, `address` JSONB, `image` JSONB, `updated_at`)
+7. `open_sports_fields` — otwarte boiska (`id` PK, `dzielnica`, `adres_obiektu`, `nazwa_placowki`, `typ_obiektu`, `wyposazenie`, `rodzaj_nawierzchni`, `trybuny`, `pilkochwyty`, `poniedzialek`, `wtorek`, `sroda`, `czwartek`, `piatek`, `sobota`, `niedziela`, `uwagi`, `data_aktualizacji`, `updated_at`, UNIQUE(`nazwa_placowki`, `adres_obiektu`, `typ_obiektu`, `wyposazenie`))
+8. `city_events` — kalendarz wydarzeń (`id` PK, `url` UNIQUE, `title`, `lead`, `text`, `language`, `district`, `lat`, `lon`, `category` JSONB, `localization` JSONB, `address` JSONB, `map_data` JSONB, `occurrences` JSONB, `image` JSONB, `updated_at`)
+9. `air_quality_stations` — stacje pomiarowe jakości powietrza (`name` PK, `station`, `station_type`, `owner`, `data_source`, `lat`, `lon`, `city`, `commune`, `district`, `street`, `zip_code`, `current_ijp_name`, `current_ijp_recommendations`, `updated_at`)
+10. `air_quality_measurements` — historia pomiarów jakości powietrza (`id` PK, `station_name` FK, `param_code`, `param_name`, `measurement_time` TIMESTAMP, `value`, `unit`, `ijp_name`, `fetched_at`, UNIQUE(`station_name`, `param_code`, `measurement_time`))
+11. `sync_logs` — logi pobrań (`id` PK, `dataset_name`, `status`, `records_processed`, `started_at`, `finished_at`, `error_message`) — realizuje m.in. punkt 7 z `PLAN.md` (*Trust in the data*).
+12. `kupbilecik_events` — wydarzenia biletowane z `kupbilecik.pl` (`id` PK, `name`, `date`, `time`, `end_date`, `end_time`, `location`, `address`, `city`, `postcode`, `region`, `category`, `event_type`, `price`, `currency`, `availability`, `status`, `url` UNIQUE, `image_url`, `description`, `updated_at`)
+13. `streets_gl_venues` — miejsca wydarzeń kulturalnych i rozrywkowych z OpenStreetMap / `streets.gl` (`id` PK, `name`, `category`, `location`, `street`, `housenumber`, `postcode`, `city`, `lat`, `lon`, `opening_hours`, `website`, `phone`, `email`, `wheelchair`, `capacity`, `osm_url`, `streets_gl_url`, `tags` JSONB, `updated_at`)
+
+---
+
+## Zakres plików
+
+- `API.md` — plan zadania, zakres plików i dziennik zmian
+- `requirements.txt` — zależności Pythona (`requests`, `sqlalchemy`, `psycopg[binary]`, `pytest`, `flake8`, `mypy`)
+- `docker-compose.yml` — opcjonalny lokalny kontener PostgreSQL 16 wyłącznie do dewelopmentu lokalnego
+- `.gitignore` — zabezpieczenie przed przypadkowym wypchnięciem `apiKey.txt`, `.venv/` oraz cache Pythona
+- `src/__init__.py` — pakiet główny
+- `src/config.py` — konfiguracja połączenia z bazą PostgreSQL (obsługa `DATABASE_URL` oraz zmiennych pod AWS RDS: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE`) i odczyt klucza API
+- `src/models.py` — modele SQLAlchemy 2.0 dla wszystkich 13 tabel PostgreSQL
+- `src/api_client.py` — klient HTTP do pobierania danych z 8 endpointów `dane.um.warszawa.pl` oraz definicje zbiorów danych
+- `src/external_sources.py` — klienci pobierający dane z zewnętrznych źródeł (`kupbilecik.pl` JSON-LD oraz `OpenStreetMap` Overpass API dla `streets.gl`)
+- `src/ingestor.py` — logika transformacji JSON -> modele SQL (upsert dla słowników i źródeł zewnętrznych, append historii dla pomiarów)
+- `src/scheduler.py` — harmonogram okresowej synchronizacji: grupa `fast` co 10 minut (`weather`, `air_quality`) oraz grupa `slow` co 2 godziny (pozostałe zbiory w tym zewnętrzne), pętla ciągła (`run_scheduler`) oraz handler `lambda_handler` pod AWS EventBridge + AWS Lambda
+- `src/main.py` — punkt wejścia CLI (obsługa flag `--dataset`, `--group {fast,slow,all}`, `--watch`, `--init-only`)
+- `tests/test_ingestor.py` — testy jednostkowe transformacji i zapisu danych z `dane.um.warszawa.pl`
+- `tests/test_scheduler.py` — testy jednostkowe harmonogramu (`src/scheduler.py`) oraz konfiguracji AWS RDS
+- `tests/test_external_sources.py` — testy jednostkowe parserów i upsertu dla `kupbilecik` oraz `streets_gl`
+- `man.md` — kompletna instrukcja uruchomienia lokalnego i wdrożenia w AWS (RDS + EC2 / Lambda) w języku angielskim
+- `backend/app/ingest/sources/kupbilecik.py` — źródło `SourceSpec` (`kupbilecik`) dla serwisu FastAPI (`backend/app/`) zwracające `list[RawEvent]` dla wydarzeń w Warszawie
+- `backend/app/ingest/sources/__init__.py` — rejestracja `kupbilecik.SPECS` w `SOURCES`
+- `backend/app/categories.py` — mapowanie kategorii z `kupbilecik.pl` (`teatr`, `muzyka`, `kabaret`, `stand-up`, `impro`, `festiwal`) na kategorie mapy
+- `backend/tests/fixtures/kupbilecik.json` — próbka rekordów dla testów kontraktowych CI (`backend/tests/test_contract.py`)
+- `CONTRIBUTING.md` — rozszerzenie dokumentacji o instrukcję konfiguracji i wdrożenia backendu na EC2 (w tej samej sieci AWS co RDS: zmienne w `/etc/warszawa/instance.env`, usługi systemd i synchronizacja danych do RDS) oraz pobierania danych z RDS przez wystawione endpointy REST API (`https://api-dev.syrenka.me` / `https://api.syrenka.me`)
+
+---
+
+## Kroki realizacji
+
+- [x] **Krok 1: Konfiguracja środowiska i modeli bazy danych** — aktualizacja `.gitignore`, utworzenie `requirements.txt`, `docker-compose.yml`, `src/__init__.py`, `src/config.py` oraz `src/models.py` wraz z weryfikacją składni/typów.
+- [x] **Krok 2: Klient API Otwartych Danych Warszawy** — implementacja `src/api_client.py` obsługującego 8 endpointów z `dane.txt` i autoryzację kluczem z `apiKey.txt`.
+- [x] **Krok 3: Moduł zasilania bazy SQL (Ingestor) oraz CLI** — implementacja `src/ingestor.py` (upsert danych lokalizacyjnych/wydarzeń + historia pomiarów pogody i powietrza) oraz `src/main.py`.
+- [x] **Krok 4: Testy jednostkowe i pełna synchronizacja z bazą PostgreSQL** — utworzenie `tests/test_ingestor.py`, uruchomienie testów (`pytest`) oraz wykonanie synchronizacji danych do bazy PostgreSQL.
+- [x] **Krok 5: Konfiguracja pod AWS RDS oraz implementacja harmonogramu (`src/scheduler.py`, `src/config.py`, `src/main.py`)** — obsługa zmiennych środowiskowych AWS RDS (`DB_HOST`, `DB_SSLMODE` itd.), harmonogram co 10 min (`weather`, `air_quality`) i co 2h (pozostałe 6 zbiorów), tryb ciągły `--watch`, grupy `--group {fast,slow}` oraz punkt wejścia `lambda_handler` dla AWS EventBridge/Lambda.
+- [x] **Krok 6: Testy jednostkowe harmonogramu (`tests/test_scheduler.py`) i weryfikacja** — przetestowanie logiki wyznaczania zadań należnych do uruchomienia, grup `fast`/`slow` oraz konfiguracji połączenia AWS RDS (`pytest`, `flake8`, `mypy`).
+- [x] **Krok 7: Modele PostgreSQL i klienci pobierania dla `kupbilecik.pl` oraz `OpenStreetMap / streets.gl` (`src/models.py`, `src/external_sources.py`, `src/api_client.py`)** — dodanie modeli `KupbilecikEvent` (`kupbilecik_events`) i `StreetsGlVenue` (`streets_gl_venues`) w `src/models.py`, przeniesienie logiki pobierania i parsowania z `fetch_kupbilecik.py` oraz `fetch_streets_gl.py` do `src/external_sources.py` oraz rejestracja zbiorów `kupbilecik` i `streets_gl`.
+- [x] **Krok 8: Integracja z `DatabaseIngestor`, CLI i harmonogramem, testy jednostkowe oraz synchronizacja z PostgreSQL (`src/ingestor.py`, `src/scheduler.py`, `src/main.py`, `tests/test_external_sources.py`)** — implementacja upsertu `ingest_kupbilecik_events` i `ingest_streets_gl_venues`, integracja z `DatabaseIngestor.sync_spec`, dodanie testów w `tests/test_external_sources.py`, weryfikacja `flake8`/`mypy`/`pytest` oraz zapis pobranych danych do bazy PostgreSQL.
+- [x] **Krok 9: Synchronizacja i merge `origin/dev` do brancha `postgre-aws` oraz pełna kompatybilność schematu (`src/ingestor.py`, `.gitignore`, `docker-compose.yml`)** — zmergowanie `origin/dev` do `postgre-aws`, ujednolicenie `.gitignore` i `docker-compose.yml` z `origin/dev` oraz obsługa współdzielonej tabeli `tourist_routes` w `src/ingestor.py`.
+- [x] **Krok 10: Podpięcie źródła `kupbilecik` do serwisu FastAPI (`backend/app/ingest/sources/kupbilecik.py`, `backend/app/ingest/sources/__init__.py`, `backend/app/categories.py`, `backend/tests/fixtures/kupbilecik.json`) i zasilenie `dev.events` na AWS RDS** — utworzenie `SourceSpec` dla `kupbilecik`, przejście testów kontraktowych i linterów CI (`pytest`, `ruff`, `flake8`, `mypy`) oraz załadowanie wydarzeń warszawskich z KupBilecik do tabeli `dev.events` na AWS RDS.
+- [x] **Krok 11: Dodanie do `CONTRIBUTING.md` instrukcji konfiguracji EC2 + RDS oraz pobierania danych przez API z bazy PostgreSQL na AWS RDS** — opis tego, co osoba wdrażająca na EC2 (w tej samej sieci AWS co RDS) musi skonfigurować (`/etc/warszawa/instance.env`, migracje Alembic, uruchomienie synchronizacji 13 tabel oraz usług `warszawa-ingest`, `warszawa-conditions` i `warszawa-api`), a także kompletna instrukcja odpytywania danych z RDS przez REST API (`https://api-dev.syrenka.me` i `https://api.syrenka.me`).
+
+---
+
+## Dziennik zmian
+
+- **2026-10-17**: Przeanalizowano wszystkie 8 unikalnych adresów z `dane.txt`, pobrano specyfikacje parametrów i zweryfikowano strukturę odpowiedzi API przy użyciu klucza z `apiKey.txt`. Utworzono plan w `API.md`.
+- **2026-10-17 (Krok 1)**: Utworzono `.gitignore`, `requirements.txt`, `docker-compose.yml`, `src/__init__.py`, `src/config.py` oraz `src/models.py`. Zainstalowano pakiety w `.venv`, uruchomiono lokalny kontener PostgreSQL 16 (`warszawa_postgres` na porcie `5432`), utworzono wszystkie 11 tabel w bazie `warszawa_live` oraz zweryfikowano kod narzędziami `flake8` i `mypy` (0 błędów).
+- **2026-10-17 (Krok 2)**: Zaimplementowano `src/api_client.py` (`DatasetSpec`, `parse_dane_file`, `WarszawaApiClient`). Dodano obsługę dopasowania prefiksowego dla UUID z `dane.txt` (wiersz 4 ma ucięte końcowe `de8`), normalizację odpowiedzi JSON oraz weryfikację `flake8` i `mypy` (0 błędów).
+- **2026-10-17 (Krok 3)**: Zaimplementowano `src/ingestor.py` (transformacje JSON -> SQL, upsert dla danych słownikowych/wydarzeń z deduplikacją w obrębie wsadu, `ON CONFLICT DO NOTHING` dla historii pomiarów pogody i jakości powietrza, logowanie do `sync_logs`) oraz interfejs CLI w `src/main.py`. Zweryfikowano `flake8` i `mypy` (0 błędów w 6 plikach).
+- **2026-10-17 (Krok 4)**: Utworzono `tests/test_ingestor.py`. Zweryfikowano całość projektu narzędziami `flake8 src tests` (0 błędów), `mypy src tests` (0 błędów w 7 plikach) oraz `pytest -v` (4/4 testy zaliczone). Uruchomiono pełną synchronizację `python -m src.main` — pobrano i zapisano do bazy PostgreSQL wszystkie 8 zbiorów danych z `dane.txt`.
+- **2026-10-17 (Aktualizacja planu — Harmonogram i AWS)**: Zaktualizowano plan o **Krok 5** i **Krok 6** — wbudowany harmonogram Pythona (10 min dla pogody/powietrza, 2h dla pozostałych) oraz bezpośrednie wsparcie dla zarządzanej bazy PostgreSQL w AWS (Amazon RDS) i wywołań cyklicznych (tryb `--watch` dla EC2/ECS lub `--group fast|slow` / `lambda_handler` dla AWS EventBridge + Lambda).
+- **2026-10-17 (Krok 5)**: Rozszerzono `src/config.py` o obsługę zmiennych środowiskowych AWS RDS (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE`), utworzono `src/scheduler.py` (`DatasetScheduler`, `get_specs_for_group`, `lambda_handler`) oraz dodano flagi `--watch` i `--group` w `src/main.py`. Zweryfikowano `flake8`, `mypy` (0 błędów w 8 plikach) oraz synchronizację grupy `fast`.
+- **2026-10-17 (Krok 6)**: Utworzono `tests/test_scheduler.py`. Zweryfikowano cały projekt: `flake8 src tests` (0 błędów), `mypy src tests` (0 błędów w 9 plikach) oraz `pytest -v` (7/7 testów zaliczonych).
+- **2026-10-17 (Dokumentacja wdrożenia)**: Dodano `man.md` z instrukcją uruchomienia i wdrożenia w AWS w języku angielskim.
+- **2026-10-17 (Aktualizacja planu — KupBilecik i OpenStreetMap/streets.gl)**: Rozszerzono plan w `API.md` o **Krok 7** i **Krok 8** obejmujące dodanie tabel `kupbilecik_events` oraz `streets_gl_venues` i integrację pobierania z `fetch_kupbilecik.py` oraz `fetch_streets_gl.py` do bazy PostgreSQL.
+- **2026-10-17 (Krok 7)**: Dodano modele `KupbilecikEvent` (`kupbilecik_events`) i `StreetsGlVenue` (`streets_gl_venues`) w `src/models.py`, utworzono `src/external_sources.py` z klientami JSON-LD (`kupbilecik.pl`) i Overpass API (`OpenStreetMap / streets.gl`) oraz zarejestrowano źródła zewnętrzne w `src/api_client.py`. Zweryfikowano `flake8`, `mypy` (0 błędów w 10 plikach) oraz `pytest` (7/7 zaliczonych).
+- **2026-10-17 (Krok 8)**: Dodano handlery upsertu `ingest_kupbilecik_events` (z zachowaniem kategorii przez `COALESCE`) i `ingest_streets_gl_venues` w `src/ingestor.py`, grupę `external` w `src/scheduler.py` i `src/main.py` oraz testy w `tests/test_external_sources.py`. Zweryfikowano `flake8 src tests` (0 błędów), `mypy src tests` (0 błędów w 11 plikach) i `pytest -v` (10/10 testów zaliczonych). Wykonano synchronizację do PostgreSQL: zapisano **4 637** wydarzeń w `kupbilecik_events` oraz **447** obiektów w `streets_gl_venues`.
+- **2026-10-17 (Synchronizacja z AWS RDS `warszawa.dev` i aktualizacja planu — Kroki 9–10)**: Utworzono i zasilono wszystkie 13 tabel bezpośrednio w bazie AWS RDS (`warszawa`, schemat `dev`) przez tunel SSM (`127.0.0.1:15432`). Dodano **Krok 9** (merge `origin/dev` do `postgre-aws`) oraz **Krok 10** (dodanie źródła `kupbilecik` do `backend/app/ingest/sources/` i zasilenie `dev.events` dla serwisu FastAPI).
+- **2026-10-17 (Krok 9)**: Zmergowano `origin/dev` do `postgre-aws`, rozwiązano konflikty w `.gitignore` i `docker-compose.yml` oraz uodporniono `ingest_tourist_routes` w `src/ingestor.py` na współdzieloną tabelę `tourist_routes` z migracji Alembic. Zweryfikowano `flake8 src tests` (0 błędów), `mypy src tests` (0 błędów w 11 plikach) oraz `pytest -v tests/` (10/10 zaliczonych).
+- **2026-10-17 (Krok 10)**: Dodano `backend/app/ingest/sources/kupbilecik.py` (`SourceSpec` dla `kupbilecik`), zarejestrowano źródło w `backend/app/ingest/sources/__init__.py`, dodano mapowanie kategorii w `backend/app/categories.py` oraz próbki testowe w `backend/tests/fixtures/kupbilecik.json`. Zweryfikowano `ruff check`, `ruff format --check` oraz `pytest tests/test_contract.py` (15/15 zaliczonych). Załadowano **502** warszawskie wydarzenia z KupBilecik do tabeli `dev.events` (oraz `dev.sources`) na AWS RDS.
+- **2026-10-17 (Krok 11)**: Rozszerzono `CONTRIBUTING.md` o pełną instrukcję odpytywania danych z bazy PostgreSQL na AWS RDS przez endpointy REST API (`https://api-dev.syrenka.me` / `https://api.syrenka.me`: `/events`, `/events/now`, `/events/{id}`, `/places`, `/conditions`, `/routes`, `/sources`, `/categories`, `/busy-areas`) oraz o listę zadań konfiguracyjnych dla osoby wdrażającej backend na EC2 w tej samej sieci AWS co RDS (`/etc/warszawa/instance.env`, migracje Alembic, inicjalizacja 13 tabel przez `src.main` oraz usługi systemd `warszawa-api`, `warszawa-ingest`, `warszawa-conditions`).
+

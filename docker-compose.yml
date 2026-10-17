@@ -13,5 +13,23 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./backend/scripts/create-test-db.sql:/docker-entrypoint-initdb.d/create-test-db.sql:ro
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: warszawa_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: warszawa
+      POSTGRES_PASSWORD: warszawa_password
+      POSTGRES_DB: warszawa_live
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U warszawa -d warszawa_live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   pgdata:

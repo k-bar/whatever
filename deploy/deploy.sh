@@ -43,6 +43,9 @@ systemctl enable -q warszawa-api.service
 systemctl restart warszawa-api.service
 systemctl enable -q --now warszawa-ingest.timer
 systemctl enable -q --now warszawa-conditions.timer
+# Kamil's src/ synchronizer (raw Open Data tables), launched by app/ingest/src_sync.py
+systemctl enable -q warszawa-sync.service
+systemctl restart warszawa-sync.service
 
 # --- health check: the new code must answer with the new sha ----------------------------------
 for i in $(seq 1 30); do

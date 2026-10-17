@@ -71,20 +71,52 @@ Rules for `RawEvent`:
 - No coordinates? Fill `address`. The loader geocodes it.
 - Put the source's own category labels in `categories_raw`. The backend maps them in `app/categories.py`.
 
-## Using the API (Philip)
+## Using the API (Philip & consumers)
 
-- Interactive docs and schemas: `<api-url>/docs`. OpenAPI JSON: `<api-url>/openapi.json`.
-- Map: `GET /events?bbox=west,south,east,north&from=&to=&category=music` returns GeoJSON, one feature per occurrence.
+The API runs on EC2 next to RDS (`eu-north-1`) and reads the environment's schema:
+
+- **Dev** (schema `dev`): `https://api-dev.syrenka.me`
+- **Prod** (schema `public`): `https://api.syrenka.me`
+- Interactive docs and schemas: `<api-url>/docs`. OpenAPI JSON: `<api-url>/openapi.json`. That is the
+  source of truth for parameters; the table below is a summary.
+
+| Endpoint | What | Main parameters |
+|---|---|---|
+| `GET /events` | GeoJSON, one feature per occurrence | `bbox=west,south,east,north`, `from`, `to`, `category` (repeatable), `kind=event\|class`, `q`, `limit`, `lang=pl\|en` |
+| `GET /events/now` | Happening near a point within a few hours | `lat`, `lng`, `radius_m`, `hours`, `lang` |
+| `GET /events/{id}` | One event / place / class with all occurrences | `lang` |
+| `GET /places` | Venues and amenities (toilets and AEDs only when asked for by `category`) | `bbox`, `category`, `q`, `lang` |
+| `GET /conditions` | Latest weather and air quality as GeoJSON points | |
+| `GET /routes` | Tourist routes as LineStrings, built from Kamil's `tourist_routes.traces` | |
+| `GET /sources` | Ingestion status per source (`last_status`, `last_run_at`, `item_count`) | |
+| `GET /categories` | Category slugs and labels (`app/categories.py`) | |
+| `GET /busyareas` | GeoJSON polygons of busy areas | |
+
 - Login: `POST /auth/login` returns `access_token`. Send it as `Authorization: Bearer <token>`.
 - Need something else? Open an **API request** issue.
 
 ## On the box (needs AWS access to account 015454941566, ask @JustCodeMeV)
+
+`deploy/deploy.sh` does everything on each merge: `alembic upgrade head` in the box's schema (including
+Kamil's raw tables from `src/models.py`, migration `0007`), then the systemd units:
+
+| Unit | What |
+|---|---|
+| `warszawa-api` | FastAPI |
+| `warszawa-ingest.timer` | `app/ingest/run.py`: fetchers -> `events`, plus tourist routes |
+| `warszawa-conditions.timer` | weather + air quality -> `weather_stations`, `air_stations` |
+| `warszawa-sync` | Kamil's `src/` scheduler -> raw tables (`toilets`, `city_events`, `kupbilecik_events`, `sync_logs`, ...), via `app/ingest/src_sync.py` |
+
+`src_sync.py` gives Kamil's code the box's DB credentials (Secrets Manager), the `<DB_SCHEMA>, public`
+search_path and the Warsaw API relay. Never run `python -m src.main` against RDS by hand: it ignores
+`DB_SCHEMA` and writes into `public`, which is prod.
 
 No SSH: use Session Manager (`aws ssm start-session --target <instance from deploy/environments.json>`).
 
 ```bash
 journalctl -u warszawa-agent -f        # deploys
 journalctl -u warszawa-api -f          # API
+journalctl -u warszawa-sync -f         # Kamil's src/ sync; results also in the sync_logs table
 sudo systemctl start warszawa-ingest   # run ingestion now; results in GET /sources
 sudo systemctl start warszawa-conditions  # refresh weather + air quality now
 ```
@@ -113,7 +145,12 @@ only open a tunnel through the dev box. Ask @JustCodeMeV to add you to `DEV_DB_U
 
 ## Adding a data source
 
-Fetchers live in `backend/app/ingest/sources/` and never touch the database:
+Kamil owns the database schema and the data sources; the backend adapts to them. Two places:
+
+- `src/` (Kamil): raw Open Data tables, defined in `src/models.py`. New or changed tables need a backend
+  migration that creates them in the right schema (see `0007_kamil_tables.py`); ping @JustCodeMeV.
+- `backend/app/ingest/sources/`: fetchers that feed `events`. They return RawEvents; they may read
+  Kamil's raw tables as a fallback (see `kupbilecik.py`) but never write:
 
 1. Write `fetch_records()` (network; Warsaw Open Data goes through `warsaw_open_data.fetch(action)`, which
    handles the API key and the relay) and a pure `parse(records) -> list[RawEvent]` (`app/ingest/base.py`).
@@ -121,7 +158,7 @@ Fetchers live in `backend/app/ingest/sources/` and never touch the database:
 3. Save a few real records as `backend/tests/fixtures/<slug>.json` and add a parser test in `tests/test_ingest.py`.
 
 Data that isn't an event or a place (readings, lines) gets a model + Alembic migration and a `Feed`
-(`app/ingest/conditions.py`, `routes.py`). Never create tables by hand or with `create_all`.
+(`app/ingest/conditions.py`, `routes.py`). Never create tables by hand or with `create_all` on RDS.
 
 ## Don't change AWS resources in the console
 

@@ -139,7 +139,7 @@ def test_amenities_parse_coordinates_hours_and_categories():
 
 def test_conditions_and_routes_parse():
     from app.ingest.conditions import parse_air, parse_weather
-    from app.ingest.routes import parse_routes
+    from app.ingest.routes import parse_routes, route_line, route_points
     from app.ingest.sources.warsaw_open_data import as_records
 
     weather = parse_weather(fixture_records("warsaw_weather"))
@@ -149,8 +149,9 @@ def test_conditions_and_routes_parse():
     assert air and "PM10" in air[0]["params"] and air[0]["index_name"]
 
     routes = parse_routes(as_records(fixture_records("warsaw_routes")))
-    assert routes and routes[0]["path"].startswith("SRID=4326;LINESTRING(20.")  # lng first
-    assert routes[0]["points"] and {"id", "name", "lat", "lng"} <= routes[0]["points"][0].keys()
+    assert routes and routes[0]["traces"] and routes[0]["tourist_points"]  # stored raw, Kamil's shape
+    assert 20 < route_line(routes[0]["traces"])[0][0] < 22  # lng first
+    assert {"id", "name", "lat", "lng"} <= route_points(routes[0]["tourist_points"])[0].keys()
 
 
 def test_osm_venues_parse():
