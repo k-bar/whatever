@@ -3,12 +3,12 @@
     "api": "https://d1e7evk5lagv2n.cloudfront.net",
     "web": "https://d17k19nd7t5vnu.cloudfront.net",
     "branch": "master",
-    "instance": "i-001fa311b8c536222"
+    "instance": "i-04eaa8fde9a5c348b"
   },
   "dev": {
     "api": "https://d3jw48vckb09en.cloudfront.net",
     "web": "https://dvz0u40r36ttr.cloudfront.net",
     "branch": "dev",
-    "instance": "i-0768ad8f97ae98dd4"
+    "instance": "i-08409f2fd05e24b8e"
   }
 }

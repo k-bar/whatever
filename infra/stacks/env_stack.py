@@ -157,7 +157,7 @@ class EnvStack(cdk.Stack):
         user_data.add_commands(
             "mkdir -p /etc/warszawa",
             "cat > /etc/warszawa/instance.env <<'ENV'",
-            *[f"{k}={v}" for k, v in instance_env.items()],
+            *[f'{k}="{v}"' for k, v in instance_env.items()],  # quoted: values contain spaces
             "ENV",
             (EC2_DIR / "bootstrap.sh").read_text().replace("__AGENT__", (EC2_DIR / "agent.sh").read_text().rstrip()),
         )

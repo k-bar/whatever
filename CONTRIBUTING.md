@@ -7,21 +7,37 @@
 | `backend/app/ingest/sources/` | Kamil (@kdzwigal) | One file per data source: fetch records, turn them into `RawEvent`s |
 | `backend/` (everything else) | @JustCodeMeV | Database, loading, API |
 | `frontend/` | Philip (@philpiano) | The map UI |
-| `infra/` | @JustCodeMeV | AWS (CDK, Python): RDS Postgres, API + ingest Lambdas, frontend hosting, domain |
+| `infra/`, `deploy/` | @JustCodeMeV | AWS (CDK, Python): RDS, EC2 boxes, CloudFront, domain; on-box deploy scripts |
 | `backend/db/` | Mateusz (@Informatyczek) | scrapers (`db/db/fetch_*.py`: Warsaw Open Data, kupbilecik.pl, streets.gl) and their local SQLite snapshots (gitignored; see `db/db/db.md`) |
 
 ```
 fetchers (sources/*.py) ── list[RawEvent] ──> ingest/run.py ──> RDS Postgres ──> FastAPI ──> UI
-            "Ingest" Lambda runs this every hour      (AWS eu-north-1)   "Api" Lambda
+              hourly systemd timer on the EC2 box     (AWS eu-north-1)    same EC2 box, behind CloudFront
 ```
+
+## Environments
+
+| | dev | prod |
+|---|---|---|
+| Git branch | `dev` | `master` |
+| API | see `deploy/environments.json` | see `deploy/environments.json` |
+| Website | see `deploy/environments.json` | see `deploy/environments.json` |
+| Database | RDS, schema `dev` | same RDS, schema `public` |
+
+Each environment is one EC2 box running the API, the ingest timer and Kamil's `src/` ingestor (once merged).
 
 ## Everyday flow
 
 1. Pull: `git pull`
 2. Branch: `git switch -c <name>/<topic>`, e.g. `kamil/meetup-source`
-3. Commit, push, open a PR to `master`. The template asks three questions.
+3. Commit, push, open a PR to **`dev`**. The template asks three questions.
 4. CI runs. Wait for **ci-ok** to go green. CODEOWNERS asks the right person to review.
-5. Merge. @JustCodeMeV deploys to AWS with `infra/deploy.sh` (the AWS org blocks GitHub-to-AWS deploy roles).
+5. Merge → CI runs on `dev` → the **Release** workflow moves `release/dev` → the dev box deploys it
+   within a minute and Release goes green once `/health` reports your commit.
+6. Ship to prod: open a PR `dev → master`. Merging it releases to prod the same way.
+
+A deploy that fails its health check rolls back to the previous commit automatically, and Release goes red.
+Never push to `release/*` by hand.
 
 Never commit `.env`, `apiKey.txt`, tokens or `*.db` files. CI runs gitleaks and fails the PR if it finds a secret.
 
@@ -62,18 +78,17 @@ Rules for `RawEvent`:
 - Login: `POST /auth/login` returns `access_token`. Send it as `Authorization: Bearer <token>`.
 - Need something else? Open an **API request** issue.
 
-## Running ingestion by hand
+## On the box (needs AWS access to account 015454941566, ask @JustCodeMeV)
 
-Needs AWS access to account 015454941566 (ask @JustCodeMeV):
+No SSH: use Session Manager (`aws ssm start-session --target <instance from deploy/environments.json>`).
 
 ```bash
-aws lambda invoke --function-name "$(aws cloudformation describe-stacks --stack-name WarszawaLiveApp \
-  --query "Stacks[0].Outputs[?OutputKey=='IngestFunctionName'].OutputValue" --output text)" \
-  --payload '{"source":"warsaw_events","geocode_limit":50}' --cli-binary-format raw-in-base64-out /dev/stdout
+journalctl -u warszawa-agent -f        # deploys
+journalctl -u warszawa-api -f          # API
+sudo systemctl start warszawa-ingest   # run ingestion now; results in GET /sources
+journalctl -u warszawa-ingestor -f     # Kamil's src/ ingestor
 ```
 
-Results show up in `GET /sources` and in the function's CloudWatch logs.
+## Infrastructure changes
 
-## Deploying by hand
-
-`infra/deploy.sh` builds the Lambda bundle (no Docker), runs `cdk deploy --all` and applies migrations.
+`infra/deploy.sh` (CDK). App code never goes through it: merging is the deploy.
