@@ -324,8 +324,6 @@ export default function App() {
       (boxes.length > 0 || results || sheet) && <motion.button key="close-all" className="close-all" onClick={closeAll}
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25, ease: 'easeOut' }}>{t('Close all')}</motion.button>,
 
-      /* top-right: editor toggle lives inside InterfaceEditor */
-      DEV_TOOLS && <Stage key="top-right" delay={0.55}><div className="top-right"><InterfaceEditor open={editorOpen} onToggle={() => setEditorOpen(!editorOpen)} /></div></Stage>,
 
       /* desktop map boxes */
       !mobile && (
@@ -369,6 +367,10 @@ export default function App() {
       </AnimatePresence>
 
       <AccountButton view={view} onProfile={openProfile} />
+
+      {/* the interface editor: on every screen (start page, map, full-screen panel), always on top; its toggle sits left of the account */}
+
+      {DEV_TOOLS && <div className={`top-right on-${view}`}><InterfaceEditor open={editorOpen} onToggle={() => setEditorOpen(!editorOpen)} /></div>}
 
       {mobile && <BottomSheet open={!!sheet && !!sheetContent} onClose={() => setSheet(null)} initial="half">{sheetContent}</BottomSheet>}
 

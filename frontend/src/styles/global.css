@@ -1058,12 +1058,6 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .boxes.scroll-fade { overscroll-behavior: contain; scroll-padding-top: 4px; }
 .boxes > * { flex-shrink: 0; } /* boxes keep their full height; the stack scrolls instead of squeezing them */
 
-/* ---------- start page: Syrenka Selects as a soft gradient button ---------- */
-.selects > .selects-head { background: linear-gradient(90deg, #fde6e2, #fdf3d6); border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent); cursor: pointer;
-  transition: transform .18s cubic-bezier(.2, .8, .2, 1.4), box-shadow .2s, filter .2s; }
-.selects > .selects-head:hover { transform: translateY(-2px); filter: saturate(1.25); box-shadow: var(--shadow-lg); }
-.selects-head h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; letter-spacing: -0.01em; }
-:root[data-theme='dark'] .selects > .selects-head { background: linear-gradient(90deg, #3a2422, #3a3322); }
 
 /* ---------- slide-over tray: the burger opens it on its menu; items open inside it (SidePanels.jsx) ---------- */
 .burger-btn { position: relative; }
@@ -1095,3 +1089,51 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .selects-rail.single .sr-list { padding: 0 12px 16px; gap: 10px; }
 .selects-rail.single .sr-item.wide .sr-img { height: 190px; }
 
+
+/* ---------- "Syrenka Poleca" button: 10 looks, picked in the editor (Branding -> Syrenka Poleca button) ---------- */
+.selects > .selects-head { cursor: pointer; transition: transform .18s cubic-bezier(.2, .8, .2, 1.4), box-shadow .2s, background .2s, color .2s; }
+.selects > .selects-head:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+/* 1 pill: the white pill as it was (base styles above) */
+/* 2 ink */
+:root[data-selects-btn='ink'] .selects > .selects-head { background: var(--fg); color: var(--bg); box-shadow: 0 10px 24px -12px rgba(0,0,0,.5); }
+/* 3 accent */
+:root[data-selects-btn='accent'] .selects > .selects-head { background: var(--accent); color: var(--accent-fg); box-shadow: 0 10px 24px -10px var(--accent); }
+/* 4 outline */
+:root[data-selects-btn='outline'] .selects > .selects-head { background: transparent; box-shadow: none; border: 1.5px solid var(--fg); }
+:root[data-selects-btn='outline'] .selects > .selects-head:hover { background: var(--fg); color: var(--bg); box-shadow: none; }
+/* 5 tint */
+:root[data-selects-btn='tint'] .selects > .selects-head { background: color-mix(in srgb, var(--accent) 11%, var(--surface-solid)); color: var(--accent); box-shadow: none; }
+:root[data-selects-btn='tint'] .selects > .selects-head:hover { background: color-mix(in srgb, var(--accent) 18%, var(--surface-solid)); box-shadow: none; }
+/* 6 serif */
+:root[data-selects-btn='serif'] .selects > .selects-head { padding: 10px 26px; }
+:root[data-selects-btn='serif'] .selects-head h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 26px; letter-spacing: -0.01em; }
+/* 7 underline: no pill, a short red bar under the title */
+:root[data-selects-btn='underline'] .selects > .selects-head { background: none; box-shadow: none; padding: 4px 6px 10px; }
+:root[data-selects-btn='underline'] .selects-head h2 { font-size: 28px; }
+:root[data-selects-btn='underline'] .selects-head h2::after { content: ''; display: block; width: 44px; height: 4px; margin: 8px auto 0; border-radius: 2px; background: var(--accent); transition: width .25s; }
+:root[data-selects-btn='underline'] .selects > .selects-head:hover { box-shadow: none; }
+:root[data-selects-btn='underline'] .selects > .selects-head:hover h2::after { width: 100%; }
+/* 8 arrow: white pill with a down arrow in a red dot */
+:root[data-selects-btn='arrow'] .selects > .selects-head { padding: 8px 8px 8px 22px; }
+:root[data-selects-btn='arrow'] .selects-head h2 { display: flex; align-items: center; gap: 12px; }
+:root[data-selects-btn='arrow'] .selects-head h2::after { content: '↓'; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); font-size: 16px; transition: transform .2s; }
+:root[data-selects-btn='arrow'] .selects > .selects-head:hover h2::after { transform: translateY(2px); }
+/* 9 ticket: dashed edge like a ticket stub */
+:root[data-selects-btn='ticket'] .selects > .selects-head { border-radius: 14px; border: 1.5px dashed color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: none; padding: 10px 24px; }
+:root[data-selects-btn='ticket'] .selects-head h2 { color: var(--accent); }
+/* 10 lines: the title between two thin rules across the page */
+:root[data-selects-btn='lines'] .selects > .selects-head { width: min(1120px, 100%); display: flex; align-items: center; gap: 18px; background: none; box-shadow: none; padding: 6px 0; }
+:root[data-selects-btn='lines'] .selects > .selects-head::before, :root[data-selects-btn='lines'] .selects > .selects-head::after { content: ''; flex: 1; height: 1px; background: color-mix(in srgb, var(--fg) 18%, transparent); }
+:root[data-selects-btn='lines'] .selects > .selects-head:hover { transform: none; box-shadow: none; color: var(--accent); }
+
+/* ---------- interface editor: on every screen, always overlaid (toggle left of the account; tray below it) ---------- */
+.top-right { position: fixed; z-index: 95; }
+.ed-tray { z-index: 96; }
+/* start page: the toggle sits left of Log in / the account pill, and the header nav shuffles left for it */
+.top-right.on-landing { top: 18px; right: calc(clamp(16px, 5vw, 64px) + var(--account-w, 0px) + 12px); }
+.landing-head { padding-right: calc(clamp(16px, 5vw, 64px) + var(--account-w, 0px) + 16px + var(--controlSize) + 12px); }
+@media (max-width: 767px) {
+  /* phones: the header is full, so the toggle tucks under the account button instead */
+  .top-right.on-landing { top: calc(12px + 44px + 8px); right: 12px; }
+  .landing-head { padding-right: calc(12px + var(--account-w, 0px) + 10px); }
+}

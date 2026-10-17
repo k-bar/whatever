@@ -135,6 +135,11 @@ export const SECTIONS = [
     params: [
       { id: 'appTitle', label: 'App title', type: 'text', default: 'Syrenka.me' },
       { id: 'showTitle', label: 'Show title under search', type: 'toggle', default: false },
+      { id: 'selectsBtn', label: 'Syrenka Poleca button', type: 'select', default: 'pill', options: [
+        { value: 'pill', label: '1 · White pill' }, { value: 'ink', label: '2 · Black pill' }, { value: 'accent', label: '3 · Red pill' },
+        { value: 'outline', label: '4 · Outline' }, { value: 'tint', label: '5 · Soft red tint' }, { value: 'serif', label: '6 · Serif' },
+        { value: 'underline', label: '7 · Underlined' }, { value: 'arrow', label: '8 · With an arrow' }, { value: 'ticket', label: '9 · Ticket' },
+        { value: 'lines', label: '10 · Divider' }] },
     ],
   },
   {
