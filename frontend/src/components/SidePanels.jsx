@@ -9,6 +9,8 @@ import { StartPointPicker } from './StartPointPicker'
 import { ProfilePage } from './ProfilePage'
 import { LanduseLegend } from './LanduseLegend'
 import { useConfig } from '../config/store'
+import { PIN_GROUPS } from '../data/pinGroups'
+import { CITY_LAYERS } from './cityLayers'
 import { locale, useLang } from '../i18n'
 
 const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
@@ -152,8 +154,11 @@ function DataStatus({ pins }) {
   )
 }
 
-/** Data sources: where every pin comes from; its footer holds the live status and the map key. */
-export function SettingsPanel({ pins = 0, getMap, mobile }) {
+/**
+ * Data sources: how many of each thing is on the map, where every pin comes from; its footer holds the
+ * live status and the map key. (The toolbar's pin box only switches them on and off.)
+ */
+export function SettingsPanel({ pins = 0, pinCounts = {}, cityCounts = {}, getMap, mobile }) {
   const { t } = useLang()
   const { values } = useConfig()
   const [sources, setSources] = useState([])
@@ -162,6 +167,15 @@ export function SettingsPanel({ pins = 0, getMap, mobile }) {
   return (
     <Shell title={t('Settings')} sub={t('Data sources and the map key')}
       footer={<>{values.apiBadge && <DataStatus pins={pins} />}<LanduseLegend embedded getMap={getMap} mobile={mobile} /></>}>
+      <div className="blk-title so-section">{t('On the map')}<span>{t('How many of each there are right now')}</span></div>
+      <div className="so-counts">
+        {[...PIN_GROUPS.map((g) => [g, pinCounts[g.id]]), ...CITY_LAYERS.map((l) => [l, cityCounts[l.id]])].map(([o, n]) => (
+          <div className={`so-count ${values[o.param] === false ? 'off' : ''}`} key={o.id}>
+            <span aria-hidden="true">{o.emoji}</span><span className="t">{t(o.label)}</span>
+            <b>{n == null ? '–' : n.toLocaleString(locale())}</b>
+          </div>
+        ))}
+      </div>
       <div className="blk-title so-section">{t('Data sources')}<span>{t('Where every pin comes from')}</span></div>
       {sources.map((s) => (
         <div className="sp-row" key={s.slug} style={{ display: 'block' }}>

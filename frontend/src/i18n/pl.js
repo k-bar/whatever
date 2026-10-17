@@ -392,4 +392,6 @@ export const PL = {
   'Toilets and defibrillators show up within 600 m of the route you\'re walking.': 'Toalety i defibrylatory pojawiają się w promieniu 600 m od trasy, którą idziesz.',
   'Map: toilets near your route': 'Mapa: toalety przy trasie',
   'Map: defibrillators (AED) near your route': 'Mapa: defibrylatory (AED) przy trasie',
+  'On the map': 'Na mapie',
+  'How many of each there are right now': 'Ile czego jest teraz',
 }

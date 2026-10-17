@@ -71,10 +71,12 @@ export default function App() {
   const paths = useMemo(() => walkPaths(route, boxes), [route, boxes])
   const onPath = paths.length > 0
   useEffect(() => {
-    for (const l of CITY_LAYERS) if (values[l.param] && !city[l.id] && (l.id === 'walks' || onPath)) fetchCityLayer(l.id).then((fc) => setCity((c) => ({ ...c, [l.id]: fc })))
-  }, [values.showToilets, values.showAed, values.showWalks, onPath]) // eslint-disable-line react-hooks/exhaustive-deps
+    // toilets / AEDs wait for a route (or Settings, which counts them)
+    const need = (l) => l.id === 'walks' || onPath || panel === 'settings'
+    for (const l of CITY_LAYERS) if (values[l.param] && !city[l.id] && need(l)) fetchCityLayer(l.id).then((fc) => setCity((c) => ({ ...c, [l.id]: fc })))
+  }, [values.showToilets, values.showAed, values.showWalks, onPath, panel]) // eslint-disable-line react-hooks/exhaustive-deps
   const cityShown = useMemo(() => alongPaths(city, paths), [city, paths])
-  const cityCounts = Object.fromEntries(CITY_LAYERS.map((l) => [l.id, l.id === 'walks' || onPath ? cityShown[l.id]?.features.length : undefined]))
+  const cityCounts = Object.fromEntries(CITY_LAYERS.map((l) => [l.id, city[l.id]?.features.length])) // Settings -> Data sources
   const [draftPin, setDraftPin] = useState(null) // "+ Create event" is open: where the new event happens
   const meRef = useRef(null)
   useEffect(() => { meRef.current = me }, [me])
@@ -346,8 +348,7 @@ export default function App() {
 
       <Stage key="toolbar" delay={0.45}>
         <BottomToolbar busy={values.busyAreas} onBusy={() => { set('busyAreas', !values.busyAreas); say(t(values.busyAreas ? 'Busy areas off' : 'Busy areas on')) }}
-          onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()}
-          pinCounts={pinCounts} cityCounts={cityCounts} />
+          onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()} />
       </Stage>,
 
       // the live API status and the land-use key live in the Data sources panel (SidePanels.jsx)
@@ -362,7 +363,7 @@ export default function App() {
             {panel === 'profile' && <ProfilePanel features={featureList} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} onFavourites={() => onMenu('favourites')} />}
             {panel === 'messages' && <MessagesPanel />}
             {panel === 'favourites' && <FavouritesPanel features={featureList} favourites={fav.ids} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
-            {panel === 'settings' && <SettingsPanel pins={featureList.length} getMap={() => mapRef.current?.getMap()} mobile={mobile} />}
+            {panel === 'settings' && <SettingsPanel pins={featureList.length} pinCounts={pinCounts} cityCounts={cityCounts} getMap={() => mapRef.current?.getMap()} mobile={mobile} />}
           </SlideOver>
         )}
       </AnimatePresence>

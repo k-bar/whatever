@@ -99,10 +99,10 @@ export const SECTIONS = [
       { id: 'pinMusic', label: 'Pins: Music', type: 'toggle', default: true },
       { id: 'pinFood', label: 'Pins: Food', type: 'toggle', default: true },
       // "In the city" layers in the same pin box (components/cityLayers.js). Toilets and AEDs only ever
-      // show within 600 m of the route you're walking, so they're on; walking routes stay off until asked for
+      // show within 600 m of the route you're walking. Everything is on by default; switch off in the pin box
       { id: 'showToilets', label: 'Map: toilets near your route', type: 'toggle', default: true },
       { id: 'showAed', label: 'Map: defibrillators (AED) near your route', type: 'toggle', default: true },
-      { id: 'showWalks', label: 'Map: walking routes', type: 'toggle', default: false },
+      { id: 'showWalks', label: 'Map: walking routes', type: 'toggle', default: true },
       { id: 'showEvents', label: 'Show events', type: 'toggle', default: true },
       { id: 'showPlaces', label: 'Show venues', type: 'toggle', default: true },
       { id: 'showPitches', label: 'Show open pitches', type: 'toggle', default: false },
