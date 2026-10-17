@@ -140,6 +140,7 @@ function timeRange(window) {
 const IS_INVITE = ['any', ['to-boolean', ['get', 'is_public_invite']], ['has', 'audience']]
 
 function buildFilter(v, favourites, favOnly) {
+  if (v.showPins === false) return ['==', ['get', 'event_id'], '__none__'] // toolbar pin button: no pins at all
   const kinds = []
   const parts = ['any']
   if (v.showEvents) parts.push(['all', ['==', ['get', 'kind'], 'event'], ['!', IS_INVITE]])
@@ -157,6 +158,7 @@ function buildFilter(v, favourites, favOnly) {
 
 /** JS twin of buildFilter(): the pins actually drawn with the current settings (keep the two in sync). */
 function visiblePins(features, v, favourites, favOnly) {
+  if (v.showPins === false) return []
   const range = timeRange(v.timeWindow)
   const favs = new Set(favourites)
   return (features || []).filter(({ properties: p }) => {
@@ -344,14 +346,15 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     m.setFilter('wl-starred', ['all', f, ['in', ['get', 'event_id'], ['literal', [...favourites]]]])
     m.setLayoutProperty('wl-starred', 'visibility', vRef.current.starredDefault || favOnly ? 'visible' : 'none')
   }
-  useEffect(() => { refreshFilters(map.current) }, [values.showEvents, values.showPlaces, values.showPitches, values.showInvites, values.timeWindow, values.starredDefault, favourites, favOnly])
+  useEffect(() => { refreshFilters(map.current) }, [values.showPins, values.showEvents, values.showPlaces, values.showPitches, values.showInvites, values.timeWindow, values.starredDefault, favourites, favOnly])
 
   // ---------- selected pulse ----------
   useEffect(() => {
     const m = map.current
     if (!m?.getLayer('wl-selected')) return
-    m.setFilter('wl-selected', ['==', ['get', 'event_id'], selectedId ?? '__none__'])
-    if (!selectedId) return
+    const pulse = values.showPins !== false ? selectedId : null // hidden pins hide the selected ring too
+    m.setFilter('wl-selected', ['==', ['get', 'event_id'], pulse ?? '__none__'])
+    if (!pulse) return
     let t0 = performance.now(), raf
     const tick = (t) => {
       const k = Math.min(1, Math.max(0, ((t - t0) / 1200) % 1)) // rAF timestamps can precede t0 by a frame
@@ -364,7 +367,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [selectedId, values.accent])
+  }, [selectedId, values.accent, values.showPins])
 
   // start page <-> map: fade the pins, busy areas and route in or out (MapLibre paint transitions)
   useEffect(() => {

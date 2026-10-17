@@ -300,4 +300,9 @@ export const PL = {
   // ongoing events in search results
   'Now · until {time}': 'Teraz · do {time}',
   'On until {date}': 'Trwa do {date}',
+  // toolbar pin button
+  'Pins': 'Pinezki',
+  'Show or hide all pins': 'Pokaż lub ukryj wszystkie pinezki',
+  'Pins on': 'Pinezki: wł.',
+  'Pins off': 'Pinezki: wył.',
 }
