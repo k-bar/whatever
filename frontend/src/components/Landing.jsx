@@ -101,7 +101,7 @@ export function Landing({ features, onEnter, getMap }) {
           <motion.h1 initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -24 }} transition={{ ...spring, delay: 0.05 }}>
             {t("What's the plan in Warsaw today?")}
           </motion.h1>
-          <LandingSearch layoutId="search-pill" features={features} onSearch={onEnter} />
+          <LandingSearch features={features} onSearch={onEnter} />
           <motion.div className="hero-tiles" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ ...spring, delay: 0.12 }}>
             {TILES.map((tile, i) => (
               <Tile key={tile.label} tile={tile} delay={0.15 + i * 0.04} open={more}

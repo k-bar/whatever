@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
 import { useLang } from './i18n'
@@ -18,6 +18,7 @@ import { MapView } from './components/MapView'
 import { ResultsList, SearchBar } from './components/SearchBar'
 import { FavouritesPanel, MessagesPanel, ProfilePanel, SlideOver, SourcesPanel } from './components/SidePanels'
 import { Landing } from './components/Landing'
+import { flySearch } from './landing/searchFlight'
 import { SelectsRail } from './components/SelectsRail'
 import { CreateEventPanel } from './components/CreateEventPanel'
 import { AccountButton } from './components/AccountButton'
@@ -28,6 +29,9 @@ import { landingSearch, windowFor } from './landing/search'
 const Stage = ({ delay = 0, children }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay, duration: 0.45 } }} exit={{ opacity: 0, transition: { duration: 0.25 } }}>{children}</motion.div>
 )
+
+/** Where an element sits on screen right now (null when it isn't rendered). */
+const rectOf = (selector) => document.querySelector(selector)?.getBoundingClientRect() ?? null
 
 export default function App() {
   const { values, set } = useConfig()
@@ -44,6 +48,9 @@ export default function App() {
   const [panel, setPanel] = useState(null)
   const [panelFull, setPanelFull] = useState(false) // desktop mode 3: the slide-over fills the screen
   const [view, setView] = useState('landing') // every visit starts on the start page ("Search")
+  const [flying, setFlying] = useState(false) // the search pill is in flight between the start page and the map
+  const [revealed, setRevealed] = useState(false) // pins and areas shown: only once the pill has landed on the map
+  const flight = useRef(null) // { from: DOMRect, text, after } for the next view change
   const [entryQuery, setEntryQuery] = useState('')
   const [selectsOpen, setSelectsOpen] = useState(false) // the mermaid button: "Syrenka poleca" in the right bar
   const [boxes, setBoxes] = useState([]) // [{ key, feature, data, expanded }]
@@ -183,19 +190,36 @@ export default function App() {
 
   // ---------- start page <-> map ----------
   const enterMap = ({ q = '', window, category, label, feature, when, where, summary } = {}) => {
-    setEntryQuery(category ? label : summary || q)
-    setView('map')
+    const text = category ? label : summary || q
+    setEntryQuery(text)
     if (window) set('timeWindow', window)
     if (when) set('timeWindow', windowFor(when))
-    // act once the search pill has landed in its corner, so the scene improves instead of jumping
-    setTimeout(() => {
-      if (feature) openBox(feature)
-      else if (category) onSearch('events', label || category, { category })
-      else if (when || where) showLandingSearch({ q, when, where, summary })
-      else if (q.trim()) onSearch('search', q)
-      else mapRef.current?.home()
-    }, 520)
+    // the map stays still while the pill flies; it searches / moves only once the pill has landed
+    flight.current = {
+      from: rectOf('.hero-search'), text,
+      after: () => {
+        if (feature) openBox(feature)
+        else if (category) onSearch('events', label || category, { category })
+        else if (when || where) showLandingSearch({ q, when, where, summary })
+        else if (q.trim()) onSearch('search', q)
+        else mapRef.current?.home()
+      },
+    }
+    setFlying(true)
+    setView('map')
   }
+  // fly the pill for the view change that just rendered (same motion both ways), then let the map move
+  useLayoutEffect(() => {
+    const f = flight.current
+    if (!f) { if (view === 'map') setRevealed(true); return } // e.g. the account pill: no flight
+    flight.current = null
+    const to = rectOf(view === 'map' ? '.top-left .search' : '.hero-search')
+    flySearch(f.from, to, { text: f.text, placeholder: t("What's the plan today?"), reduceMotion: values.reduceMotion }).then(() => {
+      setFlying(false)
+      if (view === 'map') { setRevealed(true); f.after?.() }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view])
   // start page "what · when · where": filter the loaded pins, list them, frame them on the map
   const showLandingSearch = ({ q, when, where, summary }) => {
     const list = landingSearch({ q, when, where }, featureList)
@@ -225,7 +249,11 @@ export default function App() {
   })
   // the account pill (top right, everywhere) opens the profile section of the slide-over
   const openProfile = () => { setDraftPin(null); if (view !== 'map') setView('map'); setFavOnly(false); setPanel('profile') }
-  const goHome = () => { closePanel(); setDraftPin(null); setResults(null); setSheet(null); setView('landing') }
+  const goHome = () => {
+    flight.current = { from: rectOf('.top-left .search'), text: document.querySelector('.top-left .search input')?.value || '' }
+    setFlying(true); setRevealed(false)
+    closePanel(); setDraftPin(null); setResults(null); setSheet(null); setView('landing')
+  }
 
   const pickResult = (f) => { openBox(f); if (mobile) setSheet('box') }
 
@@ -246,9 +274,9 @@ export default function App() {
   }, [sheet, results, boxes, fav.ids, values.boxImages, featureList, lang])
 
   return (
-    <div className={`app ${view === 'map' && panel && !mobile ? (panelFull ? 'slide-full' : 'slide-open') : ''}`}>
+    <div className={`app ${view === 'map' && panel && !mobile ? (panelFull ? 'slide-full' : 'slide-open') : ''} ${flying ? 'flying' : ''}`}>
       <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
-        onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={view === 'map'} draftPin={draftPin} onDraftPin={setDraftPin} />
+        onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={revealed} draftPin={draftPin} onDraftPin={setDraftPin} />
 
       <AnimatePresence>{view === 'landing' && <Landing key="landing" features={features ? featureList : null} onEnter={enterMap} getMap={getMap} />}</AnimatePresence>
 
