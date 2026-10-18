@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -18,6 +18,7 @@ from app.config import settings
 from app.db import get_db
 from app.models import Event, User
 from app.schemas import (
+    AccountDeleteIn,
     EmailChangeIn,
     FavouritesIO,
     ForgotPasswordIn,
@@ -207,6 +208,26 @@ def logout_everywhere(user: User = Depends(get_current_user), db: Session = Depe
     end_sessions(user)
     db.commit()
     return TokenOut(access_token=create_token(user))
+
+
+@router.delete("/me", status_code=204)
+def delete_account(
+    body: AccountDeleteIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    """Delete the account for good (needs the password). Events I host leave the map like a cancel;
+    everything else that is mine (profile, friends, attendance, my events, photos, chat messages)
+    goes with the user row through ON DELETE CASCADE."""
+    if not check_password(user, body.password):
+        raise HTTPException(403, "Password is wrong")
+    for event in db.scalars(select(Event).where(Event.host_user_id == user.id)):
+        if event.is_active:
+            event.is_active = False
+            event.source.item_count = max(0, (event.source.item_count or 1) - 1)
+        event.host_user_id = None
+    db.flush()  # no ORM relationship orders these before the DELETE
+    db.delete(user)
+    db.commit()
+    return Response(status_code=204)
 
 
 @router.get("/me", response_model=Me)

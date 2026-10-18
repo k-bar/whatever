@@ -299,6 +299,11 @@ export async function changeEmail(email, password) {
 export async function logoutEverywhere() {
   writeToken((await authed('/auth/logout-all', { method: 'POST' })).access_token)
 }
+/** Delete the account for good (DELETE /me, needs the password); logs out here too. */
+export async function deleteAccount(password) {
+  await authed('/me', { method: 'DELETE', body: { password } })
+  writeToken(null)
+}
 
 /** A call made as the logged-in user. No token, or an expired one, throws LoginRequired. */
 async function authed(path, { body, ...opts } = {}) {

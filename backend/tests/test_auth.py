@@ -4,8 +4,10 @@ import jwt
 
 from app import mail
 from app.config import settings
-from app.models import User
+from app.models import ChatMessage, Event, User
 from tests.conftest import mailed_token, register
+from tests.test_api import invite
+from tests.test_chats import befriend, create, say
 
 PW = "password123"
 
@@ -158,3 +160,33 @@ def test_unknown_email_and_wrong_password_look_the_same(client, alice):
     a = login(client, "nobody@example.com")
     b = login(client, "alice@example.com", "wrong-pass")
     assert a.status_code == b.status_code == 401 and a.json() == b.json()
+
+
+def test_delete_account(client, db, alice, bob):
+    befriend(client, alice, bob, "bob")
+    ue = create(client, alice)  # a user event, published as a public event
+    hosted = invite(client, alice)  # a public invite
+    bobs_event = create(client, bob, title="Bob's picnic")
+    path = f"event/{bobs_event['event_id']}"
+    assert say(client, alice, path, "I'll bring cake").status_code == 201
+    assert say(client, bob, path, "Great").status_code == 201
+
+    assert client.request("DELETE", "/me", json={"password": "wrong"}, headers=alice).status_code == 403
+    r = client.request("DELETE", "/me", json={"password": PW}, headers=alice)
+    assert r.status_code == 204
+    db.expire_all()
+
+    assert db.query(User).filter_by(email="alice@example.com").first() is None
+    assert client.get("/me", headers=alice).status_code == 401
+    assert login(client, "alice@example.com").status_code == 401
+    # what she hosted leaves the map, without a host
+    for event_id in (ue["event_id"], hosted["id"]):
+        ev = db.get(Event, event_id)
+        assert ev.is_active is False and ev.host_user_id is None
+    # her messages and friendship are gone; Bob's event and chat stay
+    assert [m.body for m in db.query(ChatMessage)] == ["Great"]
+    bob_id = client.get("/me", headers=bob).json()["id"]
+    assert client.get(f"/users/{bob_id}/friends", headers=bob).json() == []
+    assert client.get(f"/chats/{path}/messages", headers=bob).status_code == 200
+    # the address can sign up again
+    register(client, "alice@example.com", "Alice")
