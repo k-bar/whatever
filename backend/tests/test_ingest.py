@@ -167,6 +167,14 @@ def test_osm_venues_parse():
     assert all(v.kind == "place" and v.external_key.startswith(("node/", "way/")) for v in venues)
     assert all(52 < v.lat < 53 and 20 < v.lng < 22 for v in venues)  # ways use their center
     assert map_categories(["osm:nightclub"], "Gatsby Warsaw") == ["nightlife"]
+    assert "film" not in map_categories(
+        ["Zdrowie"], "Seanse saunowe – Orląt Lwowskich 1"
+    )  # sauna, not cinema
+    assert "film" in map_categories(["Kultura"], "Seans filmowy w bibliotece")
+    assert "nightlife" not in map_categories(
+        ["Sport"], "Boiska – Szkoła Podstawowa im. Partyzantów Ziemi Kieleckiej"
+    )
+    assert "nightlife" in map_categories(["Kultura"], "Halloween party w klubie")
 
     assert osm_hours("24/7")["sunday"] == "00:00-24:00"
     assert osm_hours("Su-Fr 09:00-16:00") == {

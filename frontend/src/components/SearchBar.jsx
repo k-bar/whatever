@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from '../config/store'
 import { Burger, Calendar, Chevron, History, Plus, Search, Sparkle, X, Minus } from './Icons'
@@ -213,11 +213,14 @@ export function ResultsList({ results, onPick, onClear }) {
       </div>
       <div className="results-scroll">
         {results.answer && <div className="assistant"><b>✦ </b>{results.answer}</div>}
-        {list.map((f) => {
+        {results.exact === 0 && list.length > 0 && <div className="res-near first">{t('No exact matches. Closest:')}</div>}
+        {list.map((f, i) => {
           const p = f.properties
           const c = categoryColor(p.categories?.[0])
           return (
-            <button key={f.id} className="res-item" onClick={() => onPick(f)}>
+            <Fragment key={f.id}>
+            {i > 0 && i === results.exact && <div className="res-near">{t('Close matches')}</div>}
+            <button className="res-item" onClick={() => onPick(f)} aria-label={p.title}>
               <span className="thumb" style={p.image_url ? { backgroundImage: `url(${p.image_url})` } : { background: c }}>
                 {!p.image_url && (p.title || '?')[0]}
               </span>
@@ -230,6 +233,7 @@ export function ResultsList({ results, onPick, onClear }) {
                 </div>
               </span>
             </button>
+            </Fragment>
           )
         })}
         {!list.length && !results.answer && <div className="res-empty">{t('Nothing found. Try “jazz”, “Praga”, “run” or “teatr”.')}</div>}

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
 import { useLang } from './i18n'
-import { fetchBusyAreas, fetchCityLayer, fetchFeatures, isDatedEvent, locateByIp, routeTo, runSearch, WARSAW_CENTER } from './data/api'
+import { fetchBusyAreas, fetchCityLayer, fetchFeatures, locateByIp, routeTo, runSearch, WARSAW_CENTER } from './data/api'
 import { alongPaths, CITY_LAYERS, walkBoxFeature, walkPaths } from './components/cityLayers'
 import { useFavourites } from './hooks/useFavourites'
 import { useScrollFade } from './hooks/useScrollFade'
@@ -28,6 +28,8 @@ import { AccountButton } from './components/AccountButton'
 import { ConditionsChip } from './components/ConditionsChip'
 import { AUDIENCES } from './data/categories'
 import { landingSearch, windowFor } from './landing/search'
+import { smartSearch } from './search/engine'
+import { upcoming } from './data/api'
 
 /** Map controls arrive part by part after the start page, never all at once. */
 const Stage = ({ delay = 0, children }) => (
@@ -173,13 +175,7 @@ export default function App() {
   const onSearch = async (mode, q, opts) => {
     if (mode === 'events' && (opts?.when || opts?.where)) { // Events dropdown: tag · when · where
       if (opts.when) set('timeWindow', windowFor(opts.when))
-      let list = landingSearch({ q: opts.category ? '' : q.split(' · ')[0], when: opts.when, where: opts.where }, featureList)
-        .filter((f) => isDatedEvent(f.properties)) // Events: only dated events, never places
-      if (opts.category) list = list.filter((f) => (f.properties.categories || []).includes(opts.category))
-      setResults({ mode, q, results: list })
-      if (mobile) setSheet('results')
-      if (list.length) fitResults(list)
-      else if (opts.where?.lngLat) mapRef.current?.getMap()?.flyTo({ center: opts.where.lngLat, zoom: 15, duration: 1100 })
+      showSearch(await smartSearch(opts.category ? '' : q.split(' · ')[0], upcoming(featureList), { mode: 'events', category: opts.category, when: opts.when, where: opts.where }), mode, opts.where)
       return
     }
     if (!q.trim() && mode !== 'assistant') { setResults(null); return }
@@ -187,8 +183,22 @@ export default function App() {
     if (mode === 'assistant') setChat((c) => [...c, { role: 'user', text: q }])
     const r = await runSearch(mode, q, featureList, opts)
     setSearching(false)
-    if (mode === 'assistant') { setChat((c) => [...c, { role: 'assistant', text: r.answer, results: r.results }]) } else { setResults({ mode, q, ...r }); if (mobile) setSheet('results') }
-    if (r.results?.length && r.results.length <= 40) fitResults(r.results)
+    if (mode === 'assistant') { setChat((c) => [...c, { role: 'assistant', text: r.answer, results: r.results }]); if (r.results?.length && r.results.length <= 40) fitResults(r.results); return }
+    if (r.understood?.when) set('timeWindow', windowFor(r.understood.when))
+    showSearch(r, mode)
+  }
+  // results list + the map: the searched area outlined and in view, else the matches in view
+  const showSearch = (r, mode, where) => {
+    setResults({ mode, q: r.summary, results: r.results, exact: r.exact, area: r.area })
+    if (mobile) setSheet('results')
+    if (r.area) fitArea(r.area)
+    else if (r.results.length) fitResults(r.results)
+    else if (where?.lngLat) mapRef.current?.getMap()?.flyTo({ center: where.lngLat, zoom: 15, duration: 1100 })
+  }
+  const fitArea = (area) => {
+    const ring = (area.geometry.type === 'Polygon' ? [area.geometry.coordinates] : area.geometry.coordinates).flatMap((poly) => poly[0])
+    const b = ring.reduce((acc, [x, y]) => [Math.min(acc[0], x), Math.min(acc[1], y), Math.max(acc[2], x), Math.max(acc[3], y)], [999, 999, -999, -999])
+    mapRef.current?.getMap()?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 100, bottom: window.innerHeight * 0.5, left: 30, right: 30 } : { top: 100, bottom: 100, left: 620, right: 380 }, maxZoom: 15.5, duration: 900 })
   }
   const fitResults = (list) => {
     const pts = list.slice(0, 40).map((f) => f.geometry?.coordinates).filter(Boolean)
@@ -261,12 +271,8 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view])
   // start page "what · when · where": filter the loaded pins, list them, frame them on the map
-  const showLandingSearch = ({ q, when, where, summary }) => {
-    const list = landingSearch({ q, when, where }, featureList)
-    setResults({ mode: when ? 'events' : 'search', q: summary, results: list })
-    if (mobile) setSheet('results')
-    if (list.length) fitResults(list)
-    else if (where?.lngLat) mapRef.current?.getMap()?.flyTo({ center: where.lngLat, zoom: 15, duration: 1100 })
+  const showLandingSearch = async ({ q, when, where }) => {
+    showSearch(await landingSearch({ q, when, where }, featureList), when ? 'events' : 'search', where)
   }
   // toasts raised from deep components (map box CTAs)
   useEffect(() => {
@@ -320,7 +326,7 @@ export default function App() {
 
   return (
     <div className={`app ${view === 'map' && panel && !mobile ? (panelFull ? 'slide-full' : 'slide-open') : ''} ${view === 'map' && panel && mobile ? 'slide-phone' : ''} ${flying ? 'flying' : ''}`}>
-      <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
+      <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} searchArea={results?.area} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
         onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={revealed} draftPin={draftPin} onDraftPin={setDraftPin}
         city={cityShown} onPickWalk={pickWalk} />
 
