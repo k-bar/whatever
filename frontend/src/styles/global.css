@@ -1054,6 +1054,10 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .scroll-fade.scrolling, .scroll-fade:hover { scrollbar-color: color-mix(in srgb, var(--fg) 28%, transparent) transparent; }
 .boxes.scroll-fade { overscroll-behavior: contain; scroll-padding-top: 4px; }
 .boxes > * { flex-shrink: 0; } /* boxes keep their full height; the stack scrolls instead of squeezing them */
+/* An expanded box is position: fixed (full height on the right), so it leaves the stack and the stack shrinks to its
+   padding. A mask hides everything outside the masked element's own box, fixed children included, so with the soft
+   edges on, the expanded box showed as a thin sliver. No soft edges while a box is expanded. */
+.boxes.scroll-fade:has(.mapbox.expanded) { -webkit-mask-image: none; mask-image: none; }
 
 
 /* ---------- slide-over tray: the burger opens it on its menu; items open inside it (SidePanels.jsx) ---------- */
@@ -1224,3 +1228,97 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
   background: var(--surface-2); color: var(--fg); font: inherit; field-sizing: content; }
 .chat-compose textarea:focus { outline: 2px solid color-mix(in srgb, var(--fg) 25%, transparent); outline-offset: 0; }
 .chat-compose .btn { height: 40px; }
+/* ---------- Syrenka Poleca cards: titles take up to two lines, and every card keeps room for both ---------- */
+.sel-body h3 { -webkit-line-clamp: 2; min-height: calc(2em * 1.25); }
+@media (max-width: 767px) {
+  /* phones: three tiles in one row (two + More, Landing.jsx) */
+  .hero-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* phones: half-size cards, two per row, so more posters fit; text stays desktop size so it reads well */
+  .selects-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .sel-card, .sel-card.wide { grid-column: auto; flex-direction: column; min-height: 0; border-radius: 18px; }
+  .sel-img, .sel-card.wide .sel-img { width: auto; height: 120px; }
+  .sel-body, .sel-card.wide .sel-body { padding: 10px 12px 12px; gap: 4px; justify-content: flex-start; }
+  .sel-body h3, .sel-card.wide h3 { font-size: 18px; }
+  .sel-card .sel-lead { display: none; }
+  .sel-cat { left: 8px; top: 8px; }
+  .sel-card.skeleton { min-height: 230px; }
+}
+
+/* ---------- phone map screen: one top row (search · Syrenka · account), menu under the search bar ---------- */
+.account-login { display: inline-flex; align-items: center; gap: 6px; }
+.account-login-ic { display: none; }
+@media (max-width: 767px) {
+  /* one row: the search pill takes what's left after the Syrenka button and the account button */
+  .app .top-left { --searchHeight: 50px; top: 12px; left: 12px; right: calc(12px + 40px + 6px); flex-direction: row; align-items: center; gap: 6px; }
+  .app .top-left .search-wrap { width: auto; flex: 1; min-width: 0; }
+  .app .top-left .side-controls { height: var(--searchHeight); margin-right: 0; align-self: center; }
+  .app .top-left .btn.icon.mermaid-btn { width: 40px; height: 40px; min-width: 40px; }
+  /* a tighter pill so the typing area gets the room: smaller mode label, less padding */
+  .app .top-left .search { padding-left: 4px; padding-right: 5px; gap: 2px; }
+  .app .top-left .mode-btn { padding: 0 4px 0 8px; gap: 2px; font-size: 12px; }
+  .app .top-left .search input { padding: 0 4px; font-size: 15px; }
+  .account.on-map { top: 17px; right: 12px; }
+  .account.on-map .account-login { width: 40px; height: 40px; }
+  .account.on-map .account-pill { height: 40px; }
+  .account.on-map .account-av { width: 32px; height: 32px; }
+  /* logged out: a round person button instead of the "Log in" text */
+  .account-login { width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 50%; }
+  .account-login-ic { display: block; }
+  .account-login-txt { display: none; }
+  /* the editor toggle and "Close all" sit on the row below */
+  .top-right.on-map { top: 70px; right: 12px; }
+  .close-all { top: 78px; right: calc(12px + var(--controlSize) + 8px); }
+  /* menu open: it slides in under the search bar (which stays on top, its burger is the (x)) and covers the
+     Syrenka button, the account and the editor toggle; no syrenka.me header on a phone */
+  .app.slide-phone .top-left { z-index: 70; }
+  .app.slide-phone .top-left .side-controls { visibility: hidden; }
+  .app.slide-phone .account, .app.slide-phone .top-right, .app.slide-phone .close-all { z-index: 40; }
+  .slideover.full { padding-top: 70px; }
+  .slideover .so-bar { display: none; }
+  /* Syrenka Poleca in the menu: two cards per row, like the start page; text stays readable */
+  .selects-rail.single .sr-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 10px; padding: 0 12px 16px; } /* rows as tall as the card; the list scrolls */
+  .selects-rail.single .sr-item.wide { padding: 0; gap: 0; border-radius: 18px; overflow: hidden; background: var(--surface-solid); box-shadow: var(--shadow); }
+  .selects-rail.single .sr-item.wide .sr-img { height: 120px; border-radius: 0; }
+  .selects-rail.single .sr-item.wide .sr-text { padding: 10px 12px 12px; }
+  .selects-rail.single .sr-item.wide .sr-title { font-size: 16px; min-height: calc(2em * 1.25); }
+}
+
+/* ---------- toolbar: always one row; when the screen is too narrow it scales down to fit (BottomToolbar.jsx sets --fit) ---------- */
+.toolbar { scale: calc(var(--toolbarScale) * var(--fit, 1)); }
+@media (max-width: 767px) {
+  /* phones: a compact single row at its natural width, centred; --fit shrinks it when it doesn't fit */
+  .toolbar-wrap { left: 0; right: 0; }
+  .toolbar { flex: none; justify-content: center; gap: 2px; padding: 4px; }
+  .toolbar .sep { display: none; }
+  .toolbar .tb, .toolbar .tb.home, .toolbar .pinmenu .tb { flex: none; width: 36px; min-width: 36px; height: 40px; }
+  .toolbar .pinmenu { flex: none; min-width: 0; }
+  .toolbar .tb.lang-btn { width: 36px; padding: 0; }
+  .toolbar .tb.lang-btn .lang-face b { display: none; } /* flag only */
+  .toolbar .seg { flex: none; grid-template-columns: repeat(4, 54px); height: 34px; margin: 0 2px; } /* equal columns: the sliding thumb is a quarter wide */
+  .toolbar .seg-opt { font-size: 11px; padding: 0 2px; white-space: nowrap; letter-spacing: -0.01em; }
+}
+
+/* ---------- phone bottom sheet: (x) top right, travels with the sheet; formatted event details ---------- */
+.sheet { position: fixed; top: 0; bottom: auto; z-index: 96; height: calc(100dvh - 70px); } /* pinned to the top so its slide (translateY) is measured from the top: full = 70 px down */ /* above the editor toggle so its (x) is never covered; full height stops under the top row */
+.top-right:has(.ed-tray) { z-index: 98; } /* an open editor still overlays everything */
+.sheet .sheet-x { position: absolute; top: 10px; right: 12px; z-index: 3; }
+.sheet .grip { margin-top: 10px; }
+.sheet .sheet-body .mapbox .mb-head { padding-right: 44px; } /* the title never runs under the (x) */
+.ev-details .blk-title { margin-bottom: 4px; }
+.evd-sec { padding: 10px 0; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.5; color: var(--fg); }
+.evd-sec:first-of-type { border-top: 0; padding-top: 2px; }
+.evd-sec h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--fg-3); }
+.evd-sec h4 svg { color: var(--fg-3); }
+.evd-sec p { margin: 0 0 8px; white-space: pre-line; }
+.evd-sec p:last-child { margin-bottom: 0; }
+.evd-dates { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; font-weight: 600; }
+.evd-more, .evd-muted { color: var(--fg-2); font-size: 12.5px; }
+.evd-strong { font-weight: 700; }
+.evd-link { display: inline-block; margin-top: 4px; color: var(--accent); font-weight: 600; text-decoration: none; word-break: break-word; }
+.evd-link:hover { text-decoration: underline; }
+.evd-hours { border-collapse: collapse; width: 100%; font-size: 13px; }
+.evd-hours th { text-align: left; font-weight: 500; color: var(--fg-2); padding: 2px 12px 2px 0; width: 45%; }
+.evd-hours td { padding: 2px 0; font-weight: 600; }
+.evd-hours tr.today th, .evd-hours tr.today td { color: var(--accent); font-weight: 700; }
+.evd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.evd-source { display: flex; align-items: center; gap: 6px; color: var(--fg-3); font-size: 12px; }

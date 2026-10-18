@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
 import { useLang } from './i18n'
-import { fetchBusyAreas, fetchCityLayer, fetchFeatures, locateByIp, routeTo, runSearch } from './data/api'
+import { fetchBusyAreas, fetchCityLayer, fetchFeatures, isDatedEvent, locateByIp, routeTo, runSearch } from './data/api'
 import { alongPaths, CITY_LAYERS, walkBoxFeature, walkPaths } from './components/cityLayers'
 import { useFavourites } from './hooks/useFavourites'
 import { useScrollFade } from './hooks/useScrollFade'
@@ -124,7 +124,7 @@ export default function App() {
     const data = curate(feature)
     setBoxes((b) => {
       const rest = b.filter((x) => x.key !== key).map((x) => ({ ...x, expanded: false }))
-      return [{ key, feature, data, expanded: false }, ...rest].slice(0, MAX_OPEN_BOXES)
+      return [{ key, feature, data, expanded: false }, ...rest].slice(0, mobile ? 1 : MAX_OPEN_BOXES) // phones: one event at a time
     })
     boxesRef.current?.scrollTo({ top: 0, behavior: 'smooth' }) // the newest box goes on top: bring it into view
     if (mobile) setSheet('box')
@@ -173,6 +173,7 @@ export default function App() {
     if (mode === 'events' && (opts?.when || opts?.where)) { // Events dropdown: tag · when · where
       if (opts.when) set('timeWindow', windowFor(opts.when))
       let list = landingSearch({ q: opts.category ? '' : q.split(' · ')[0], when: opts.when, where: opts.where }, featureList)
+        .filter((f) => isDatedEvent(f.properties)) // Events: only dated events, never places
       if (opts.category) list = list.filter((f) => (f.properties.categories || []).includes(opts.category))
       setResults({ mode, q, results: list })
       if (mobile) setSheet('results')
@@ -317,7 +318,7 @@ export default function App() {
   }, [sheet, results, boxes, fav.ids, values.boxImages, featureList, lang])
 
   return (
-    <div className={`app ${view === 'map' && panel && !mobile ? (panelFull ? 'slide-full' : 'slide-open') : ''} ${flying ? 'flying' : ''}`}>
+    <div className={`app ${view === 'map' && panel && !mobile ? (panelFull ? 'slide-full' : 'slide-open') : ''} ${view === 'map' && panel && mobile ? 'slide-phone' : ''} ${flying ? 'flying' : ''}`}>
       <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
         onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={revealed} draftPin={draftPin} onDraftPin={setDraftPin}
         city={cityShown} onPickWalk={pickWalk} />
@@ -342,7 +343,7 @@ export default function App() {
 
       /* under "Log in" / the account pill: close every open map box and the results list */
       // only there while something is open (map boxes, results, the phone's sheet); fades in and out
-      (boxes.length > 0 || results || sheet) && <motion.button key="close-all" className="close-all" onClick={closeAll}
+      !mobile && (boxes.length > 0 || results || sheet) && <motion.button key="close-all" className="close-all" onClick={closeAll}
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25, ease: 'easeOut' }}>{t('Close all')}</motion.button>,
 
 

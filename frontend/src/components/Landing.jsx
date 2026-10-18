@@ -108,7 +108,8 @@ export function Landing({ features, onEnter, getMap }) {
           </motion.h1>
           <LandingSearch features={features} onSearch={onEnter} />
           <motion.div className="hero-tiles" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ ...spring, delay: 0.12 }}>
-            {TILES.map((tile, i) => (
+            {/* phones: just the first two + More, so three fit in one row */}
+            {TILES.filter((tile, i) => !mobile || i < 2 || tile.more).map((tile, i) => (
               <Tile key={tile.label} tile={tile} delay={0.15 + i * 0.04} open={more}
                 onClick={() => (tile.more ? setMore((m) => !m) : onEnter({ category: tile.category, label: t(tile.label), people: tile.people }))} />
             ))}
