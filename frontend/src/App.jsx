@@ -18,6 +18,8 @@ import { MapBox } from './components/MapBox'
 import { countPinGroups, MapView } from './components/MapView'
 import { ResultsList, SearchBar } from './components/SearchBar'
 import { FavouritesPanel, MessagesPanel, ProfilePanel, SettingsPanel, SlideOver } from './components/SidePanels'
+import { AuthLinks } from './components/Account'
+import { startChatSocket, useMyChats } from './data/chat'
 import { SelectsRail } from './components/SelectsRail'
 import { Landing } from './components/Landing'
 import { flySearch } from './landing/searchFlight'
@@ -50,6 +52,9 @@ export default function App() {
   const [favOnly, setFavOnly] = useState(false)
   const [panel, setPanel] = useState(null)
   const [panelFull, setPanelFull] = useState(false) // desktop mode 3: the slide-over fills the screen
+  const [eventChat, setEventChat] = useState(null) // the event chat open in Messages: { kind: 'event' | 'userevent', id }
+  const myChats = useMyChats()
+  useEffect(() => startChatSocket(), []) // live chat messages while logged in (data/chat.js)
   const [view, setView] = useState('landing') // every visit starts on the start page ("Search")
   const [flying, setFlying] = useState(false) // the search pill is in flight between the start page and the map
   const [revealed, setRevealed] = useState(false) // pins and areas shown: only once the pill has landed on the map
@@ -194,9 +199,17 @@ export default function App() {
   // ---------- the slide-over tray: the burger opens it on its menu ('menu'), items open inside it ----------
   // the map shows only favourite spots while that section is open
   const onMenu = (id) => { if (id === 'create') { startCreate(); return } setFavOnly(id === 'favourites'); setPanel(id) }
-  const closePanel = () => { setPanel(null); setPanelFull(false); setFavOnly(false) }
+  const closePanel = () => { setPanel(null); setPanelFull(false); setFavOnly(false); setEventChat(null) }
+  const openChat = (target) => { setDraftPin(null); setEventChat(target); setPanel('messages') }
+  // the event a chat belongs to, back on the map: public pins by id, private ones by user_event_id
+  const openChatEvent = (info) => {
+    const f = featureList.find((x) => (info.kind === 'event' ? x.properties.event_id === info.target_id : x.properties.user_event_id === info.target_id))
+    if (!f) return
+    if (mobile || panelFull) closePanel()
+    openBox(f)
+  }
   const toggleTray = () => (panel ? closePanel() : setPanel('menu'))
-  const backToMenu = () => { setFavOnly(false); setPanel('menu') }
+  const backToMenu = () => { setFavOnly(false); setEventChat(null); setPanel('menu') }
 
   // ---------- "+ Create event": its own full-height panel on the right ----------
   const startCreate = () => {
@@ -297,7 +310,7 @@ export default function App() {
     if (sheet === 'results' && results) return <ResultsList results={results} onPick={pickResult} />
     if (sheet === 'box' && boxes[0]) {
       const b = boxes[0]
-      return <MapBox data={b.data} feature={b.feature} journey={b.journey} expanded starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} showImage={values.boxImages} />
+      return <MapBox data={b.data} feature={b.feature} journey={b.journey} expanded starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} onChat={openChat} showImage={values.boxImages} />
     }
     return null
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -309,12 +322,14 @@ export default function App() {
         onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={revealed} draftPin={draftPin} onDraftPin={setDraftPin}
         city={cityShown} onPickWalk={pickWalk} />
 
+      <AuthLinks />
+
       <AnimatePresence>{view === 'landing' && <Landing key="landing" features={features ? featureList : null} onEnter={enterMap} getMap={getMap} />}</AnimatePresence>
 
       <AnimatePresence>{view === 'map' && [
 
       <div className="top-left" key="top-left">
-        <SearchBar onSearch={onSearch} trayOpen={!!panel} onBurger={toggleTray} initialQuery={entryQuery} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} features={featureList} />
+        <SearchBar onSearch={onSearch} trayOpen={!!panel} unread={myChats.total} onBurger={toggleTray} initialQuery={entryQuery} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} features={featureList} />
         <motion.div className="side-controls" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0, transition: { ...spring, delay: 0.35 } }}>
           {/* the Syrenka: back to the start page (a button, not a toggle) */}
           <motion.button className="btn icon mermaid-btn" onClick={goHome} aria-label={t('Back to the start page')} title={t('Back to the start page')}
@@ -338,7 +353,7 @@ export default function App() {
             <AnimatePresence>
               {boxes.map((b) => (
                 <MapBox key={b.key} layoutId={`box-${b.key}`} data={b.data} feature={b.feature} expanded={b.expanded} journey={b.journey} onClose={() => closeBox(b.key)} onExpand={() => expandBox(b.key)}
-                  starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} showImage={values.boxImages} />
+                  starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} onChat={openChat} showImage={values.boxImages} />
               ))}
             </AnimatePresence>
           </div>
@@ -357,10 +372,10 @@ export default function App() {
       <AnimatePresence>
         {view === 'map' && panel && (
           <SlideOver key="slideover" section={panel} onSection={onMenu} onBack={backToMenu} onClose={closePanel} full={panelFull}
-            onFull={panel === 'selects' && !panelFull ? showSelectsPage : () => setPanelFull((f) => !f)} onHome={goHome} mobile={mobile}>
+            onFull={panel === 'selects' && !panelFull ? showSelectsPage : () => setPanelFull((f) => !f)} onHome={goHome} mobile={mobile} unread={myChats.total}>
             {panel === 'selects' && <SelectsRail features={featureList} inSheet single onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
             {panel === 'profile' && <ProfilePanel features={featureList} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} onFavourites={() => onMenu('favourites')} />}
-            {panel === 'messages' && <MessagesPanel />}
+            {panel === 'messages' && <MessagesPanel chats={myChats} chat={eventChat} onOpenChat={setEventChat} onOpenEvent={openChatEvent} />}
             {panel === 'favourites' && <FavouritesPanel features={featureList} favourites={fav.ids} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
             {panel === 'settings' && <SettingsPanel pins={featureList.length} pinCounts={pinCounts} cityCounts={cityCounts} getMap={() => mapRef.current?.getMap()} mobile={mobile} />}
           </SlideOver>

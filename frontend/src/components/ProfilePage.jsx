@@ -10,6 +10,7 @@ import { fmtWhenFor } from '../mapboxes/curate'
 import { locale, useLang } from '../i18n'
 import { Check, ChevronL, Photo, Pin, Plus, Search, UserCheck, X } from './Icons'
 import { LoginForm } from './LoginForm'
+import { AccountSecurity, useMe } from './Account'
 
 /**
  * The "mini Facebook" profile: @username, Friends · Been to · Hosted, "You can find me at …",
@@ -72,6 +73,7 @@ export function ProfilePage({ features, onPick }) {
 
 function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, features }) {
   const { t, lang } = useLang()
+  const me = useMe()
   const [p, setP] = useState(null)
   const [err, setErr] = useState(null)
   const [tab, setTab] = useState('going')
@@ -91,7 +93,7 @@ function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, featu
           <h2>{p.display_name}</h2>
           <div className="pp-user">@{p.username}</div>
           {isMe
-            ? <span style={{ display: 'flex', gap: 8 }}><button className="btn small" onClick={onEdit}>{t('Edit profile')}</button><button className="btn small" onClick={logout}>{t('Log out')}</button></span>
+            ? <span style={{ display: 'flex', gap: 8 }}><button className="btn small" onClick={onEdit}>{t('Edit profile')}</button></span>
             : <FriendButton profile={p} onChanged={onChanged} />}
         </div>
       </div>
@@ -117,6 +119,7 @@ function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, featu
       )}
 
       {isMe && <PersonalDetails gender={p.gender} />}
+      {isMe && <AccountSecurity me={me} />}
 
       {p.can_see_events ? (
         <>
@@ -134,7 +137,7 @@ function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, featu
   )
 }
 
-/** My private details from GET /me: first / last name, age, gender, email, member since. Only on my own profile. */
+/** My private details from GET /me: first / last name, age, gender, member since (email: AccountSecurity). Only on my own profile. */
 function PersonalDetails({ gender }) {
   const { t } = useLang()
   const [me, setMe] = useState(null)
@@ -146,7 +149,6 @@ function PersonalDetails({ gender }) {
     ['Last name', me.last_name],
     ['Age', me.age],
     ['Gender', sex && t({ f: 'Woman', m: 'Man' }[sex])],
-    ['Email', me.email],
     ['Member since', me.created_at && new Date(me.created_at).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' })],
   ]
   return (

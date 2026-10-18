@@ -6,6 +6,7 @@ import { AUDIENCES, EVENT_TYPES, categoryColor } from '../data/categories'
 import { CloseButton } from './CloseButton'
 import { Check, Globe, Lock, Photo, Pin, UserCheck, Users } from './Icons'
 import { LoginForm } from './LoginForm'
+import { useMe, VerifyBanner } from './Account'
 import { DateField } from './Calendar'
 import { getLang, useLang } from '../i18n'
 
@@ -50,6 +51,7 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
   const [photo, setPhoto] = useState(null) // File
   const [address, setAddress] = useState(null)
   const [saving, setSaving] = useState(false)
+  const me = useMe() // creating needs a confirmed email: the banner says so up front
   const [error, setError] = useState(null)
   const [loggedIn, setLoggedIn] = useState(isLoggedIn)
   const retry = useRef(false) // Done was pressed while logged out: create right after logging in
@@ -106,6 +108,7 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
         <div className="sp-scroll ce-scroll"><LoginForm onDone={afterLogin} intro={t('Log in so people know who is hosting. Your event stays filled in.')} /></div>
       ) : (<>
       <div className="sp-scroll ce-scroll">
+        <VerifyBanner me={me} />
         <label className="ce-field">
           <span className="ce-label">{t('Event name')}</span>
           <input className="ce-input" value={form.title} onChange={set('title')} maxLength={200} placeholder={t('Sunday run along the Vistula')} autoFocus />
