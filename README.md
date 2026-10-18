@@ -1,5 +1,7 @@
 # Syrenka (Warszawa Live)
 
+by team 12: Whatever
+
 One live map of everything social happening in Warsaw: city events, sports classes, open pitches,
 venues, plus "I'm going, come with me" to find company. Product plan: [`docs/PLAN.md`](docs/PLAN.md).
 
