@@ -8,6 +8,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 
 from app import realtime
+from app.assistant.router import router as assistant_router
 from app.config import settings
 from app.db import engine
 from app.routers import chats, events, map, people, profiles, social, users
@@ -44,6 +45,7 @@ app.include_router(map.router)
 app.include_router(userevents_router)
 app.include_router(chats.router)
 app.include_router(realtime.router)
+app.include_router(assistant_router)
 
 
 @app.get("/", include_in_schema=False)

@@ -93,11 +93,25 @@ export const isPast = (p, now = Date.now()) => !!p?.starts_at && toDate(p.ends_a
 export const upcoming = (features) => (features || []).filter((f) => !isPast(f.properties))
 
 /**
- * Search. mode ∈ search | events | assistant. The backend has no search endpoint, so this
- * filters the already-loaded features client-side.
+ * Search. mode ∈ search | events | assistant. Search and Events filter the already-loaded features
+ * client-side. The assistant asks the backend (POST /assistant, backend/app/assistant), which also
+ * knows weather, toilets, opening hours and follow-ups; if the API is down it falls back to local search.
+ * opts.me: the viewer's [lng, lat], for "near me".
  */
 export async function runSearch(mode, q, features, opts = {}) {
+  if (mode === 'assistant') {
+    try { return await askAssistant(q, opts.me) } catch { /* offline: local search below */ }
+  }
   return localSearch(mode, q, upcoming(features), opts)
+}
+
+let assistantContext = null // the last reply's context: "a jutro?" / "and in Wola?" / "more" build on it
+async function askAssistant(q, me) {
+  const [lng, lat] = me || []
+  const near = Number.isFinite(lat) && Math.abs(lat - 52.25) < 0.25 && Math.abs(lng - 21.05) < 0.35
+  const r = await post('/assistant', { q, lang: getLang(), context: assistantContext, ...(near ? { lat, lng } : {}) })
+  assistantContext = r.context
+  return { answer: r.answer, results: r.results, area: r.area, summary: r.understood }
 }
 
 /** Search over the loaded pins: src/search/engine.js reads what / when / where and ranks with tolerances. */

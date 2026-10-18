@@ -189,7 +189,7 @@ export function SearchBar({ onSearch, trayOpen = false, unread = 0, onBurger, re
                 </div>
                 <div className="fp-foot">
                   <button className="btn icon small primary" onClick={() => setChatFull(!chatFull)} aria-label={t(chatFull ? 'Shrink' : 'Expand')}>{chatFull ? <Minus size={18} /> : <Plus size={18} />}</button>
-                  <span className="fp-hint">{chat?.length ? t('{n} messages', { n: chat.length }) : t('assistant · stub')}</span>
+                  <span className="fp-hint">{chat?.length ? t('{n} messages', { n: chat.length }) : t('assistant')}</span>
                   {chat?.length > 0 && <button className="btn text small" onClick={onChatClear}>{t('Clear thread')}</button>}
                 </div>
               </>
