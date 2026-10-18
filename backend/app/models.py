@@ -134,6 +134,8 @@ class User(Base):
     area_lat: Mapped[float | None] = mapped_column(Float)
     area_lng: Mapped[float | None] = mapped_column(Float)
     area_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # the demo people from app/mocksocial.py (dev only, never prod): their profiles and event lists are public
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     @property

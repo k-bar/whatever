@@ -15,6 +15,8 @@ printf 'GIT_SHA=%s\nAPP_ENV=%s\n' "$GIT_SHA" "$APP_ENV" > /etc/warszawa/release.
 log "backend: uv sync"
 (cd backend && uv sync --frozen --no-dev -q)
 chmod -R a+rX /opt/uv/python
+# the 30 demo people (app/mocksocial.py); never on prod, and never a reason to roll back
+[ "$APP_ENV" = prod ] || (cd backend && .venv/bin/python -m app.mocksocial) || log "backend: demo people not refreshed"
 
 log "backend: migrations (schema ${DB_SCHEMA:-public})"
 (cd backend && .venv/bin/alembic upgrade head)

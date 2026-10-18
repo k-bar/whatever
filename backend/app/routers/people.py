@@ -2,19 +2,22 @@
 
 Someone who switches on "Share my area" shows up for everyone as a pulsing pin, roughly where they are
 (rounded to ~100 m, never the exact spot), meaning "I'm around, come and hang out". A shared area goes
-stale after AREA_TTL without an update (the app re-sends it while it's open). Only logged-in people can
+stale after AREA_TTL without an update (the app re-sends it while it's open), except for the demo people
+from app/mocksocial.py (dev only), who are always out. Only logged-in people can
 see who is sharing: an approximate location is still personal data.
 
     GET /people/sharing   everyone sharing their area, with the event they're hosting next (login)
+    GET /people/avatar.svg  the Syrenka favicon, used as the demo people's profile picture
     GET /me/area          my switch + last area
     PUT /me/area          {"share": true, "lat": 52.23, "lng": 21.01}  (share: false hides me at once)
 """
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -26,6 +29,7 @@ from app.userevents.models import UserEvent
 router = APIRouter(tags=["people"])
 
 AREA_TTL = timedelta(hours=6)
+AVATAR = (Path(__file__).parent.parent / "data" / "avatar.svg").read_bytes()
 
 
 class AreaIn(BaseModel):
@@ -75,7 +79,7 @@ def sharing(viewer: User = Depends(get_current_user), db: Session = Depends(get_
     people = db.scalars(
         select(User)
         .where(User.share_area, User.area_lat.is_not(None), User.area_lng.is_not(None))
-        .where(User.area_at >= now - AREA_TTL)
+        .where(or_(User.is_mock, User.area_at >= now - AREA_TTL))
         .order_by(User.id)
         .limit(500)
     ).all()
@@ -148,3 +152,8 @@ def set_my_area(body: AreaIn, me: User = Depends(get_current_user), db: Session 
     me.share_area = body.share
     db.commit()
     return area_out(me)
+
+
+@router.get("/people/avatar.svg", include_in_schema=False)
+def avatar():
+    return Response(AVATAR, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})

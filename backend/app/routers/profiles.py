@@ -73,7 +73,7 @@ def profile_out(db: Session, viewer: User | None, user: User) -> ProfileOut:
         **PublicUser.model_validate(user).model_dump(),
         stats=stats(db, user.id),
         relation=rel,
-        can_see_events=rel in ("self", "friends"),
+        can_see_events=rel in ("self", "friends") or user.is_mock,  # demo people are open books
     )
 
 
@@ -146,7 +146,7 @@ def profile_events(
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(404, "User not found")
-    if relation(db, viewer, user) not in ("self", "friends"):
+    if relation(db, viewer, user) not in ("self", "friends") and not user.is_mock:
         raise HTTPException(403, "Only friends can see this")
     now = datetime.now(UTC)
 
@@ -293,7 +293,7 @@ def list_friends(
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(404, "User not found")
-    if relation(db, viewer, user) not in ("self", "friends"):
+    if relation(db, viewer, user) not in ("self", "friends") and not user.is_mock:
         raise HTTPException(403, "Only friends can see this")
     ids = friend_ids(db, user_id)
     return db.scalars(select(User).where(User.id.in_(ids)).order_by(User.display_name)).all() if ids else []
