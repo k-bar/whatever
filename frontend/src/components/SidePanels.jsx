@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { dataStatus, fetchJoinRequests, fetchSources } from '../data/api'
+import { dataStatus, fetchJoinRequests, fetchSources, onAuthChange } from '../data/api'
 import { categoryColor } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 import { Brand } from './Brand'
@@ -97,7 +97,7 @@ export function ProfilePanel({ features, onPick, onFavourites, person }) {
   const me = useMe()
   const [other, setOther] = useState(false) // looking at someone else's profile (a friend, a person on the map)
   const [requests, setRequests] = useState([])
-  useEffect(() => { fetchJoinRequests().then(setRequests) }, [])
+  useEffect(() => { const load = () => fetchJoinRequests().then(setRequests); load(); return onAuthChange(load) }, [])
   return (
     <Shell title={t(other ? 'Profile' : 'Your profile')} sub={other ? null : t('What others see when you ask to join')}>
       {!other && <VerifyBanner me={me} />}
@@ -130,9 +130,9 @@ export function ProfilePanel({ features, onPick, onFavourites, person }) {
  * Messages: the event chats I follow (posted in, host, or followed), newest activity first, with
  * unread counts; or one chat when `chat` is set. Opening a chat from a map box lands here too.
  */
-export function MessagesPanel({ chats, chat, onOpenChat, onOpenEvent }) {
+export function MessagesPanel({ chats, chat, onOpenChat, onOpenEvent, onOpenUser }) {
   const { t } = useLang()
-  if (chat) return <EventChat key={`${chat.kind}:${chat.id}`} target={chat} onBack={() => onOpenChat(null)} onOpenEvent={onOpenEvent} />
+  if (chat) return <EventChat key={`${chat.kind}:${chat.id}`} target={chat} onBack={() => onOpenChat(null)} onOpenEvent={onOpenEvent} onOpenUser={onOpenUser} />
   const list = chats.chats
   return (
     <Shell title={t('Messages')} sub={t('Chats of events you follow')}>

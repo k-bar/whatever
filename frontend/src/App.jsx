@@ -2,7 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
 import { useLang } from './i18n'
-import { fetchBusyAreas, fetchCityLayer, fetchFeatures, locateByIp, routeTo, runSearch, WARSAW_CENTER } from './data/api'
+import { dataStatus, fetchBusyAreas, fetchCityLayer, fetchFeatures, locateByIp, onAuthChange, routeTo, runSearch, WARSAW_CENTER } from './data/api'
+import { inWindow, onePinPerEvent, windowRange } from './data/features'
 import { alongPaths, CITY_LAYERS, walkBoxFeature, walkPaths } from './components/cityLayers'
 import { useFavourites } from './hooks/useFavourites'
 import { useScrollFade } from './hooks/useScrollFade'
@@ -16,7 +17,7 @@ import { InterfaceEditor } from './components/InterfaceEditor'
 import { DEV_TOOLS } from './config/env'
 import { Mermaid } from './components/Icons'
 import { MapBox } from './components/MapBox'
-import { countPinGroups, MapView, timeRange } from './components/MapView'
+import { countPinGroups, MapView } from './components/MapView'
 import { ResultsList, SearchBar } from './components/SearchBar'
 import { FavouritesPanel, MessagesPanel, ProfilePanel, SettingsPanel, SlideOver } from './components/SidePanels'
 import { AuthLinks } from './components/Account'
@@ -78,7 +79,12 @@ export default function App() {
   const [me, setMe] = useState(null)
   const start = useStartPoint() // picked in Profile; beats the IP guess
   const firstPosition = useRef(true)
-  const [route, setRoute] = useState(null)
+  // the walking line on the map is always the top box's journey: derived, so a closed box or a late
+  // answer for an older box can never leave a line behind
+  const route = useMemo(() => {
+    const g = boxes[0]?.journey?.geometry
+    return g ? { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: g, properties: {} }] } : null
+  }, [boxes])
   // "In the city" layers (toilets, AED, walking routes): fetched the first time each is switched on.
   // Toilets and AEDs only show along the walk you're on: within 600 m of the route (cityLayers.alongPaths).
   const [city, setCity] = useState({})
@@ -95,12 +101,30 @@ export default function App() {
   const meRef = useRef(null)
   useEffect(() => { meRef.current = me }, [me])
   const [chat, setChat] = useState(() => { try { return JSON.parse(localStorage.getItem('warszawa-live.chat.v1') || '[]') } catch { return [] } })
-  useEffect(() => { localStorage.setItem('warszawa-live.chat.v1', JSON.stringify(chat.map((m) => ({ ...m, results: undefined })))) }, [chat])
+  useEffect(() => { try { localStorage.setItem('warszawa-live.chat.v1', JSON.stringify(chat.map((m) => ({ ...m, results: undefined })))) } catch { /* full / private mode */ } }, [chat])
 
-  useEffect(() => {
-    fetchFeatures().then(setFeatures); fetchBusyAreas().then(setBusyAreas)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // ---------- the pins: loaded once, again on a language switch (titles come translated) and on log in /
+  // out (friends-only and invitation pins are per person). Only the newest answer counts, and a failed
+  // reload keeps the pins we have instead of emptying the map.
+  const featureSeq = useRef(0)
+  const loadFeatures = useCallback(() => {
+    const n = ++featureSeq.current
+    return fetchFeatures().then((fc) => {
+      if (n !== featureSeq.current) return
+      setFeatures((prev) => (dataStatus.source === 'offline' && prev?.features.length ? prev : fc))
+      // open boxes swap to the same event in the new language; a private event you can no longer see closes
+      const byId = new Map(fc.features.map((f) => [String(f.properties.event_id), f]))
+      setBoxes((b) => b.flatMap((x) => {
+        const f = byId.get(x.key)
+        if (f) return [{ ...x, feature: f, data: curate(f) }]
+        return x.key.startsWith('ue-') && dataStatus.source !== 'offline' ? [] : [x]
+      }))
+    })
   }, [])
+  useEffect(() => { loadFeatures(); fetchBusyAreas().then(setBusyAreas) }, [loadFeatures])
+  useEffect(() => onAuthChange(loadFeatures), [loadFeatures])
+  // one pin per event (GET /events sends one per date), showing its date in the toolbar's time window
+  const pins = useMemo(() => onePinPerEvent(features, windowRange(values.timeWindow)), [features, values.timeWindow])
   // Position: the starting point picked in Profile, otherwise an IP guess re-polled every 5 minutes
   // (the IP changes when the user moves networks)
   useEffect(() => {
@@ -115,14 +139,16 @@ export default function App() {
       }
       return
     }
-    locateByIp().then((loc) => { setMe(loc.lngLat); say(t(first ? 'Approximate location from your IP · set yours in Profile' : 'Using your approximate IP location')) })
-    const poll = setInterval(() => locateByIp().then((loc) => setMe(loc.lngLat)), 5 * 60 * 1000)
-    return () => clearInterval(poll)
+    let live = true // a starting point picked meanwhile wins over a late IP answer
+    locateByIp().then((loc) => { if (!live) return; setMe(loc.lngLat); say(t(first ? 'Approximate location from your IP · set yours in Profile' : 'Using your approximate IP location')) })
+    const poll = setInterval(() => locateByIp().then((loc) => { if (live) setMe(loc.lngLat) }), 5 * 60 * 1000)
+    return () => { live = false; clearInterval(poll) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [start])
-  const featureList = features?.features || []
+  const featureList = pins?.features || []
 
-  const say = useCallback((t) => { setToast(t); setTimeout(() => setToast(null), 1800) }, [])
+  const toastTimer = useRef(null)
+  const say = useCallback((t) => { clearTimeout(toastTimer.current); setToast(t); toastTimer.current = setTimeout(() => setToast(null), 1800) }, [])
 
   // ---------- map boxes ----------
   // Open boxes stay open: the stack scrolls (soft top / bottom edges, scrollbar only while scrolling)
@@ -142,22 +168,16 @@ export default function App() {
       setBoxes((b) => b.map((x) => (x.key === key ? { ...x, journey: { pending: true } } : x)))
       routeTo(from, feature.geometry.coordinates).then((j) => {
         setBoxes((b) => b.map((x) => (x.key === key ? { ...x, journey: j } : x)))
-        setRoute({ type: 'FeatureCollection', features: [{ type: 'Feature', geometry: j.geometry, properties: {} }] })
       })
     }
   }, [mobile]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // events in the new language after a PL/EN switch (the server sends Claude's translations)
+  // events in the new language after a PL/EN switch (the server sends the translations)
   const firstLang = useRef(true)
   useEffect(() => {
     if (firstLang.current) { firstLang.current = false; return }
-    fetchFeatures().then((fc) => {
-      setFeatures(fc)
-      // open boxes swap to the same event in the new language
-      const byId = new Map(fc.features.map((f) => [String(f.properties.event_id), f]))
-      setBoxes((b) => b.map((x) => { const f = byId.get(x.key); return f ? { ...x, feature: f, data: curate(f) } : x }))
-    })
-  }, [lang])
+    loadFeatures()
+  }, [lang]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // re-curate open boxes so their text follows a language switch
   useEffect(() => {
@@ -170,8 +190,8 @@ export default function App() {
     const b = route.geometry.coordinates.reduce((acc, [x, y]) => [Math.min(acc[0], x), Math.min(acc[1], y), Math.max(acc[2], x), Math.max(acc[3], y)], [999, 999, -999, -999])
     mapRef.current?.getMap()?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 120, bottom: window.innerHeight * 0.5, left: 30, right: 30 } : { top: 110, bottom: 110, left: 80, right: 420 }, maxZoom: 15.5, duration: 900 })
   }
-  const closeBox = (key) => setBoxes((b) => { const n = b.filter((x) => x.key !== key); if (!n.length) setRoute(null); return n })
-  const closeAll = () => { setBoxes([]); setResults(null); setRoute(null); if (sheet) setSheet(null); say(t('Closed all map boxes')) }
+  const closeBox = (key) => setBoxes((b) => b.filter((x) => x.key !== key))
+  const closeAll = () => { setBoxes([]); setResults(null); if (sheet) setSheet(null); say(t('Closed all map boxes')) }
   const expandBox = (key) => setBoxes((b) => b.map((x) => ({ ...x, expanded: x.key === key ? !x.expanded : false })))
   const selectedId = boxes[0]?.key
   const pinCounts = useMemo(() => countPinGroups(featureList, values, fav.ids, favOnly), [featureList, values, fav.ids, favOnly])
@@ -183,11 +203,11 @@ export default function App() {
   useEffect(() => { loadAreas().then((areas) => setFilterWhere(resolveWhere(mapFilter.where, areas))) }, [mapFilter.where])
   const searchIds = useMemo(() => {
     if (mapFilter.source !== 'search') return null
-    const range = mapFilter.when ? null : timeRange(values.timeWindow) // When replaces the toolbar's time toggle
+    const range = mapFilter.when ? null : windowRange(values.timeWindow) // When replaces the toolbar's time toggle
     return featureList.filter((f) => {
       const p = f.properties
       if (isPast(p) || !passesToggles(p, mapFilter, friendIds)) return false
-      if (range && p.starts_at && !(p.starts_at >= range[0] && p.starts_at <= range[1])) return false
+      if (!inWindow(p, range)) return false
       return !(mapFilter.when || filterWhere.where) || passesWhenWhere(f, mapFilter.when, filterWhere.where)
     }).map((f) => f.properties.event_id)
   }, [featureList, mapFilter, friendIds, filterWhere, values.timeWindow])
@@ -238,9 +258,10 @@ export default function App() {
 
   // ---------- the slide-over tray: the burger opens it on its menu ('menu'), items open inside it ----------
   // the map shows only favourite spots while that section is open
-  const onMenu = (id) => { if (id === 'create') { startCreate(); return } setFavOnly(id === 'favourites'); setPanel(id) }
+  // on phones the slide-over covers the screen: the event sheet steps aside so it can't sit on top of it
+  const onMenu = (id) => { if (id === 'create') { startCreate(); return } setFavOnly(id === 'favourites'); setPerson(null); if (mobile) setSheet(null); setPanel(id) }
   const closePanel = () => { setPanel(null); setPanelFull(false); setFavOnly(false); setPerson(null); setEventChat(null) }
-  const openChat = (target) => { setDraftPin(null); setEventChat(target); setPanel('messages') }
+  const openChat = (target) => { setDraftPin(null); setEventChat(target); if (mobile) setSheet(null); setPanel('messages') }
   // the event a chat belongs to, back on the map: public pins by id, private ones by user_event_id
   const openChatEvent = (info) => {
     const f = featureList.find((x) => (info.kind === 'event' ? x.properties.event_id === info.target_id : x.properties.user_event_id === info.target_id))
@@ -248,12 +269,12 @@ export default function App() {
     if (mobile || panelFull) closePanel()
     openBox(f)
   }
-  const toggleTray = () => (panel ? closePanel() : setPanel('menu'))
-  const backToMenu = () => { setFavOnly(false); setEventChat(null); setPanel('menu') }
+  const toggleTray = () => { if (panel) closePanel(); else { if (mobile) setSheet(null); setPanel('menu') } }
+  const backToMenu = () => { setFavOnly(false); setEventChat(null); setPerson(null); setPanel('menu') }
 
   // ---------- "+ Create event": its own full-height panel on the right ----------
   const startCreate = () => {
-    setBoxes([]); setRoute(null); setResults(null); setSheet(null)
+    setBoxes([]); setResults(null); setSheet(null)
     if (mobile || panelFull) closePanel()
     setDraftPin(mapRef.current?.center() || me)
   }
@@ -311,7 +332,8 @@ export default function App() {
   // Escape closes the topmost thing: create panel, then slide-over, then the newest map box / results
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key !== 'Escape' || e.target.closest?.('input, textarea, select')) return
+      // a popover (date picker, pin box, language…) that handled Escape itself calls preventDefault
+      if (e.key !== 'Escape' || e.defaultPrevented || e.target.closest?.('input, textarea, select')) return
       if (draftPin) setDraftPin(null)
       else if (panel) closePanel()
       else if (boxes.length) setBoxes((b) => b.slice(1))
@@ -321,9 +343,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   })
   // the account pill (top right, everywhere) opens the profile section of the slide-over
-  const openProfile = () => { setDraftPin(null); if (view !== 'map') setView('map'); setFavOnly(false); setPerson(null); setPanel('profile') }
-  // a person's pulsing pin on the map ("share my area"): their profile, in the same slide-over
-  const openPerson = (id) => { setDraftPin(null); setFavOnly(false); setPerson({ id, at: Date.now() }); setPanel('profile') }
+  // person: { id } to show someone's profile; id null = mine (also brings me back from a friend's profile)
+  const openProfile = () => { setDraftPin(null); if (view !== 'map') setView('map'); setFavOnly(false); if (mobile) setSheet(null); setPerson({ id: null, at: Date.now() }); setPanel('profile') }
+  // a person's pulsing pin on the map ("share my area"), or a face in a chat: their profile, in the same slide-over
+  const openPerson = (id) => { setDraftPin(null); setFavOnly(false); if (mobile) setSheet(null); setPerson({ id, at: Date.now() }); setPanel('profile') }
   const goHome = () => {
     flight.current = { from: rectOf('.top-left .search'), text: document.querySelector('.top-left .search input')?.value || '' }
     setFlying(true); setRevealed(false)
@@ -356,7 +379,7 @@ export default function App() {
 
   return (
     <div className={`app ${view === 'map' && panel && !mobile ? (panelFull ? 'slide-full' : 'slide-open') : ''} ${view === 'map' && panel && mobile ? 'slide-phone' : ''} ${flying ? 'flying' : ''}`}>
-      <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} searchArea={results?.area || (mapFilter.source === 'search' ? filterWhere.area?.feature : null) || null} searchIds={searchIds} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
+      <MapView ref={mapRef} features={pins} busyAreas={busyAreas} route={route} searchArea={results?.area || (mapFilter.source === 'search' ? filterWhere.area?.feature : null) || null} searchIds={searchIds} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
         onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={revealed} draftPin={draftPin} onDraftPin={setDraftPin}
         city={cityShown} onPickWalk={pickWalk} />
       <PeopleLayer getMap={getMap} show={view === 'map' && values.showPeople !== false} onOpen={openPerson} />
@@ -402,8 +425,7 @@ export default function App() {
       ),
 
       <Stage key="toolbar" delay={0.45}>
-        <BottomToolbar busy={values.busyAreas} onBusy={() => { set('busyAreas', !values.busyAreas); say(t(values.busyAreas ? 'Busy areas off' : 'Busy areas on')) }}
-          onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()} me={me} />
+        <BottomToolbar onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()} me={me} />
       </Stage>,
 
       // the live API status and the land-use key live in the Data sources panel (SidePanels.jsx)
@@ -416,7 +438,7 @@ export default function App() {
             onFull={panel === 'selects' && !panelFull ? showSelectsPage : () => setPanelFull((f) => !f)} onHome={goHome} mobile={mobile} unread={myChats.total}>
             {panel === 'selects' && <SelectsRail features={featureList} inSheet single onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
             {panel === 'profile' && <ProfilePanel person={person} features={featureList} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} onFavourites={() => onMenu('favourites')} />}
-            {panel === 'messages' && <MessagesPanel chats={myChats} chat={eventChat} onOpenChat={setEventChat} onOpenEvent={openChatEvent} />}
+            {panel === 'messages' && <MessagesPanel chats={myChats} chat={eventChat} onOpenChat={setEventChat} onOpenEvent={openChatEvent} onOpenUser={openPerson} />}
             {panel === 'favourites' && <FavouritesPanel features={featureList} favourites={fav.ids} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
             {panel === 'settings' && <SettingsPanel pins={featureList.length} pinCounts={pinCounts} cityCounts={cityCounts} getMap={() => mapRef.current?.getMap()} mobile={mobile} />}
           </SlideOver>
@@ -433,7 +455,8 @@ export default function App() {
 
       {DEV_TOOLS && <div className={`top-right on-${view}`}><InterfaceEditor open={editorOpen} onToggle={() => setEditorOpen(!editorOpen)} /></div>}
 
-      {mobile && <BottomSheet open={!!sheet && !!sheetContent} onClose={() => setSheet(null)} initial="half">{sheetContent}</BottomSheet>}
+      {/* swiping the event sheet away closes the event too (its route and highlighted pin with it) */}
+      {mobile && <BottomSheet open={!!sheet && !!sheetContent} onClose={() => { if (sheet === 'box') setBoxes([]); setSheet(null) }} initial="half">{sheetContent}</BottomSheet>}
 
       {DEV_TOOLS && values.debugOverlay && <div className="debug surface">z {zoom.toFixed(2)} · boxes {boxes.length} · fav {fav.ids.size} · {mobile ? 'mobile' : 'desktop'}</div>}
 
