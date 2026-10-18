@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import { CloseButton } from './CloseButton'
@@ -7,8 +8,34 @@ import { fmtWhen } from '../mapboxes/curate'
 import { useLang } from '../i18n'
 import { EventDetails } from './EventDetails'
 import { askToJoin, toggleGoing, useSocial } from '../data/social'
+import { dayLabel } from '../data/hours'
+import { fetchAttendees } from '../data/api'
+import { Avatar } from './ProfilePage'
 
 const AV_COLORS = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
+
+/**
+ * Who's going (GET /occurrences/{id}/attendees): up to four faces and the first names. The API only
+ * lists them to logged-in users, so logged out this shows nothing and the count stays on its own.
+ */
+function Attendees({ occurrenceId, refresh }) {
+  const { t } = useLang()
+  const [people, setPeople] = useState([])
+  useEffect(() => {
+    let alive = true
+    fetchAttendees(occurrenceId).then((list) => { if (alive) setPeople(list || []) })
+    return () => { alive = false }
+  }, [occurrenceId, refresh])
+  if (!people.length) return null
+  const names = people.slice(0, 2).map((a) => a.user.display_name.split(' ')[0])
+  const more = people.length - names.length
+  return (
+    <div className="attendees">
+      <span className="att-faces">{people.slice(0, 4).map((a) => <Avatar key={a.user.id} user={a.user} size={24} />)}</span>
+      <span className="att-names">{names.join(', ')}{more > 0 ? ` ${t('+{n} more', { n: more })}` : ''}</span>
+    </div>
+  )
+}
 
 function Block({ b, feature }) {
   const { t } = useLang()
@@ -45,7 +72,7 @@ function Block({ b, feature }) {
       }
       return (
         <div className={`blk social ${going || asked ? 'on' : ''}`}>
-          {/* only real people: the host's initial; attendee avatars come once the API lists them */}
+          {/* only real people: the host's initial; who else is going is listed under the button (Attendees) */}
           {b.host && <div className="avatars"><span className="av" style={{ background: AV_COLORS[0] }}>{b.host[0]}</span></div>}
           <div className="txt">
             {b.host && <><b>{b.host}</b> {t('is hosting')} · </>}
@@ -58,6 +85,7 @@ function Block({ b, feature }) {
           <button className={`btn small ${going || asked ? '' : 'primary'}`} onClick={act} disabled={asked}>
             {isInvite ? (asked ? t('Asked ✓') : b.cta) : going ? t('Going ✓') : b.cta}
           </button>
+          {n > 0 && <Attendees occurrenceId={feature.properties.occurrence_id} refresh={going} />}
         </div>
       )
     }
@@ -65,6 +93,16 @@ function Block({ b, feature }) {
       return <div className={`blk live ${b.level}`}><span className="ldot" />{b.text}</div>
     case 'hours':
       return <div className="blk facts"><div className="fact">{FACT_ICON.clock({ size: 15 })}<span>{b.text}</span></div></div>
+    case 'week': // opening hours per day (data/hours.js): open now + today; tap for the whole week
+      return (
+        <details className="blk week-hours">
+          <summary className="fact">
+            {FACT_ICON.clock({ size: 15 })}
+            <span><b className={b.open ? 'is-open' : 'is-closed'}>{t(b.open ? 'Open now' : 'Closed now')}</b>{' · '}{b.today ? `${t('today')} ${b.today}` : t('closed today')}</span>
+          </summary>
+          <ul>{b.week.map((d) => <li key={d.day}><span>{t(dayLabel(d.day))}</span><span>{d.hours || t('closed')}</span></li>)}</ul>
+        </details>
+      )
     case 'pitch':
       return (
         <div className="blk">
