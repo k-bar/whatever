@@ -7,12 +7,13 @@ import { locale, translate } from '../i18n'
  */
 import { AUDIENCES, EVENT_TYPES, categoryLabel } from '../data/categories'
 import { weekHours } from '../data/hours'
+import { toDate } from '../data/features'
 
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
 export function fmtWhen(iso) {
   if (!iso) return null
-  const d = new Date(String(iso).replace(/([+-]\d{2})$/, '$1:00'))
+  const d = toDate(iso)
   if (Number.isNaN(d.getTime())) return iso
   const now = new Date()
   const sameDay = d.toDateString() === now.toDateString()
@@ -26,8 +27,7 @@ export function fmtWhen(iso) {
 /** Like fmtWhen(starts_at), but something already running shows when it ends: "Now · until 22:00" / "On until Sun 30 Nov". */
 export function fmtWhenFor(p) {
   if (!p?.starts_at) return null
-  const parse = (iso) => new Date(String(iso).replace(/([+-]\d{2})$/, '$1:00'))
-  const now = new Date(), s = parse(p.starts_at), e = p.ends_at && parse(p.ends_at)
+  const now = new Date(), s = toDate(p.starts_at), e = p.ends_at && toDate(p.ends_at)
   if (e && s < now && e >= now) {
     if (e.toDateString() === now.toDateString()) return translate('Now · until {time}', { time: e.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }) })
     return translate('On until {date}', { date: e.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' }) })
@@ -83,7 +83,7 @@ export function curate(feature, ctx = {}) {
       p.starts_at && { icon: 'clock', text: until ? `${fmtWhen(p.starts_at)} – ${until}` : fmtWhen(p.starts_at) },
       (p.venue_name || p.address) && { icon: 'pin', text: [p.venue_name, p.address].filter(Boolean).join(' · ') },
     ].filter(Boolean) })
-    blocks.push({ type: 'social', host: p.host?.display_name, attendees: p.attendees, wanting: p.wanting_company,
+    blocks.push({ type: 'social', host: p.host?.display_name, hostUser: p.host, attendees: p.attendees, wanting: p.wanting_company,
       cta: translate(p.audience === 'public' ? 'Join' : p.audience === 'public_confirm' ? 'Ask to join' : "I'm going") })
     if (p.lead) blocks.push({ type: 'text', text: p.lead })
     const type = EVENT_TYPES[p.event_type]
@@ -100,7 +100,7 @@ export function curate(feature, ctx = {}) {
       p.is_recurring && { icon: 'repeat', text: translate('Recurring') },
     ].filter(Boolean) })
     if (p.is_public_invite) {
-      blocks.push({ type: 'social', host: p.host?.display_name, attendees: p.attendees, wanting: p.wanting_company,
+      blocks.push({ type: 'social', host: p.host?.display_name, hostUser: p.host, attendees: p.attendees, wanting: p.wanting_company,
         seats: p.seats_left, capacity: p.capacity, cta: translate('Ask to join') })
     } else if (p.attendees || p.wanting_company) {
       blocks.push({ type: 'social', attendees: p.attendees, wanting: p.wanting_company, cta: translate("I'm going, come with me") })

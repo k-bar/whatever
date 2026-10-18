@@ -6,7 +6,7 @@ import { locale, useLang } from '../i18n'
 import { needsVerify, useMe, VerifyBanner } from './Account'
 import { ChevronL, X } from './Icons'
 import { LoginForm } from './LoginForm'
-import { Avatar } from './ProfilePage'
+import { Avatar } from './Avatar'
 
 const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString()
 const GROUP_MS = 5 * 60 * 1000 // consecutive messages from one person within 5 min share a header

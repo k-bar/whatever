@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import { assetUrl, fetchMe, isLoggedIn, onAuthChange, onMeChange } from '../data/api'
 import { useLang } from '../i18n'
-import { usePopover } from './Calendar'
+import { usePopover } from '../hooks/usePopover'
 import { LoginForm } from './LoginForm'
 import { Silhouette } from './Icons'
 

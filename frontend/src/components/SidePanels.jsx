@@ -15,9 +15,8 @@ import { CITY_LAYERS } from './cityLayers'
 import { locale, useLang } from '../i18n'
 import { useMe, VerifyBanner } from './Account'
 import { EventChat } from './EventChat'
-import { assetUrl } from '../data/api'
+import { Avatar } from './Avatar'
 
-const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
 
 /** The tray's home: what used to be the burger pop-up. "create" starts a new event instead of opening a view. */
 const TRAY_ITEMS = [
@@ -113,7 +112,7 @@ export function ProfilePanel({ features, onPick, onFavourites, person }) {
       <div className="blk-title" style={{ padding: '0 10px' }}>{t('Join requests')}</div>
       {requests.map((r) => (
         <div className="sp-row" key={r.id}>
-          <span className="av" style={{ background: AV[r.requester.id % AV.length] }}>{r.requester.display_name[0]}</span>
+          <Avatar user={r.requester} />
           <span><div className="t">{r.requester.display_name}</div><div className="s">{t('wants to join · {event}', { event: r.event_title })}</div></span>
           <span className="right">{fmtWhen(r.starts_at)}</span>
         </div>
@@ -139,7 +138,7 @@ export function MessagesPanel({ chats, chat, onOpenChat, onOpenEvent, onOpenUser
       {list === null && <div className="res-empty">{t('Loading…')}</div>}
       {list?.map((c) => (
         <button key={c.key} className={`sp-row chat-row ${c.unread ? 'unread' : ''}`} onClick={() => onOpenChat({ kind: c.kind, id: c.target_id })}>
-          <span className="av" style={c.image_url ? { background: `center / cover url(${assetUrl(c.image_url)})` } : { background: AV[c.target_id % AV.length] }}>{!c.image_url && c.title[0]}</span>
+          <Avatar user={{ id: c.target_id }} photo={c.image_url} label={c.title} />
           <span className="chat-row-txt">
             <div className="t">{c.title}</div>
             <div className="s">{c.last_message

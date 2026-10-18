@@ -13,7 +13,8 @@
 const DEFAULT_LENGTH = 2 * 3600e3 // an event without an end is taken to last two hours
 
 /** "2026-10-18T19:00:00+02" (no minutes in the offset) parses too. */
-export const toMs = (iso) => (iso ? new Date(String(iso).replace(/([+-]\d{2})$/, '$1:00')).getTime() : NaN)
+export const toDate = (iso) => new Date(String(iso).replace(/([+-]\d{2})$/, '$1:00'))
+export const toMs = (iso) => (iso ? toDate(iso).getTime() : NaN)
 export const startMs = (p) => toMs(p?.starts_at)
 export const endMs = (p) => (p?.ends_at ? toMs(p.ends_at) : startMs(p) + DEFAULT_LENGTH)
 

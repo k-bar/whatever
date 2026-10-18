@@ -9,6 +9,7 @@ import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { fmtWhenFor } from '../mapboxes/curate'
 import { locale, useLang } from '../i18n'
 import { Check, ChevronL, Photo, Pin, Plus, Search, UserCheck, X } from './Icons'
+import { Avatar } from './Avatar'
 import { LoginForm } from './LoginForm'
 import { AccountSecurity, useMe } from './Account'
 
@@ -28,16 +29,6 @@ function labels(lang, gender) {
   }
 }
 
-const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
-export function Avatar({ user, size = 44 }) {
-  const photo = user?.photos?.[0]
-  const letter = (user?.display_name || '?')[0].toUpperCase()
-  return (
-    <span className="pp-av" style={{ width: size, height: size, fontSize: size * 0.42, background: photo ? `center / cover url(${assetUrl(photo)})` : AV[(user?.id || 0) % AV.length] }}>
-      {!photo && letter}
-    </span>
-  )
-}
 
 /** Profile area of the slide-over: me by default; tapping a friend opens theirs (with a way back). */
 export function ProfilePage({ features, onPick, person, onViewing }) {

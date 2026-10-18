@@ -148,10 +148,15 @@ export function useChat(target) {
       const page = await fetchMessages(t, { before: messages[0].id })
       setHasOlder(page.length >= 50); add(page)
     },
-    read: (id) => markRead(t, id).then(setInfo).catch(() => {}),
-    follow: async (on) => setInfo(on ? await followChat(t) : (await leaveChat(t), { ...info, joined: false, unread: 0 })),
+    read: (id) => markRead(t, id).then((i) => { setInfo(i); chatsChanged() }).catch(() => {}),
+    follow: async (on) => { setInfo(on ? await followChat(t) : (await leaveChat(t), { ...info, joined: false, unread: 0 })); chatsChanged() },
   }
 }
+
+// read / follow / leave in an open chat: the Messages list and its unread badge reload (the socket only
+// tells about new and deleted messages)
+const CHATS_CHANGED = 'syrenka:chats-changed'
+const chatsChanged = () => window.dispatchEvent(new Event(CHATS_CHANGED))
 
 /** Messages list (GET /me/chats), kept fresh by the socket. total = unread across chats, for the badge. */
 export function useMyChats(enabled = true) {
@@ -169,7 +174,8 @@ export function useMyChats(enabled = true) {
       if (f.type !== 'message' && f.type !== 'deleted') return
       clearTimeout(pending); pending = setTimeout(reload, 400) // a burst of messages = one reload
     })
-    return () => { off(); offAuth(); clearTimeout(pending) }
+    window.addEventListener(CHATS_CHANGED, reload)
+    return () => { off(); offAuth(); clearTimeout(pending); window.removeEventListener(CHATS_CHANGED, reload) }
   }, [enabled, reload])
   const total = (chats || []).reduce((n, c) => n + c.unread, 0)
   return { chats, total, reload }

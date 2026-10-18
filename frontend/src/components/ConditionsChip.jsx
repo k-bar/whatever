@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { fetchConditions, haversineKm } from '../data/api'
 import { useSpring } from '../config/store'
 import { locale, useLang } from '../i18n'
+import { usePopover } from '../hooks/usePopover'
 
 const REFRESH_MS = 10 * 60 * 1000 // the backend refreshes its stations every 10 minutes
 const STALE_MS = 3 * 60 * 60 * 1000 // ignore stations that haven't reported for 3 hours
@@ -37,8 +38,7 @@ export function ConditionsChip({ at }) {
   const { t } = useLang()
   const spring = useSpring()
   const [data, setData] = useState(null)
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const { open, setOpen, ref } = usePopover() // closes on a tap outside and on Escape
 
   useEffect(() => {
     let alive = true
@@ -48,14 +48,6 @@ export function ConditionsChip({ at }) {
     return () => { alive = false; clearInterval(id) }
   }, [])
 
-  useEffect(() => {
-    if (!open) return
-    const onDoc = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
-    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); setOpen(false) } }
-    document.addEventListener('pointerdown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('pointerdown', onDoc); document.removeEventListener('keydown', onKey) }
-  }, [open])
 
   if (!data || !at) return null
   const w = nearest(data.weather, at, (p) => p.temp_air != null)

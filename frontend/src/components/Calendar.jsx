@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { DayPicker } from 'react-day-picker'
 import { enGB, pl } from 'react-day-picker/locale'
@@ -33,20 +32,9 @@ export function Calendar({ allowPast = false, ...props }) {
   )
 }
 
-/** Click-away / Escape closing for a small popover. */
-export function usePopover() {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-  useEffect(() => {
-    if (!open) return
-    const onDoc = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
-    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); setOpen(false) } } // handled: App's Escape leaves the panel behind alone
-    document.addEventListener('pointerdown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('pointerdown', onDoc); document.removeEventListener('keydown', onKey) }
-  }, [open])
-  return { open, setOpen, ref }
-}
+// usePopover lives in hooks/usePopover.js; re-exported for the existing imports
+export { usePopover } from '../hooks/usePopover'
+import { usePopover } from '../hooks/usePopover'
 
 /** A date input that opens the calendar in a popover. `value` / onChange use "YYYY-MM-DD". */
 export function DateField({ value, onChange, label }) {

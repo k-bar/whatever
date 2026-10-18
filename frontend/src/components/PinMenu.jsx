@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from '../config/store'
 import { PIN_GROUPS } from '../data/pinGroups'
@@ -6,6 +5,7 @@ import { CITY_LAYERS } from './cityLayers'
 import { useLang } from '../i18n'
 import { Pin } from './Icons'
 import { handToPinMenu } from '../data/mapFilter'
+import { usePopover } from '../hooks/usePopover'
 
 // one list: the busy-areas heatmap first (it used to be its own toolbar button), the kinds of pins, then the
 // city's own layers (toilets / AED near your route, walking routes), and "Open now" (places whose opening
@@ -25,17 +25,7 @@ export function PinMenu() {
   const { values, set } = useConfig()
   const { t } = useLang()
   const spring = useSpring()
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-
-  useEffect(() => {
-    if (!open) return
-    const onDoc = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
-    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); setOpen(false) } } // handled: App's Escape leaves the panel behind alone
-    document.addEventListener('pointerdown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('pointerdown', onDoc); document.removeEventListener('keydown', onKey) }
-  }, [open])
+  const { open, setOpen, ref } = usePopover() // closes on a tap outside and on Escape
 
   return (
     <div className="pinmenu" ref={ref}>

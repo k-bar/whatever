@@ -33,3 +33,9 @@ infra/*outputs.json
 # personal editor / agent config
 .claude/
 .idea/
+
+# caches and logs (backend/busyareas/_cache/osm.json was 3 MB, tracked by mistake)
+**/_cache/
+*.log
+.env.*
+!.env.example

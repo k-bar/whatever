@@ -12,9 +12,8 @@ import { chatTarget } from '../data/chat'
 import { dayLabel } from '../data/hours'
 import { TYPES, typeColor, typeLabel, typeOf, typesOf } from '../data/types'
 import { fetchAttendees } from '../data/api'
-import { Avatar } from './ProfilePage'
+import { Avatar } from './Avatar'
 
-const AV_COLORS = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
 
 /**
  * Who's going (GET /occurrences/{id}/attendees): up to four faces and the first names. The API only
@@ -76,7 +75,7 @@ function Block({ b, feature }) {
       return (
         <div className={`blk social ${going || asked ? 'on' : ''}`}>
           {/* only real people: the host's initial; who else is going is listed under the button (Attendees) */}
-          {b.host && <div className="avatars"><span className="av" style={{ background: AV_COLORS[0] }}>{b.host[0]}</span></div>}
+          {b.host && <div className="avatars"><Avatar user={b.hostUser || { display_name: b.host }} size={28} /></div>}
           <div className="txt">
             {b.host && <><b>{b.host}</b> {t('is hosting')} · </>}
             {n ? <><b>{n}</b> {t('going')}</> : <>{t('Be the first to go')}</>}

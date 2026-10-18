@@ -187,8 +187,13 @@ export default function App() {
   // a walking route: its box (journey to the first stop) and the whole line in view
   const pickWalk = (route) => {
     openBox(walkBoxFeature(route), { fly: false })
-    const b = route.geometry.coordinates.reduce((acc, [x, y]) => [Math.min(acc[0], x), Math.min(acc[1], y), Math.max(acc[2], x), Math.max(acc[3], y)], [999, 999, -999, -999])
-    mapRef.current?.getMap()?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 120, bottom: window.innerHeight * 0.5, left: 30, right: 30 } : { top: 110, bottom: 110, left: 80, right: 420 }, maxZoom: 15.5, duration: 900 })
+    fitCoords(route.geometry.coordinates, { desktop: { top: 110, bottom: 110, left: 80, right: 420 }, phoneTop: 120 })
+  }
+  // frame these [lng, lat] points, clear of the search panel / boxes (desktop) or the sheet (phones)
+  const fitCoords = (coords, { desktop = { top: 100, bottom: 100, left: 620, right: 380 }, phoneTop = 100, maxZoom = 15.5 } = {}) => {
+    if (!coords.length) return
+    const b = coords.reduce((acc, [x, y]) => [Math.min(acc[0], x), Math.min(acc[1], y), Math.max(acc[2], x), Math.max(acc[3], y)], [999, 999, -999, -999])
+    mapRef.current?.getMap()?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: phoneTop, bottom: window.innerHeight * 0.5, left: 30, right: 30 } : desktop, maxZoom, duration: 900 })
   }
   const closeBox = (key) => setBoxes((b) => b.filter((x) => x.key !== key))
   const closeAll = () => { setBoxes([]); setResults(null); if (sheet) setSheet(null); say(t('Closed all map boxes')) }
@@ -243,18 +248,8 @@ export default function App() {
     else if (r.results.length) fitResults(r.results)
     else if (where?.lngLat) mapRef.current?.getMap()?.flyTo({ center: where.lngLat, zoom: 15, duration: 1100 })
   }
-  const fitArea = (area) => {
-    const ring = (area.geometry.type === 'Polygon' ? [area.geometry.coordinates] : area.geometry.coordinates).flatMap((poly) => poly[0])
-    const b = ring.reduce((acc, [x, y]) => [Math.min(acc[0], x), Math.min(acc[1], y), Math.max(acc[2], x), Math.max(acc[3], y)], [999, 999, -999, -999])
-    mapRef.current?.getMap()?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 100, bottom: window.innerHeight * 0.5, left: 30, right: 30 } : { top: 100, bottom: 100, left: 620, right: 380 }, maxZoom: 15.5, duration: 900 })
-  }
-  const fitResults = (list) => {
-    const pts = list.slice(0, 40).map((f) => f.geometry?.coordinates).filter(Boolean)
-    if (!pts.length) return
-    const m = mapRef.current?.getMap()
-    const b = pts.reduce((acc, [x, y]) => [Math.min(acc[0], x), Math.min(acc[1], y), Math.max(acc[2], x), Math.max(acc[3], y)], [999, 999, -999, -999])
-    m?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 100, bottom: window.innerHeight * 0.5, left: 30, right: 30 } : { top: 100, bottom: 100, left: 620, right: 380 }, maxZoom: 15, duration: 900 })
-  }
+  const fitArea = (area) => fitCoords((area.geometry.type === 'Polygon' ? [area.geometry.coordinates] : area.geometry.coordinates).flatMap((poly) => poly[0]))
+  const fitResults = (list) => fitCoords(list.slice(0, 40).map((f) => f.geometry?.coordinates).filter(Boolean), { maxZoom: 15 })
 
   // ---------- the slide-over tray: the burger opens it on its menu ('menu'), items open inside it ----------
   // the map shows only favourite spots while that section is open

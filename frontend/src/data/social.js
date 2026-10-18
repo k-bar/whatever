@@ -25,8 +25,6 @@ const subscribe = (fn) => { listeners.add(fn); return () => listeners.delete(fn)
 
 export const getSocial = () => state
 export const useSocial = () => useSyncExternalStore(subscribe, getSocial, getSocial)
-export const isGoing = (id) => Boolean(state.going[id])
-export const hasAsked = (id) => Boolean(state.joined[id])
 
 /** "I'm going, come with me". Returns 'on' | 'off' (toggled) and whether the API accepted it. */
 export async function toggleGoing(feature, { wantsCompany = true } = {}) {

@@ -14,6 +14,7 @@ import { typeLabel, typeOf } from '../data/types'
 import { locale, translate } from '../i18n'
 import { contains, fold, kmOutside, loadAreas } from './areas'
 import { understand } from './understand'
+import { toDate } from '../data/features'
 
 const NEAR_KM = 0.4
 const PLACE_RADIUS_KM = 1.5
@@ -38,7 +39,7 @@ const TITLE_WORDS = {
 // venues with no date are a full answer for these (a bar is open on Saturday night)
 const VENUE_INTENTS = new Set(['nightlife'])
 
-const parse = (iso) => new Date(String(iso).replace(/([+-]\d{2})$/, '$1:00'))
+const parse = toDate // "+02" offsets (no minutes) parse in Safari too
 const dayEnd = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() + 1); return x }
 
 function whatScore(p, cats, title) {
