@@ -16,6 +16,9 @@ import { getMapFilter, restoreMapFilter } from '../data/mapFilter'
 const SEED = 20261018 // same seed, same tour: the rehearsal looks like the presentation
 const KEEP = new Set(['syrenka.token.v1'])
 const STOP_ON = ['pointerdown', 'keydown', 'wheel', 'touchstart']
+// the map starts with only Events on; the tour shows every layer (walking routes, venues' hours...), put back afterwards
+const ALL_LAYERS = Object.fromEntries(['pinFriends', 'pinClubs', 'pinEvents', 'pinSights', 'pinMusic', 'pinFood', 'busyAreas',
+  'showToilets', 'showAed', 'showWalks', 'showStations'].map((id) => [id, true]))
 
 let running = null
 
@@ -49,6 +52,7 @@ export function startDemo({ speed = 1, seed = SEED } = {}) {
   if (running || !host) return
   const snap = { values: host.values, lang: host.lang, filter: getMapFilter(), storage: readStorage() }
   const root = document.documentElement
+  host.setMany(ALL_LAYERS)
   const demo = createDemo({ seed, speed, getMap: () => demoHost.current?.getMap() })
   const self = { demo, scene: null, startedAt: Date.now(), log: null }
   const onInput = (e) => { if (e.isTrusted) stop('input') }

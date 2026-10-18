@@ -18,7 +18,14 @@ function readLocal(key = KEY) {
 
 // What a visitor picks on the map itself (dark mode, time window, the pin and people switches) is remembered
 // in every build, not only through the editor's Save (which is a dev tool).
-const PREFS_KEY = 'syrenka.prefs.v1'
+// v2: the map starts with only Events on (2026-10-18), so v1's saved layer switches (all on) are not carried over
+const PREFS_KEY = 'syrenka.prefs.v2'
+const OLD_PREFS_KEY = 'syrenka.prefs.v1'
+const KEPT_FROM_V1 = new Set(['darkMode', 'timeWindow', 'starredDefault'])
+const readPrefs = () => {
+  try { if (localStorage.getItem(PREFS_KEY) !== null) return readLocal(PREFS_KEY) } catch { /* private mode */ }
+  return Object.fromEntries(Object.entries(readLocal(OLD_PREFS_KEY)).filter(([id]) => KEPT_FROM_V1.has(id)))
+}
 const USER_PREFS = new Set(['darkMode', 'timeWindow', 'busyAreas', 'showPeople', 'openNow', 'showToilets', 'showAed', 'showWalks',
   'showStations', 'showEvents', 'showPlaces', 'showPitches', 'showInvites', 'starredDefault'])
 const isPref = (id) => USER_PREFS.has(id) || (/^pin[A-Z]/.test(id) && id !== 'pinIcons' && PARAMS[id]?.type === 'toggle') // the pin box's switches
@@ -46,7 +53,7 @@ export function applyConfig(v) {
 }
 
 export function ConfigProvider({ children }) {
-  const [saved, setSaved] = useState(() => ({ ...DEFAULTS, ...readLocal(), ...readLocal(PREFS_KEY) }))
+  const [saved, setSaved] = useState(() => ({ ...DEFAULTS, ...readLocal(), ...readPrefs() }))
   const [values, setValues] = useState(saved)
   const [status, setStatus] = useState('idle') // idle | saving | saved | error
 
