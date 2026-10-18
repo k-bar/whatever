@@ -1143,3 +1143,19 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
   .top-right.on-landing { top: calc(12px + 44px + 8px); right: 12px; }
   .landing-head { padding-right: calc(12px + var(--account-w, 0px) + 10px); }
 }
+
+/* ---------- Syrenka Poleca cards: titles take up to two lines, and every card keeps room for both ---------- */
+.sel-body h3 { -webkit-line-clamp: 2; min-height: calc(2em * 1.25); }
+@media (max-width: 767px) {
+  /* phones: three tiles in one row (two + More, Landing.jsx) */
+  .hero-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* phones: half-size cards, two per row, so more posters fit; text stays desktop size so it reads well */
+  .selects-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .sel-card, .sel-card.wide { grid-column: auto; flex-direction: column; min-height: 0; border-radius: 18px; }
+  .sel-img, .sel-card.wide .sel-img { width: auto; height: 120px; }
+  .sel-body, .sel-card.wide .sel-body { padding: 10px 12px 12px; gap: 4px; justify-content: flex-start; }
+  .sel-body h3, .sel-card.wide h3 { font-size: 18px; }
+  .sel-card .sel-lead { display: none; }
+  .sel-cat { left: 8px; top: 8px; }
+  .sel-card.skeleton { min-height: 230px; }
+}
