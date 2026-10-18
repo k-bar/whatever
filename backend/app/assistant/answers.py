@@ -1,5 +1,6 @@
 """Answers: one handler per intent, reading the same tables as the map. Replies in Polish or English."""
 
+from dataclasses import replace
 from datetime import datetime, timedelta
 
 from geoalchemy2 import Geography
@@ -17,6 +18,7 @@ CENTER = (21.0114, 52.2306)  # Rondo Dmowskiego, like the frontend's WARSAW_CENT
 NEAR_M = 2000
 SHOWN = 5  # items listed in the answer text; `results` carries the rest for the map
 MAX_RESULTS = 60
+SUGGESTED = 4  # per suggestion group
 EVENING_HOUR = 17
 MORNING_END = 12
 
@@ -72,9 +74,16 @@ TEXT = {
     },
     "found": {"pl": "Znalazłem {n} dla: {what}.", "en": "Found {n} for: {what}."},
     "close": {
-        "pl": "Nic dokładnie dla: {what}. Podobne ({n}):",
-        "en": "Nothing exactly for: {what}. Close matches ({n}):",
+        "pl": "Nic dokładnie dla: {what}. Podobne propozycje:",
+        "en": "Nothing exactly for: {what}. Related options:",
     },
+    # suggestion groups: never presented as matches, each label says what was relaxed
+    "sugg_broad": {
+        "pl": "Więcej z kategorii: {cats}; dokładne dopasowanie nie jest potwierdzone",
+        "en": "More {cats}; the exact match is not confirmed",
+    },
+    "sugg_elsewhere": {"pl": "Pasujące w innych częściach Warszawy", "en": "Matches elsewhere in Warsaw"},
+    "sugg_later": {"pl": "Pasujące w ciągu najbliższych 30 dni", "en": "Matches in the next 30 days"},
     "more_end": {"pl": "To już wszystko dla: {what}.", "en": "That's everything for: {what}."},
     "more_hint": {"pl": "Napisz „więcej”, żeby zobaczyć kolejne.", "en": "Type “more” for the next ones."},
     "map_hint": {"pl": "Kliknij, żeby otworzyć na mapie.", "en": "Tap one to open it on the map."},
@@ -387,38 +396,80 @@ def count(n: int, lang: str) -> str:
 # ---------- handlers: (db, parsed, lang, here, now, offset) -> (answer, features) ----------
 
 
-def find(db, p, lang, here, now, offset):
-    if not (p.categories or p.terms or p.when or p.areas or p.near or p.evening or p.morning):
-        return t("unknown", lang), []
+def matches(db, p, lang, here, now):
+    """Exact matches (the words, if any, appear in the event) and broad ones (only the category matches)."""
     start, end = window(p, now)
-    rows = occurrences(db, p, start, end, here)
-    close = False  # nothing mentions the words: the category matches are close, not exact
+    rows = [(e, o, a, w) for e, o, a, w in occurrences(db, p, start, end, here)]
+    broad: list = []
     if p.terms:
         scored = [(term_score(p.terms, r[0]), r) for r in rows]
         if any(score for score, _ in scored):
+            broad = [r for score, r in scored if not score] if p.categories else []
             scored = [x for x in scored if x[0] > 0]
             scored.sort(key=lambda x: -x[0])  # stable: soonest first within a score
-        else:
-            close = bool(p.categories)
-        rows = [r for _, r in scored]
-    venues: list[Event] = []
+            rows = [r for _, r in scored]
+        elif p.categories:
+            rows, broad = [], rows  # nothing mentions the words: the category matches are broad, not exact
     if VENUE_CATEGORIES & set(p.categories) or (not rows and (p.categories or p.terms)):
         at, _ = check_time(p, now)
         venues = [v for v in places(db, p, here) if not v.opening_hours or open_at(v, at)]
         if p.terms:
             venues.sort(key=lambda v: -term_score(p.terms, v))
+            if p.categories:
+                broad += [(v, None, 0, 0) for v in venues if not term_score(p.terms, v)]
+                venues = [v for v in venues if term_score(p.terms, v)]
+        rows += [(v, None, 0, 0) for v in venues]
+    return rows, broad, start
+
+
+def suggestions(db, p, lang, here, now, exact: list, broad: list) -> list[dict]:
+    """Labelled groups next to the exact results: broader category matches, and when nothing matched
+    exactly, the same question without its area or its day. Each event is shown once."""
+    seen = {r[0].id for r in exact}
+    groups = []
+
+    def group(kind: str, heading: str, rows: list):
+        picked = []
+        for e, o, a, w in rows:
+            if e.id not in seen and len(picked) < SUGGESTED:
+                seen.add(e.id)
+                picked.append(feature(e, o, a, w, lang=lang))
+        if picked:
+            groups.append({"kind": kind, "label": heading, "results": picked})
+
+    if broad:
+        group("broad", t("sugg_broad", lang, cats=", ".join(label(c, lang) for c in p.categories)), broad)
+    if not exact and (p.areas or p.near):
+        group(
+            "elsewhere",
+            t("sugg_elsewhere", lang),
+            matches(db, replace(p, areas=[], near=False), lang, here, now)[0],
+        )
+    if not exact and p.when and p.when.key != "now":
+        group("later", t("sugg_later", lang), matches(db, replace(p, when=None), lang, here, now)[0])
+    return groups
+
+
+def find(db, p, lang, here, now, offset):
+    if not (p.categories or p.terms or p.when or p.areas or p.near or p.evening or p.morning):
+        return t("unknown", lang), []
+    rows, broad, start = matches(db, p, lang, here, now)
+    groups = suggestions(db, p, lang, here, now, rows, broad)
     what = describe(p, lang)
-    items = [(e, o) for e, o, _, _ in rows] + [(v, None) for v in venues]
-    features = [feature(e, o, a, w, lang=lang) for e, o, a, w in rows] + [
-        feature(v, None, lang=lang) for v in venues
-    ]
-    if not items:
-        return t("none", lang, what=what), []
-    if offset >= len(items):
-        return t("more_end", lang, what=what), features[:MAX_RESULTS]
-    head = t("close" if close else "found", lang, n=count(len(items), lang), what=what)
+    features = [feature(e, o, a, w, lang=lang) for e, o, a, w in rows]
+    if not rows:
+        if not groups:
+            return t("none", lang, what=what), []
+        lines = [t("close", lang, what=what)]
+        for g in groups:
+            lines += [g["label"] + ":", *("• " + f.properties["title"] for f in g["results"][:2])]
+        lines.append(t("map_hint", lang))
+        return "\n".join(lines), [], groups
+    if offset >= len(rows):
+        return t("more_end", lang, what=what), features[:MAX_RESULTS], groups
+    head = t("found", lang, n=count(len(rows), lang), what=what)
     render = lambda x: line(x[0], x[1], lang, start)  # noqa: E731
-    return listing(head, items, lang, offset, render), features[:MAX_RESULTS]
+    return listing(head, rows, lang, offset, render), features[:MAX_RESULTS], groups
 
 
 def find_named(db: Session, name: str) -> Event | None:
@@ -446,10 +497,16 @@ def find_named(db: Session, name: str) -> Event | None:
 def info(db, p, lang, here, now, offset):
     e = find_named(db, p.name or " ".join(p.terms))
     if e is None:
-        answer, feats = find(db, p, lang, here, now, offset)
+        answer, feats, *groups = find(db, p, lang, here, now, offset)
         return (
-            t("info_none", lang, name=p.name) + " " + answer if feats else t("info_none", lang, name=p.name)
-        ), feats
+            (
+                t("info_none", lang, name=p.name) + " " + answer
+                if feats
+                else t("info_none", lang, name=p.name)
+            ),
+            feats,
+            groups[0] if groups else [],
+        )
     title = (e.i18n or {}).get(lang, {}).get("title") or e.title
     if e.kind == "place":
         return venue_hours(e, title, lang, now), [feature(e, None, lang=lang)]
@@ -623,4 +680,6 @@ HANDLERS = {
 
 def answer(db: Session, p: Parsed, lang: str, here: tuple[float, float] | None, offset: int = 0):
     now = datetime.now(WARSAW)  # opening hours and "today" are Warsaw time
-    return HANDLERS[p.intent](db, p, lang, here, now, offset)
+    """-> (answer, results, suggestions); only `find` makes suggestions."""
+    text, results, *groups = HANDLERS[p.intent](db, p, lang, here, now, offset)
+    return text, results, groups[0] if groups else []

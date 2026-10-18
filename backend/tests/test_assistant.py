@@ -203,10 +203,24 @@ def test_close_matches_and_ongoing_exhibitions(client, city, db):
     db.commit()
     r = ask(client, "jazz jutro")
     assert titles(r) == ["Jazz w Hydrozagadce"]  # the word narrows music down
+    assert [g["kind"] for g in r["suggestions"]] == ["broad"]  # other music: labelled, never exact
+    assert [f["properties"]["title"] for f in r["suggestions"][0]["results"]] == ["Koncert organowy"]
     r = ask(client, "rock jutro")
-    assert r["answer"].startswith("Nic dokładnie") and len(r["results"]) == 2  # no rock: music is close
+    assert r["answer"].startswith("Nic dokładnie") and r["results"] == []  # no rock: music is only broad
+    assert [len(g["results"]) for g in r["suggestions"]] == [2]
     r = ask(client, "wystawy jutro")
     assert titles(r) == ["Wystawa Dwurnik"] and "· do " in r["answer"]  # on since two months: shows its end
+
+
+def test_suggestions_relax_the_area_or_the_day(client, city):
+    r = ask(client, "teatr na Pradze")
+    assert r["results"] == [] and [g["kind"] for g in r["suggestions"]] == ["elsewhere"]
+    assert r["suggestions"][0]["results"][0]["properties"]["title"] == "Spektakl Hamlet"
+    r = ask(client, "teatr dzisiaj")
+    assert r["results"] == [] and [g["kind"] for g in r["suggestions"]] == ["later"]
+    r = ask(client, "rock tomorrow", lang="en")
+    assert r["suggestions"][0]["label"].startswith("More music") and "Related options" in r["answer"]
+    assert ask(client, "joga jutro na Mokotowie")["suggestions"] == []  # nothing relaxed when it all matches
 
 
 def test_more_pages_through_the_list(client, db):
