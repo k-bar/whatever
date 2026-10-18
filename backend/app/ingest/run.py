@@ -119,8 +119,19 @@ def upsert_event(db: Session, source: Source, raw: RawEvent, geocoder: Geocoder 
     return event_id
 
 
+# A source that suddenly returns (almost) nothing is broken (blocked IP, timeout, changed page), not
+# empty: refuse, or every one of its pins would be switched off and the run recorded as "ok".
+MIN_KEEP = 0.2  # of last run's count, once a source had at least MIN_KEEP_FROM items
+MIN_KEEP_FROM = 20
+
+
 def load(db: Session, spec: SourceSpec, raws: list[RawEvent], geocoder: Geocoder | None) -> int:
     source = get_or_create_source(db, spec)
+    before = source.item_count or 0
+    if before >= MIN_KEEP_FROM and len(raws) < before * MIN_KEEP:
+        raise RuntimeError(
+            f"{spec.slug} returned {len(raws)} records (last run: {before}); keeping the old ones"
+        )
     seen = []
     for raw in raws:
         event_id = upsert_event(db, source, raw, geocoder)

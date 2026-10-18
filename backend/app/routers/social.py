@@ -3,12 +3,13 @@
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth import get_current_user, get_verified_user
 from app.db import get_db
+from app.friends import friend_ids
 from app.models import Attendance, Event, JoinRequest, Occurrence, User
 from app.schemas import (
     AttendanceIn,
@@ -79,7 +80,10 @@ def list_attendees(
     )
     if wants_company is not None:
         stmt = stmt.where(Attendance.wants_company == wants_company)
-    return db.scalars(stmt).all()
+    # Who goes where is friends-only on profiles, so it is here too: you see yourself, your friends, the
+    # demo people, and anyone who said "come with me" (wants_company: that list is meant to be seen).
+    mine = {user.id, *friend_ids(db, user.id)}
+    return [a for a in db.scalars(stmt) if a.wants_company or a.user_id in mine or a.user.is_mock]
 
 
 @router.get("/me/attending", response_model=list[AttendanceOut])
@@ -201,8 +205,14 @@ def decide_join_request(
     jr.status = body.status
     event: Event = jr.occurrence.event
     if body.status == "accepted" and event.seats_left is not None:
-        if event.seats_left <= 0:
+        # one atomic decrement: two hosts' taps at once can't both take the last seat
+        took = db.execute(
+            update(Event)
+            .where(Event.id == event.id, Event.seats_left > 0)
+            .values(seats_left=Event.seats_left - 1)
+        )
+        if took.rowcount == 0:
+            db.rollback()
             raise HTTPException(409, "No seats left")
-        event.seats_left -= 1
     db.commit()
     return join_request_out(load_request(db, request_id), user)

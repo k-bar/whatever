@@ -107,8 +107,11 @@ def test_share_my_area(client, db, alice):
     db.commit()
     assert client.get("/people/sharing").json() == []
 
-    client.put("/me/area", json={"share": True}, headers=alice)  # back, same place
+    # back on without a position: last night's spot is too old to put out as "now"
+    assert client.put("/me/area", json={"share": True}, headers=alice).status_code == 422
+    client.put("/me/area", json={"share": True, "lat": 52.2, "lng": 21.0}, headers=alice)
     assert len(client.get("/people/sharing").json()) == 1
+    assert client.put("/me/area", json={"share": True}, headers=alice).status_code == 200  # recent: reused
     client.put("/me/area", json={"share": False}, headers=alice)
     assert client.get("/people/sharing").json() == []
     assert client.get("/me/area", headers=alice).json()["share"] is False

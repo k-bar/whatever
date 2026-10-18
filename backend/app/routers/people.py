@@ -142,7 +142,8 @@ def my_area(me: User = Depends(get_current_user)):
 def set_my_area(body: AreaIn, me: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if body.share:
         if body.lat is None or body.lng is None:
-            if me.area_lat is None:
+            # without a position, only a recent one may be reused: never put last week's spot out as "now"
+            if me.area_lat is None or me.area_at is None or me.area_at < datetime.now(UTC) - AREA_TTL:
                 raise HTTPException(422, "Where are you? Send lat and lng with share: true")
         else:
             me.area_lat, me.area_lng = rounded(body.lat), rounded(body.lng)
