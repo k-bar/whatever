@@ -21,6 +21,7 @@ export const CATEGORIES = {
   business: { label: 'Business', color: '#475569' },
   health: { label: 'Health', color: '#06b6d4' },
   other: { label: 'Other', color: '#9ca3af' },
+  transit: { label: 'Metro & bus stations', color: '#1d4ed8' }, // a map layer (cityLayers.js), like toilets / AED
 }
 
 export const categoryColor = (slug) => CATEGORIES[slug]?.color || CATEGORIES.other.color

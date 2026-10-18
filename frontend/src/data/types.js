@@ -97,11 +97,12 @@ const RULES = [
   ['venue', /\bcentrum|\bconference|\bkonferenc|\bexpo\b|\bsala\b|\bpawilon|\bhub\b|\bbankiet|\bcatering|\bevents?\b/i, 'place'],
 
   // events and classes by what happens
-  ['education', /\btrening pamięci|\bpamięci i koncentr/i],
+  ['education', /\btrening pamięci|\bpamięci i koncentr|\bprogram rozwoju|\brozwoju osobist/i],
+  ['screening', /\bmaraton[a-ząęó]* film/i], // a film marathon is a screening, not a race
   ['wellness', /\bsaun|\bbasen\b|\bbaseny|\bkąpiel|\baqua park/i],
   ['fitness', /\bsiłowni|\bspinning|\bgym\b/i],
   ['festival', /\bfestiwal|\bfestival|\bfest\b|\bprzegląd\b/i],
-  ['competition', /\bzawod|\bturniej|\bmistrzostw|\bgrand prix|\bliga\b|\bmecz\b|\bcup\b|\bpuchar|\bregat|\bmaraton|\bpółmaraton|\bkonkurs/i],
+  ['competition', /\bzawod|\bturniej|\bmistrzostw|\bgrand prix|\bliga\b|\bmecz\b|\bcup\b|\bpuchar|\bregat|\bmaraton|\bpółmaraton/i],
   ['running', /\bbieg|\brun\b|\brunning|\bparkrun|\bnordic/i],
   ['charity', /\bkrwi|\bkrwiodaw|\bcharyt|\bwolontar|\bzbiórk|\bprzygarnij|\bpola nadziei|\bpomóż|\bdonat|\bakcj[ai] /i],
   ['exhibition', /\bwystaw|\bwernisaż|\bekspozycj|\bexhibition|\bvernissage|\brzeźb|\binstalacj/i],
@@ -119,7 +120,7 @@ const RULES = [
   ['kids', /\bdzieci|\bdziecięc|\bmalucha|\bmaluch|\bprzedszkol|\brodzin|\bfamily|\bkids|\bmłodzież|\bbajk|\bbaśn|\bteatrzyk|\bnastolat|\bmilusiń|\bdobranock|\btata i ja|\bmama i ja/i],
   ['social_club', /\bpogaduch|\bkonwersacj|\brozmówk|\blanguage|\bjęzyk|\bquiz|\bplanszów|\bgry\b|\bgier\b|\bgra w |\brpg\b|\brozegrani|\bklub seniora|\bspotkanie towarzysk|\bmeetup|\bkawiarenk|\bklub dyskusyjn|\bsąsied|\bmiędzykulturow|\bseniorów z klubu|\bangielsk|\bniemieck|\bhiszpańsk|\bfrancusk|\bwłosk|\bpo polsku\b|\bczas na rozmowę/i],
   ['hobby_club', /\bdkk\b|\bklub książki|\bdyskusyjny klub|\bklub literack|\bczytelnicz|\bwarsztat|\bkreatywn|\bmalowani|\bmalarsk|\bpomaluj|\brysun|\bszkic|\bceramik|\bglin|\brękodzie|\bszyci|\bszyjemy|\bdzierga|\bna drutach|\bmakram|\bhaft|\btkack|\bfrywolit|\brecykling|\bdecoupage|\bfotograf|\bkolaż|\bplastyczn|\bkolorowani|\bkomiks|\bgrafik|\brobotyk|\blego\b|\bklock|\bmodelarsk|\bogrod|\bzielarsk|\bgrzyb|\bkulinarn|\bgotowani|\bdo dzieła|\bkodowani|\bprogramowani/i],
-  ['education', /\bwykład|\bprelekcj|\bspotkanie z |\bspotkanie autorsk|\bwieczór autorsk|\bpremiera książki|\bdebat|\bpanel\b|\bkonferencj|\bszkoleni|\bkurs\b|\bkursy\b|\bseminari|\blekcj|\bnauk|\bedukac|\bhistori|\bcyberbezpiecz|\bstres|\bzdrow|\bwitalność|\bodporność|\bschudn|\bodżywia|\bmatematyk|\bnowych technolog|\bterapeut|\bo ryzykach|\btalk\b|\blecture|\bwielkie artystki|\bspotkanie poświęcone|\bspotkanie\b/i],
+  ['education', /\bkonkurs|\bwykład|\bprelekcj|\bspotkanie z |\bspotkanie autorsk|\bwieczór autorsk|\bpremiera książki|\bdebat|\bpanel\b|\bkonferencj|\bszkoleni|\bkurs\b|\bkursy\b|\bseminari|\blekcj|\bnauk|\bedukac|\bhistori|\bcyberbezpiecz|\bstres|\bzdrow|\bwitalność|\bodporność|\bschudn|\bodżywia|\bmatematyk|\bnowych technolog|\bterapeut|\bo ryzykach|\btalk\b|\blecture|\bwielkie artystki|\bspotkanie poświęcone|\bspotkanie\b/i],
 ].map(([type, re, only]) => [type, unicodeWords(re), only])
 
 // what the backend's categories mean when the text doesn't say (first category that maps wins)
@@ -142,6 +143,7 @@ export function classify(p) {
   if (FROM_EVENT_TYPE[p.event_type]) return FROM_EVENT_TYPE[p.event_type]
   const cats = p.categories || []
   if (cats.includes('toilets') || cats.includes('aed') || p.source === 'warsaw_toilets' || p.source === 'warsaw_aed') return 'utility'
+  if (cats.includes('transit') || p.source === 'osm_transit') return 'station'
   if (p.source === 'warsaw_pitches') return 'pitch'
   if (p.source === 'osm_restaurants') {
     for (const [re, t] of FROM_EATERY) if (re.test(p.lead || '')) return t

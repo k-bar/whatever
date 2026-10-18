@@ -186,6 +186,27 @@ def test_osm_venues_parse():
     assert is_open(late, datetime(2026, 10, 17, 2, 30)) and not is_open(late, datetime(2026, 10, 17, 12))
 
 
+def test_osm_transit_parse_and_hidden_unless_asked(db, client):
+    from app.categories import map_categories
+    from app.ingest.run import load
+
+    records = fixture_records("osm_transit")
+    stations = SOURCES["osm_transit"].parse(records)
+    assert len(stations) == 4  # the unnamed bus station is dropped
+    by_name = {s.venue_name: s for s in stations}
+    assert by_name["Marymont"].title == "Metro Marymont" and by_name["Marymont"].lead == "Metro · M1"
+    assert by_name["Metro Młociny"].title == "Metro Młociny"  # not "Metro Metro Młociny"
+    assert by_name["Dworzec Autobusowy Zachodni"].lead == "Bus station"
+    assert all(map_categories(s.categories_raw, s.title) == ["transit"] for s in stations)
+
+    load(db, SOURCES["osm_transit"], stations, None)
+    db.commit()
+    shown = {f["properties"]["title"] for f in client.get("/places").json()["features"]}
+    assert "Metro Marymont" not in shown  # a map layer, not a social place: only when asked for
+    asked = client.get("/places", params={"category": "transit"}).json()["features"]
+    assert {f["properties"]["title"] for f in asked} >= {"Metro Marymont", "Dworzec Autobusowy Zachodni"}
+
+
 def test_slow_sources_are_skipped_within_their_window(db):
     from app.ingest.run import load, recently_ok
 
