@@ -88,6 +88,8 @@ export const SECTIONS = [
     params: [
       { id: 'markerStyle', label: 'Marker style', type: 'select', default: 'glow', options: [
         { value: 'dot', label: 'Dot' }, { value: 'ring', label: 'Ring' }, { value: 'glow', label: 'Glow' }, { value: 'pin', label: 'Pin (big)' }] },
+      // a small round badge per pin with the emoji and colour of its type (data/pinTypes.js); off = the style above
+      { id: 'pinIcons', label: 'Pin icons (emoji per type)', type: 'toggle', default: true },
       { id: 'markerSize', label: 'Marker size', type: 'range', min: 0.5, max: 2, step: 0.1, default: 1 },
       { id: 'colorBy', label: 'Colour markers by', type: 'select', default: 'category', options: [
         { value: 'category', label: 'Category' }, { value: 'kind', label: 'Event / place' }, { value: 'mono', label: 'Accent colour' }] },
