@@ -52,7 +52,8 @@ function Block({ b, feature }) {
             {/* item, not t: t is the translator (t('SOLD OUT') used to call a poster) */}
             {b.items.map((item, i) => (
               <a className="poster" key={i} href={item.url || '#'} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
-                <div className="pimg" style={item.image_url ? { backgroundImage: `url(${item.image_url})` } : {}}>
+                <div className="pimg">
+                  {item.image_url && <img className="fade-img" src={item.image_url} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add('in')} />}
                   {item.price != null && <span className="price">{item.price} {item.currency || 'zł'}</span>}
                   {item.availability === 'SoldOut' && <span className="sold">{t('SOLD OUT')}</span>}
                 </div>

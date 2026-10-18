@@ -164,7 +164,7 @@ export function Landing({ features, onEnter, getMap }) {
               <motion.button key={p.event_id} className={`sel-card ${wide ? 'wide' : ''}`} onClick={() => onEnter({ feature: f })}
                 initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ ...spring, delay: (i % 4) * 0.05 }}>
                 <div className="sel-img" style={p.image_url ? {} : { background: `linear-gradient(135deg, ${categoryColor(cat)}, color-mix(in srgb, ${categoryColor(cat)} 40%, #fff))` }}>
-                  {p.image_url && <img className="sel-photo" src={secureImage(p.image_url)} alt="" decoding="async" loading={i < 2 ? "eager" : "lazy"} fetchpriority={i < 2 ? "high" : "low"} onError={() => setBroken((b) => new Set(b).add(p.event_id))} />}
+                  {p.image_url && <img className="sel-photo fade-img" src={secureImage(p.image_url)} alt="" decoding="async" onLoad={(e) => e.currentTarget.classList.add('in')} loading={i < 2 ? "eager" : "lazy"} fetchpriority={i < 2 ? "high" : "low"} onError={() => setBroken((b) => new Set(b).add(p.event_id))} />}
                   <span className="sel-cat" style={{ color: typeColor(typeOf(p)) }}>{typeLabel(typeOf(p))}</span>
                   {userMade && <span className="sel-people"><Users size={13} /> {t('Made by people')}</span>}
                   {(going || asked) && <span className="sel-you">{t(going ? "You're going" : 'Asked to join')}</span>}

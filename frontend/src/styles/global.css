@@ -1470,3 +1470,9 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
   /* out of the way while the search panel is open under the bar (the slideover hides it with the Syrenka button) */
   .app .top-left:has(.focus-panel) .cond { display: none; }
 }
+
+/* posters and thumbnails: cover their box, fade in once decoded (no pop from grey to picture) */
+.fade-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity .35s ease; }
+.fade-img.in { opacity: 1; }
+.sr-img, .poster .pimg { overflow: hidden; }
+.sr-img .sel-cat { z-index: 1; }
