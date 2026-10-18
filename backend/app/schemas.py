@@ -54,6 +54,10 @@ class EmailChangeIn(BaseModel):
     password: str = Field(max_length=128)
 
 
+class AccountDeleteIn(BaseModel):
+    password: str = Field(max_length=128)
+
+
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
