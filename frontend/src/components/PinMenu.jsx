@@ -37,7 +37,7 @@ export function PinMenu() {
             {OPTIONS.map((o) => {
               const on = values[o.param] !== false
               return (
-                <button key={o.id} role="menuitemcheckbox" aria-checked={on} className={`pm-opt ${on ? 'on' : ''}`} onClick={() => { set(o.param, !on); if (PIN_OPTION_IDS.has(o.id)) handToPinMenu() }}>
+                <button key={o.id} data-opt={o.id} role="menuitemcheckbox" aria-checked={on} className={`pm-opt ${on ? 'on' : ''}`} onClick={() => { set(o.param, !on); if (PIN_OPTION_IDS.has(o.id)) handToPinMenu() }}>
                   <span className="pm-emoji" aria-hidden="true">{o.emoji}</span>
                   <span className="pm-label">{t(o.label)}</span>
                   <span className={`ctl-toggle ${on ? 'on' : ''}`} aria-hidden="true"><span className="ctl-knob" /></span>

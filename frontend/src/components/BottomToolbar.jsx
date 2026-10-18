@@ -7,6 +7,8 @@ import { Home, Minus, Moon, Plus, Sun } from './Icons'
 import { PeopleMenu } from './PeopleMenu'
 import { PinMenu } from './PinMenu'
 
+const startDemo = () => import('../demo').then((m) => m.startDemo())
+
 const WINDOWS = [['today', 'Today'], ['weekend', 'Weekend'], ['week', 'Week'], ['month', 'Month']]
 
 /**
@@ -42,11 +44,12 @@ export function BottomToolbar({ onZoom, onHome, me }) {
         <PinMenu />
         <PeopleMenu me={me} />
         <span className="sep" />
-        <button className="tb" onClick={() => onZoom(-1)} title={t('Zoom out')}><Minus size={20} /><small>{t('Out')}</small></button>
-        <button className="tb home" onClick={onHome} title={t('Whole city')}><Home size={22} /><small>{t('City')}</small></button>
-        <button className="tb" onClick={() => onZoom(1)} title={t('Zoom in')}><Plus size={20} /><small>{t('In')}</small></button>
+        <button className="tb" data-tb="zoom-out" onClick={() => onZoom(-1)} title={t('Zoom out')}><Minus size={20} /><small>{t('Out')}</small></button>
+        {/* double-click: the presentation demo (demo/), a prerecorded tour of the whole app */}
+        <button className="tb home" data-tb="home" onClick={onHome} onDoubleClick={startDemo} title={t('Whole city')}><Home size={22} /><small>{t('City')}</small></button>
+        <button className="tb" data-tb="zoom-in" onClick={() => onZoom(1)} title={t('Zoom in')}><Plus size={20} /><small>{t('In')}</small></button>
         <span className="sep" />
-        <button className={`tb ${dark ? 'on' : ''}`} onClick={() => set('darkMode', !dark)} title={t('Dark mode')}>
+        <button className={`tb ${dark ? 'on' : ''}`} data-tb="dark" onClick={() => set('darkMode', !dark)} title={t('Dark mode')}>
           <motion.span key={dark ? 'm' : 's'} initial={{ rotate: -90, scale: 0.5, opacity: 0 }} animate={{ rotate: 0, scale: 1, opacity: 1 }} transition={spring} style={{ display: 'flex' }}>
             {dark ? <Sun size={20} /> : <Moon size={20} />}
           </motion.span>
@@ -55,7 +58,7 @@ export function BottomToolbar({ onZoom, onHome, me }) {
         <div className="seg" role="radiogroup" aria-label={t('Time window')}>
           <motion.span className="seg-thumb" animate={{ x: `${idx * 100}%` }} transition={spring} />
           {WINDOWS.map(([v, label]) => (
-            <button key={v} role="radio" aria-checked={values.timeWindow === v} className={`seg-opt ${values.timeWindow === v ? 'on' : ''}`} onClick={() => set('timeWindow', v)}>{t(label)}</button>
+            <button key={v} data-window={v} role="radio" aria-checked={values.timeWindow === v} className={`seg-opt ${values.timeWindow === v ? 'on' : ''}`} onClick={() => set('timeWindow', v)}>{t(label)}</button>
           ))}
         </div>
         <span className="sep" />
