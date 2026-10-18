@@ -39,13 +39,13 @@ export const TYPES = {
   celebration: { label: 'Celebration', emoji: '🎉', color: '#f43f5e', group: 'events' },
   // Social clubs
   sports_class: { label: 'Sports class', emoji: '🏅', color: '#22c55e', group: 'clubs' },
-  fitness: { label: 'Fitness & dance', emoji: '💃', color: '#10b981', group: 'clubs' },
+  fitness: { label: 'Fitness', emoji: '🏋️', color: '#10b981', group: 'clubs' }, // gyms, classes, pools and saunas
+  dance: { label: 'Dance', emoji: '💃', color: '#db2777', group: 'clubs' },
   mind_body: { label: 'Yoga & relaxation', emoji: '🧘', color: '#14b8a6', group: 'clubs' },
   running: { label: 'Running', emoji: '🏃', color: '#f97316', group: 'clubs' },
   pitch: { label: 'Pitch & court', emoji: '⚽', color: '#4d7c0f', group: 'clubs', place: true },
   sports_venue: { label: 'Stadium & sports hall', emoji: '🏟️', color: '#15803d', group: 'clubs', place: true },
   competition: { label: 'Sports competition', emoji: '🏆', color: '#ca8a04', group: 'clubs' },
-  wellness: { label: 'Pool & sauna', emoji: '🧖', color: '#0891b2', group: 'clubs' },
   hobby_club: { label: 'Hobby club', emoji: '🎨', color: '#a855f7', group: 'clubs' },
   social_club: { label: 'Social club', emoji: '🗣️', color: '#059669', group: 'clubs' },
   // Food & drink
@@ -99,8 +99,7 @@ const RULES = [
   // events and classes by what happens
   ['education', /\btrening pamięci|\bpamięci i koncentr|\bprogram rozwoju|\brozwoju osobist/i],
   ['screening', /\bmaraton[a-ząęó]* film/i], // a film marathon is a screening, not a race
-  ['wellness', /\bsaun|\bbasen\b|\bbaseny|\bkąpiel|\baqua park/i],
-  ['fitness', /\bsiłowni|\bspinning|\bgym\b/i],
+  ['fitness', /\bsaun|\bbasen\b|\bbaseny|\bkąpiel|\baqua park|\bsiłowni|\bspinning|\bgym\b/i],
   ['festival', /\bfestiwal|\bfestival|\bfest\b|\bprzegląd\b/i],
   ['competition', /\bzawod|\bturniej|\bmistrzostw|\bgrand prix|\bliga\b|\bmecz\b|\bcup\b|\bpuchar|\bregat|\bmaraton|\bpółmaraton/i],
   ['running', /\bbieg|\brun\b|\brunning|\bparkrun|\bnordic/i],
@@ -115,7 +114,8 @@ const RULES = [
   ['business', /\bbiznes|\bbusiness|\bprzedsiębior|\bnetworking|\bstartup|\bkariera|\betat\b|\bwłasności intelekt|\bmarketing|\bdotacj|\bursynlab|\bksięgow|\bpodatk/i],
   ['mind_body', /\bjog[aię]|\byoga|\btai.?chi|\bqigong|\bpilates|\bmedytac|\bstretching|\brelaks|\bmindful|\boddech/i],
   ['sports_class', /\bjudo|\bkarate|\bsamoobron|\bboks|\bszerm|\bsiatk|\bkoszyk|\bpiłk|\bfutbol|\bfootball|\bbadminton|\btenis|\bakrobat|\bwspinacz|\brower|\bcycling|\bszach|\bsport|\bzajęcia ruchow|\bogólnorozwojow|\błyżw|\bhokej|\bunihokej|\bpływ|\bkajak|\bwioślar|\bbilard|\bkręgl|\bstrzel|\btrampolin|\bsquash|\bpadel|\bfrisbee|\brolki|\bskate|\bżagl|\btbc\b|\bboisk|\bju.?jitsu|\btaekwondo|\bkick/i],
-  ['fitness', /\bzumba|\baerobik|\bfitness|\btaneczn|\btaniec|\btańc|\bdance|\btango|\bmilong|\bsalsa|\bcrossfit|\btrening|\bgimnastyk|\bzdrowy kręgosłup|\baktywny senior|\bwalking/i],
+  ['dance', /\bzumba|\btaneczn|\btaniec|\btańc|\bdance|\btango|\bmilong|\bsalsa|\bbachat|\bswing dance|\bbal(?:l)?room/i],
+  ['fitness', /\baerobik|\bfitness|\bcrossfit|\btrening|\bgimnastyk|\bzdrowy kręgosłup|\baktywny senior|\bwalking|\bstep\b/i],
   ['community', /\bkonsultacj|\bdyżur|\bporad|\bwsparci|\bspecjalist|\bbezpieczna dzielnica|\bbezpieczn[aey] [a-ząćęłńóśźż]+ - |\bspotkanie informacyjne|\bobron[ay] cywiln|\bochron[ay] ludności|\bzus\b|\bops\b|\bpomoc prawn|\bprzemoc|\buzależni|\basystent|\bmentor|\banimator|\bśrodowiskow|\bporozmawiajmy|\bwybory|\brad[ay] osiedl|\bbadani|\bnapraw|\bdojrzał|\bemerytur|\bpierwszej pomocy|\bpsycholog/i],
   ['kids', /\bdzieci|\bdziecięc|\bmalucha|\bmaluch|\bprzedszkol|\brodzin|\bfamily|\bkids|\bmłodzież|\bbajk|\bbaśn|\bteatrzyk|\bnastolat|\bmilusiń|\bdobranock|\btata i ja|\bmama i ja/i],
   ['social_club', /\bpogaduch|\bkonwersacj|\brozmówk|\blanguage|\bjęzyk|\bquiz|\bplanszów|\bgry\b|\bgier\b|\bgra w |\brpg\b|\brozegrani|\bklub seniora|\bspotkanie towarzysk|\bmeetup|\bkawiarenk|\bklub dyskusyjn|\bsąsied|\bmiędzykulturow|\bseniorów z klubu|\bangielsk|\bniemieck|\bhiszpańsk|\bfrancusk|\bwłosk|\bpo polsku\b|\bczas na rozmowę/i],
@@ -139,8 +139,10 @@ const PLACE_BY_CATEGORY = {
 /** A pin's type id, or null when nothing places it (a straggler; see unclassified()). */
 export function classify(p) {
   if (!p) return null
-  if (TYPES[p.type]) return p.type // set by the backend or the creator
+  if (TYPES[p.type]) return p.type // set by the backend
+  // picked in "+ Create event": the older choices first (their "theatre" meant a play, not the building)
   if (FROM_EVENT_TYPE[p.event_type]) return FROM_EVENT_TYPE[p.event_type]
+  if (TYPES[p.event_type]) return p.event_type
   const cats = p.categories || []
   if (cats.includes('toilets') || cats.includes('aed') || p.source === 'warsaw_toilets' || p.source === 'warsaw_aed') return 'utility'
   if (cats.includes('transit') || p.source === 'osm_transit') return 'station'
@@ -167,6 +169,36 @@ const LAST_RESORT = { place: 'venue', class: 'sports_class', event: 'community' 
 
 /** A pin's type: always one of TYPES. */
 export const typeOf = (p) => classify(p) || LAST_RESORT[p?.kind] || 'community'
+
+const SPECIFIC = new Set(['music', 'nightlife', 'theatre', 'film', 'exhibitions', 'running', 'yoga', 'festivals', 'markets', 'family', 'business', 'food', 'grzybki', 'study_buddies'])
+
+// a type that always brings another with it, and words that add types on top of the main one
+const ALSO = { dance: ['fitness'] }
+const ALSO_WORDS = [
+  [/\bsurvival|\bbushcraft|\bgrzyb|\bornitolog|\bfotograf/i, ['hobby_club']], // outdoor hobbies
+  [/\bplastyczn|\brysun|\bmalowani|\bmalarsk|\bsztuk|\bceramik|\bgrafik|\bartyst|\bkomiks|\bilustrac/i, ['hobby_club', 'education']], // art
+  [/\bnapraw|\brękodzie|\bszyci|\bszyjemy|\bwarsztat|\bmakram|\bhaft|\bdzierga|\brecykling/i, ['hobby_club']], // making and mending
+].map(([re, types]) => [unicodeWords(re), types])
+
+/**
+ * Every type a pin counts as: its main type first (the badge and the label), then the others its title
+ * also names (a family table-tennis tournament: competition, sports class, kids), the "also" rules above
+ * (tango: dance + fitness; a painting class: hobby + education), then its specific backend categories.
+ * Search and the type switches use these, so a pin shows under each of its types.
+ */
+export function typesOf(p) {
+  const out = [typeOf(p)]
+  if (!p) return out
+  const add = (t) => { if (t && TYPES[t] && !out.includes(t) && !['utility', 'station'].includes(t)) out.push(t) }
+  const place = p.kind === 'place'
+  const title = `${p.title || ''} ${p.subtitle || ''}`
+  for (const [type, re, only] of RULES) if ((only === 'place') === place && re.test(title)) add(type)
+  for (const t of ALSO[out[0]] || []) add(t)
+  for (const [re, types] of ALSO_WORDS) if (re.test(title)) types.forEach(add)
+  // only the backend's specific categories: the broad ones (meetups, health, culture, sports, education) say too little
+  for (const c of p.categories || []) if (SPECIFIC.has(c)) { add(BY_CATEGORY[c]); if (place) add(PLACE_BY_CATEGORY[c]) }
+  return out
+}
 
 /** Pins nothing in the rules places (for checking the rules; ideally empty). */
 export const unclassified = (features) => (features || []).filter((f) => !classify(f.properties))

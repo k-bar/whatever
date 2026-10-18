@@ -578,4 +578,6 @@ export const PL = {
   'Browse by type': 'Przeglądaj według rodzaju',
   'Metro & bus stations': 'Stacje metra i autobusów',
   'Map: metro & bus stations': 'Mapa: stacje metra i autobusów',
+  'Fitness': 'Fitness',
+  'Dance': 'Taniec',
 }
