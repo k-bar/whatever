@@ -5,18 +5,11 @@ Overpass query and tag mapping, but it returns RawEvents for the shared pipeline
 Data © OpenStreetMap contributors (ODbL). Venues change slowly: refreshed once a day.
 """
 
-import json
 import re
-import urllib.parse
-import urllib.request
 
-from app.config import settings
 from app.ingest.base import RawEvent, SourceSpec
+from app.ingest.overpass import overpass
 
-OVERPASS_URLS = (
-    "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
-)
 VENUE_TAGS = {
     "amenity": [
         "theatre",
@@ -43,16 +36,7 @@ EN_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "
 
 
 def fetch_records() -> list[dict]:
-    body = urllib.parse.urlencode({"data": QUERY}).encode()
-    last_error: Exception | None = None
-    for url in OVERPASS_URLS:  # mirrors share the load; try the next one if busy
-        req = urllib.request.Request(url, data=body, headers={"User-Agent": settings.nominatim_user_agent})
-        try:
-            with urllib.request.urlopen(req, timeout=240) as r:
-                return json.loads(r.read().decode("utf-8")).get("elements", [])
-        except OSError as e:
-            last_error = e
-    raise RuntimeError(f"all Overpass mirrors failed: {last_error}")
+    return overpass(QUERY)
 
 
 def osm_hours(s: str | None) -> dict[str, str] | None:

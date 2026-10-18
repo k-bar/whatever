@@ -76,8 +76,10 @@ weather and air quality). The API reads only its `tourist_routes`. See
 | `backend/app/config.py` | Settings from env / Secrets Manager (see [operations.md](operations.md#configuration)) |
 | `backend/app/models.py` | SQLAlchemy models of the backend's tables |
 | `backend/app/schemas.py` | Pydantic request/response models |
-| `backend/app/routers/` | `events`, `map`, `users`, `social`, `profiles` |
-| `backend/app/userevents/` | Events people create with "+ Create event", plus photo uploads |
+| `backend/app/routers/` | `events`, `map`, `users`, `social`, `profiles`, `people`, `chats` |
+| `backend/app/userevents/` | Events people create with "+ Create event", plus photo uploads; `service.py` is what other modules use (`can_see`, `publish`) |
+| `backend/app/chats.py`, `backend/app/realtime.py` | What chats and live delivery share (chat keys, who may open a chat); the `/ws` socket |
+| `backend/app/friends.py`, `backend/app/timeutil.py` | The friends graph; the Warsaw time zone |
 | `backend/app/ingest/` | Pipeline: `base.py` (contract), `run.py` (loader), `sources/` (fetchers), `conditions.py`, `routes.py`, `geocode.py`, `src_sync.py` |
 | `backend/app/translate.py` | Offline PL->EN translation |
 | `backend/app/categories.py` | Category list and label mapping |

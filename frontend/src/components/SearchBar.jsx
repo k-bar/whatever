@@ -3,16 +3,18 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from '../config/store'
 import { Burger, Calendar, Chevron, History, Plus, Search, Sparkle, X, Minus } from './Icons'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
-import { EVENT_TYPE_IDS, SEARCH_TYPES, TYPES, typeColor, typeLabel, typeOf } from '../data/types'
+import { SEARCH_TYPES, TYPES, typeColor, typeLabel, typeOf } from '../data/types'
 import { fmtWhenFor } from '../mapboxes/curate'
 import { CloseButton } from './CloseButton'
 import { useLang } from '../i18n'
-import { WhenPart, WherePart, whenLabel } from './LandingSearch'
+import { EventFilterPanel } from './EventFilterPanel'
+import { getMapFilter, openSearchCanvas } from '../data/mapFilter'
 import { FLIGHT_MS } from '../landing/searchFlight'
 
+// Events first, and always the default: its panel is how the map is filtered (EventFilterPanel)
 export const MODES = [
+  { id: 'events', label: 'Events', hint: 'Switch categories on the map', Icon: Calendar },
   { id: 'search', label: 'Search', hint: 'Places, venues, districts', Icon: Search },
-  { id: 'events', label: 'Events', hint: 'Only things with a date', Icon: Calendar },
   { id: 'assistant', label: 'Assistant', hint: 'Ask in plain words', Icon: Sparkle },
 ]
 
@@ -30,7 +32,7 @@ const readRecent = () => { try { return JSON.parse(localStorage.getItem(RECENT_K
  * The Gemini-style pill: burger (plain) · input · mode dropdown · spyglass (circle).
  * Focusing the input opens the focus panel (recents / category pills / assistant thread).
  */
-export function SearchBar({ onSearch, trayOpen = false, unread = 0, onBurger, results, onPick, onClear, searching, mobile, chat, onChatClear, initialQuery = '', features }) {
+export function SearchBar({ onSearch, matchCount = 0, trayOpen = false, unread = 0, onBurger, results, onPick, onClear, searching, mobile, chat, onChatClear, initialQuery = '', features }) {
   const { values } = useConfig()
   const { t } = useLang()
   const spring = useSpring()
@@ -38,7 +40,7 @@ export function SearchBar({ onSearch, trayOpen = false, unread = 0, onBurger, re
   const push = usePush()
   const [q, setQ] = useState(initialQuery)
   const placeholder = values.searchPlaceholder === 'Search Warsaw tonight…' ? "What's the plan today?" : values.searchPlaceholder
-  const [mode, setMode] = useState('search')
+  const [mode, setMode] = useState('events')
   const [modeOpen, setModeOpen] = useState(false)
   const [focused, setFocused] = useState(false)
   const [chatFull, setChatFull] = useState(false)
@@ -47,11 +49,6 @@ export function SearchBar({ onSearch, trayOpen = false, unread = 0, onBurger, re
   const wrapRef = useRef(null)
   const inputRef = useRef(null)
   const Mode = MODES.find((m) => m.id === mode)
-  // Events: what (a tag) · when · where. Runs by itself once all three are chosen, or on the search button.
-  const [evCat, setEvCat] = useState(null)
-  const [evWhen, setEvWhen] = useState(null)
-  const [evWhenDone, setEvWhenDone] = useState(false) // a quick pick or Done, not just the first click of a range
-  const [evWhere, setEvWhere] = useState(null)
 
   useEffect(() => {
     const onDoc = (e) => { if (!wrapRef.current?.contains(e.target)) { setModeOpen(false); setFocused(false) } }
@@ -66,10 +63,7 @@ export function SearchBar({ onSearch, trayOpen = false, unread = 0, onBurger, re
   }
 
   const submit = (term = q, m = mode, opts) => {
-    if (m === 'events' && !opts) { // search button / Enter in Events: use the tag, when and where picked so far
-      opts = { type: evCat, when: evWhen, where: evWhere } // evCat: the type picked (data/types.js)
-      term = [evCat ? typeLabel(evCat) : term.trim(), whenLabel(evWhen), evWhere?.label].filter(Boolean).join(' · ')
-    }
+    if (m === 'events' && !opts) opts = { filter: true } // Events: search within the panel's toggles, When and Where (data/mapFilter.js)
     setPushed(true)
     setTimeout(() => setPushed(false), 260 / (values.animSpeed || 1))
     setModeOpen(false)
@@ -78,14 +72,14 @@ export function SearchBar({ onSearch, trayOpen = false, unread = 0, onBurger, re
     onSearch(m, term, opts)
   }
   const clear = () => { setQ(''); onClear(); setFocused(false) }
-  const pickCategory = (id) => { const off = evCat === id; setEvCat(off ? null : id); setQ(off ? '' : typeLabel(id)) }
   // Search mode: tap a type -> every pin of that type
   const searchType = (id) => { setQ(typeLabel(id)); submit(typeLabel(id), 'search', { type: id }) }
-  const evReady = !!(evCat && evWhen && evWhenDone && evWhere && evWhere.kind !== 'text') // typed-but-not-picked "where" waits
-  // all three chosen → search; changing any of them afterwards searches again
-  useEffect(() => { if (evReady) submit() }, [evReady, evCat, evWhen, evWhenDone, evWhere]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const panelOpen = values.searchPanel && focused && !modeOpen && (mode === 'assistant' || !results || q !== (results?.q || ''))
+  // Events: the panel opens whenever the bar is focused (and blanks the map, see below)
+  const panelOpen = values.searchPanel && focused && !modeOpen && (mode === 'events' || mode === 'assistant' || !results || q !== (results?.q || ''))
+  const eventsOpen = panelOpen && mode === 'events'
+  // opening the event search hands the map to it, as a blank canvas: every category off. Opening it again
+  // while it's already in charge (to add a When, say) keeps the switches the user set.
+  useEffect(() => { if (eventsOpen && getMapFilter().source !== 'search') openSearchCanvas() }, [eventsOpen])
   const showResults = results && !mobile && !panelOpen && mode !== 'assistant'
   const showAssistant = mode === 'assistant' && (focused || chatFull) && !modeOpen && values.searchPanel
 
@@ -155,22 +149,7 @@ export function SearchBar({ onSearch, trayOpen = false, unread = 0, onBurger, re
                 </div>
               </div>
             )}
-            {mode === 'events' && (<>
-              <div className="fp-scroll">
-                <div className="blk-title fp-title"><Calendar size={12} /> {t('Pick a type')}</div>
-                <div className="pills">
-                  {EVENT_TYPE_IDS.map((id) => (
-                    <button key={id} className={`pill-cat ${evCat === id ? 'on' : ''}`} style={{ '--c': typeColor(id) }} onClick={() => pickCategory(id)}><span aria-hidden="true">{TYPES[id].emoji}</span>{typeLabel(id)}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="ev-pill hs">
-                <WhenPart value={evWhen} onChange={(w) => { setEvWhen(w); setEvWhenDone(false) }} onDone={() => setEvWhenDone(true)} />
-                <span className="hs-sep" />
-                <WherePart value={evWhere} onChange={setEvWhere} features={features} />
-                <button type="button" className="hero-go" onClick={() => submit()} aria-label={t('Search')}><Calendar size={19} /></button>
-              </div>
-            </>)}
+            {mode === 'events' && <EventFilterPanel features={features} matchCount={matchCount} onSearch={() => submit()} />}
             {mode === 'assistant' && (
               <>
                 <div className="fp-scroll chat">
@@ -221,7 +200,7 @@ export function ResultsList({ results, onPick, onClear }) {
         {onClear && <CloseButton size={34} onClick={onClear} label={t('Close results')} />}
       </div>
       <div className="results-scroll">
-        {results.answer && <div className="assistant"><b>✦ </b>{results.answer}</div>}
+        {results.answer && <div className="res-answer"><b>✦ </b>{results.answer}</div>}
         {results.exact === 0 && list.length > 0 && <div className="res-near first">{t('No exact matches. Closest:')}</div>}
         {list.map((f, i) => {
           const p = f.properties

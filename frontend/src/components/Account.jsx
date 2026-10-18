@@ -2,21 +2,10 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import {
-  changeEmail, changePassword, deleteAccount, fetchMe, logout, logoutEverywhere, onAuthChange, resendVerification, resetPassword, verifyEmail,
+  changeEmail, changePassword, deleteAccount, logout, logoutEverywhere, resendVerification, resetPassword, verifyEmail,
 } from '../data/api'
 import { useLang } from '../i18n'
 import { Check, X } from './Icons'
-
-/** My account (GET /me), refreshed on log in / out and when the email gets confirmed. */
-export function useMe() {
-  const [me, setMe] = useState(undefined) // undefined = loading, null = logged out
-  useEffect(() => {
-    const load = () => fetchMe().then(setMe)
-    load()
-    return onAuthChange(load)
-  }, [])
-  return me
-}
 
 /** Social features are locked until the email is confirmed (only while the server requires it). */
 export const needsVerify = (me) => !!me && me.verify_required !== false && !me.email_verified

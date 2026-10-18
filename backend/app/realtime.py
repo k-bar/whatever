@@ -4,7 +4,7 @@ The API runs several uvicorn workers, so a message posted through one worker mus
 held by the others. Postgres does the fan-out: posting a message runs pg_notify(<channel>, ...) in
 the same transaction (app/routers/chats.py), and every worker LISTENs on that channel (listen(),
 started in app.main's lifespan) and pushes to its own sockets. No extra broker to run.
-Prod and dev share one RDS database, so the channel name carries the schema.
+Prod and dev share one RDS database, so the channel name carries the schema (app/chats.py).
 
 Protocol (JSON text frames):
     -> {"type": "auth", "token": "<login token>"}      first frame, within 10 s
@@ -29,11 +29,13 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy import make_url, select
 from starlette.concurrency import run_in_threadpool
 
+from app.auth import user_from_token
+from app.chats import CHANNEL, message_out, parse_key, resolve
 from app.config import settings
 from app.db import SessionLocal
+from app.models import ChatMember, ChatMessage, User
 
 log = logging.getLogger(__name__)
-CHANNEL = f"chat_{settings.db_schema or 'public'}"
 
 router = APIRouter(tags=["chats"])
 
@@ -44,11 +46,17 @@ class Hub:
     def __init__(self) -> None:
         self.by_user: dict[int, set[WebSocket]] = defaultdict(set)
         self.by_key: dict[str, set[WebSocket]] = defaultdict(set)
+        self.user_of: dict[WebSocket, int] = {}
 
     def add(self, ws: WebSocket, user_id: int) -> None:
         self.by_user[user_id].add(ws)
+        self.user_of[ws] = user_id
+
+    def subscriber_ids(self, key: str) -> set[int]:
+        return {self.user_of[ws] for ws in self.by_key.get(key, ()) if ws in self.user_of}
 
     def remove(self, ws: WebSocket, user_id: int | None) -> None:
+        self.user_of.pop(ws, None)
         if user_id is not None:
             self.by_user[user_id].discard(ws)
             if not self.by_user[user_id]:
@@ -64,29 +72,41 @@ class Hub:
         if not self.by_key[key]:
             del self.by_key[key]
 
-    async def deliver(self, event: dict, key: str, member_ids: list[int]) -> None:
-        targets = set(self.by_key.get(key, ()))
-        for uid in member_ids:
+    async def deliver(self, event: dict, key: str, allowed: set[int]) -> None:
+        """Send to the chat's open sockets and its members' sockets, but only for people who may
+        still see the chat (`allowed`): access can end after subscribing (unfriended, uninvited)."""
+        targets = {ws for ws in self.by_key.get(key, ()) if self.user_of.get(ws) in allowed}
+        for uid in allowed:
             targets |= self.by_user.get(uid, set())
-        for ws in targets:
-            try:
-                await ws.send_json(event)
-            except Exception:  # closed under us; its own handler cleans up
+
+        async def send(ws: WebSocket) -> None:
+            try:  # one phone that stopped reading must not hold up everyone else
+                await asyncio.wait_for(ws.send_json(event), timeout=SEND_TIMEOUT)
+            except Exception:  # closed under us / too slow; its own handler cleans up
                 pass
+
+        await asyncio.gather(*(send(ws) for ws in targets))
 
 
 hub = Hub()
+SEND_TIMEOUT = 5  # seconds per socket
 
 
-def _notification(chat_id: int, key: str, op: str, message_id: int) -> tuple[dict, list[int]] | None:
-    """Load what a notification points at (runs in a thread: the ORM is sync)."""
-    from app.models import ChatMember, ChatMessage
-    from app.routers.chats import message_out
-
+def _notification(
+    chat_id: int, key: str, op: str, message_id: int, subscribers: set[int]
+) -> tuple[dict, set[int]] | None:
+    """Load what a notification points at, and who may receive it: the chat's members and this
+    worker's subscribers, minus anyone who can no longer open the chat. (Runs in a thread: the ORM is sync.)"""
     with SessionLocal() as db:
-        members = list(db.scalars(select(ChatMember.user_id).where(ChatMember.chat_id == chat_id)))
+        members = set(db.scalars(select(ChatMember.user_id).where(ChatMember.chat_id == chat_id)))
+        kind, target_id = parse_key(key)
+        allowed = set()
+        for uid in members | subscribers:
+            with contextlib.suppress(HTTPException):
+                resolve(db, kind, target_id, db.get(User, uid))
+                allowed.add(uid)
         if op == "deleted":
-            return {"type": "deleted", "key": key, "id": message_id}, members
+            return {"type": "deleted", "key": key, "id": message_id}, allowed
         msg = db.get(ChatMessage, message_id)
         if msg is None:
             return None
@@ -94,12 +114,13 @@ def _notification(chat_id: int, key: str, op: str, message_id: int) -> tuple[dic
             "type": "message",
             "key": key,
             "message": message_out(msg, key).model_dump(mode="json"),
-        }, members
+        }, allowed
 
 
 async def _handle(payload: str) -> None:
     n = json.loads(payload)
-    got = await run_in_threadpool(_notification, n["chat_id"], n["key"], n["op"], n["id"])
+    subscribers = hub.subscriber_ids(n["key"])
+    got = await run_in_threadpool(_notification, n["chat_id"], n["key"], n["op"], n["id"], subscribers)
     if got:
         await hub.deliver(got[0], n["key"], got[1])
 
@@ -125,16 +146,11 @@ async def listen() -> None:
 
 
 def _authenticate(token: str) -> int:
-    from app.auth import user_from_token
-
     with SessionLocal() as db:
         return user_from_token(db, token).id
 
 
 def _may_open(user_id: int, key: str) -> None:
-    from app.models import User
-    from app.routers.chats import parse_key, resolve
-
     with SessionLocal() as db:
         kind, target_id = parse_key(key)
         resolve(db, kind, target_id, db.get(User, user_id))

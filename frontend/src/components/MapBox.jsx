@@ -12,9 +12,8 @@ import { chatTarget } from '../data/chat'
 import { dayLabel } from '../data/hours'
 import { TYPES, typeColor, typeLabel, typeOf, typesOf } from '../data/types'
 import { fetchAttendees } from '../data/api'
-import { Avatar } from './ProfilePage'
+import { Avatar } from './Avatar'
 
-const AV_COLORS = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
 
 /**
  * Who's going (GET /occurrences/{id}/attendees): up to four faces and the first names. The API only
@@ -50,14 +49,16 @@ function Block({ b, feature }) {
         <div className="blk">
           <div className="blk-title"><Ticket size={12} style={{ verticalAlign: '-2px' }} /> {t('Upcoming here')}</div>
           <div className="poster-strip">
-            {b.items.map((t, i) => (
-              <a className="poster" key={i} href={t.url || '#'} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
-                <div className="pimg" style={t.image_url ? { backgroundImage: `url(${t.image_url})` } : {}}>
-                  {t.price != null && <span className="price">{t.price} {t.currency || 'zł'}</span>}
-                  {t.availability === 'SoldOut' && <span className="sold">{t('SOLD OUT')}</span>}
+            {/* item, not t: t is the translator (t('SOLD OUT') used to call a poster) */}
+            {b.items.map((item, i) => (
+              <a className="poster" key={i} href={item.url || '#'} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+                <div className="pimg">
+                  {item.image_url && <img className="fade-img" src={item.image_url} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add('in')} />}
+                  {item.price != null && <span className="price">{item.price} {item.currency || 'zł'}</span>}
+                  {item.availability === 'SoldOut' && <span className="sold">{t('SOLD OUT')}</span>}
                 </div>
-                <div className="pt">{t.title}</div>
-                <div className="pd">{fmtWhen(t.starts_at)}</div>
+                <div className="pt">{item.title}</div>
+                <div className="pd">{fmtWhen(item.starts_at)}</div>
               </a>
             ))}
           </div>
@@ -75,7 +76,7 @@ function Block({ b, feature }) {
       return (
         <div className={`blk social ${going || asked ? 'on' : ''}`}>
           {/* only real people: the host's initial; who else is going is listed under the button (Attendees) */}
-          {b.host && <div className="avatars"><span className="av" style={{ background: AV_COLORS[0] }}>{b.host[0]}</span></div>}
+          {b.host && <div className="avatars"><Avatar user={b.hostUser || { display_name: b.host }} size={28} /></div>}
           <div className="txt">
             {b.host && <><b>{b.host}</b> {t('is hosting')} · </>}
             {n ? <><b>{n}</b> {t('going')}</> : <>{t('Be the first to go')}</>}
@@ -92,7 +93,7 @@ function Block({ b, feature }) {
       )
     }
     case 'live':
-      return <div className={`blk live ${b.level}`}><span className="ldot" />{b.text}</div>
+      return <div className={`blk mb-live ${b.level}`}><span className="ldot" />{b.text}</div>
     case 'hours':
       return <div className="blk facts"><div className="fact">{FACT_ICON.clock({ size: 15 })}<span>{b.text}</span></div></div>
     case 'week': // opening hours per day (data/hours.js): open now + today; tap for the whole week
@@ -174,7 +175,7 @@ export function MapBox({ data, feature, expanded, journey, onClose, onExpand, st
         {expanded && data.url && <a className="mb-link" href={data.url} target="_blank" rel="noreferrer">{t('Open source page ↗')}</a>}
         {!expanded && <div className="mb-foot" />}
       </div>
-      {onExpand && !expanded && <button className="btn icon small primary mb-plus" onClick={onExpand} aria-label={t('Expand')}><Plus size={16} /></button>}
+      {onExpand && !expanded && <button className="btn icon small primary mb-plus" onClick={onExpand} aria-label={t('Expand')}><Plus size={48} stroke={1.3} /></button>}
     </motion.article>
   )
 }

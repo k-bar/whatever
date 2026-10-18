@@ -8,14 +8,13 @@ schema.org MusicEvent records with built-in venue coordinates.
 import json
 import re
 from datetime import datetime, time
-from zoneinfo import ZoneInfo
 
 import httpx
 
 from app.config import settings
 from app.ingest.base import Occurrence, RawEvent, SourceSpec
+from app.timeutil import WARSAW
 
-WARSAW_TZ = ZoneInfo("Europe/Warsaw")
 SONGKICK_METRO_URL = "https://www.songkick.com/metro-areas/31787-poland-warsaw"
 MAX_PAGES = 5
 
@@ -33,7 +32,7 @@ def _parse_iso_dt(raw: str | None, default_hour: int = 19) -> datetime | None:
         return None
     if "T" not in text and " " not in text:
         dt = datetime.combine(dt.date(), time(default_hour, 0))
-    return dt if dt.tzinfo is not None else dt.replace(tzinfo=WARSAW_TZ)
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=WARSAW)
 
 
 def fetch_records() -> list[dict]:

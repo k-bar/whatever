@@ -2,15 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import {
-  answerFriendRequest, assetUrl, checkUsername, fetchFriendRequests, fetchFriends, fetchMe, fetchProfile, fetchProfileEvents,
-  isLoggedIn, logout, onAuthChange, searchPeople, sendFriendRequest, unfriend, updateMe, uploadProfilePhoto,
+  answerFriendRequest, assetUrl, checkUsername, fetchFriendRequests, fetchFriends, fetchProfile, fetchProfileEvents,
+  isLoggedIn, logout, searchPeople, sendFriendRequest, unfriend, updateMe, uploadProfilePhoto,
 } from '../data/api'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { fmtWhenFor } from '../mapboxes/curate'
 import { locale, useLang } from '../i18n'
 import { Check, ChevronL, Photo, Pin, Plus, Search, UserCheck, X } from './Icons'
+import { Avatar } from './Avatar'
 import { LoginForm } from './LoginForm'
-import { AccountSecurity, useMe } from './Account'
+import { AccountSecurity } from './Account'
+import { useMe } from '../data/me'
 
 /**
  * The "mini Facebook" profile: @username, Friends · Been to · Hosted, "You can find me at …",
@@ -28,33 +30,21 @@ function labels(lang, gender) {
   }
 }
 
-const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
-export function Avatar({ user, size = 44 }) {
-  const photo = user?.photos?.[0]
-  const letter = (user?.display_name || '?')[0].toUpperCase()
-  return (
-    <span className="pp-av" style={{ width: size, height: size, fontSize: size * 0.42, background: photo ? `center / cover url(${assetUrl(photo)})` : AV[(user?.id || 0) % AV.length] }}>
-      {!photo && letter}
-    </span>
-  )
-}
 
 /** Profile area of the slide-over: me by default; tapping a friend opens theirs (with a way back). */
 export function ProfilePage({ features, onPick, person, onViewing }) {
   const { t } = useLang()
-  const [meId, setMeId] = useState(undefined) // undefined = loading, null = logged out
+  const me = useMe()
+  const meId = me && me.id // undefined = loading, null = logged out
   const [viewing, setViewing] = useState(null) // another person's id, null = me
   const [editing, setEditing] = useState(false)
   const [rev, setRev] = useState(0) // bump to reload after edits / friend changes
   const personRef = useRef(person) // someone tapped on the map: open on them, not on me
   personRef.current = person
 
-  useEffect(() => {
-    const load = () => fetchMe().then((m) => { setMeId(m ? m.id : null); setViewing(personRef.current?.id ?? null); setEditing(false) })
-    load()
-    return onAuthChange(load)
-  }, [])
-  useEffect(() => { if (person) { setViewing(person.id); setEditing(false) } }, [person])
+  // logged in / out (or my account arrived): start over on the person asked for, or on me
+  useEffect(() => { setViewing(personRef.current?.id ?? null); setEditing(false) }, [meId])
+  useEffect(() => { if (person) { setViewing(person.id ?? null); setEditing(false) } }, [person]) // id null: back to mine
   useEffect(() => { onViewing?.(viewing != null && viewing !== meId) }, [viewing, meId, onViewing])
 
   if (meId === undefined) return <div className="res-empty">{t('Loading…')}</div>
@@ -83,7 +73,7 @@ function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, featu
   const [tab, setTab] = useState('going')
   // rev: refetch in place after edits / friend changes, so the open tab stays put
   useEffect(() => { fetchProfile(userId).then(setP).catch((e) => setErr(e.message)) }, [userId, rev])
-  if (err) return <div className="res-empty">{err}</div>
+  if (err) return <div className="res-empty">{t(err)}</div>
   if (!p) return <div className="res-empty">{t('Loading…')}</div>
 
   const L = labels(lang, p.gender)
@@ -144,8 +134,7 @@ function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, featu
 /** My private details from GET /me: first / last name, age, gender, member since (email: AccountSecurity). Only on my own profile. */
 function PersonalDetails({ gender }) {
   const { t } = useLang()
-  const [me, setMe] = useState(null)
-  useEffect(() => { fetchMe().then(setMe) }, [])
+  const me = useMe()
   if (!me) return null
   const sex = me.gender ?? gender
   const rows = [
@@ -168,7 +157,7 @@ function PersonalDetails({ gender }) {
 function FriendButton({ profile, onChanged }) {
   const { t } = useLang()
   const [busy, setBusy] = useState(false)
-  const act = async (fn) => { setBusy(true); try { await fn(); onChanged() } catch (e) { window.dispatchEvent(new CustomEvent('syrenka:toast', { detail: e.message })) } finally { setBusy(false) } }
+  const act = async (fn) => { setBusy(true); try { await fn(); onChanged() } catch (e) { window.dispatchEvent(new CustomEvent('syrenka:toast', { detail: t(e.message) })) } finally { setBusy(false) } }
   if (!isLoggedIn()) return null
   const rel = profile.relation
   if (rel === 'friends') return <button className="btn small" disabled={busy} onClick={() => act(() => unfriend(profile.id))} title={t('Remove friend')}><UserCheck size={15} /> {t('Friends')}</button>
@@ -211,7 +200,13 @@ function FriendsTab({ userId, isMe, onOpenUser, onChanged }) {
     if (isMe) { fetchFriendRequests('incoming').then(setIncoming).catch(() => {}); fetchFriendRequests('outgoing').then(setOutgoing).catch(() => {}) }
   }
   useEffect(reload, [userId, isMe]) // eslint-disable-line react-hooks/exhaustive-deps
-  const answer = async (id, status) => { await answerFriendRequest(id, status); reload(); onChanged() }
+  const [busy, setBusy] = useState(null) // the request being answered: no double taps
+  const answer = async (id, status) => {
+    if (busy) return
+    setBusy(id)
+    try { await answerFriendRequest(id, status); onChanged() } catch (e) { window.dispatchEvent(new CustomEvent('syrenka:toast', { detail: t(e.message || 'Something went wrong') })) }
+    finally { setBusy(null); reload() }
+  }
 
   return (
     <div className="pp-friends">
@@ -222,8 +217,8 @@ function FriendsTab({ userId, isMe, onOpenUser, onChanged }) {
           <div className="sp-row" key={r.id}>
             <button className="pp-person" onClick={() => onOpenUser(r.user.id)}><Avatar user={r.user} /><span><div className="t">{r.user.display_name}</div><div className="s">@{r.user.username}</div></span></button>
             <span className="right" style={{ display: 'flex', gap: 6 }}>
-              <button className="btn small primary" onClick={() => answer(r.id, 'accepted')}>{t('Accept')}</button>
-              <button className="btn small" onClick={() => answer(r.id, 'declined')}>{t('Decline')}</button>
+              <button className="btn small primary" disabled={busy === r.id} onClick={() => answer(r.id, 'accepted')}>{t('Accept')}</button>
+              <button className="btn small" disabled={busy === r.id} onClick={() => answer(r.id, 'declined')}>{t('Decline')}</button>
             </span>
           </div>
         ))}
@@ -251,7 +246,7 @@ function AddFriend({ onSent }) {
     return () => clearTimeout(timer)
   }, [q])
   const add = async (u) => {
-    try { const r = await sendFriendRequest(u.username); setSent((s) => ({ ...s, [u.id]: r.status })); onSent() } catch (e) { window.dispatchEvent(new CustomEvent('syrenka:toast', { detail: e.message })) }
+    try { const r = await sendFriendRequest(u.username); setSent((s) => ({ ...s, [u.id]: r.status })); onSent() } catch (e) { window.dispatchEvent(new CustomEvent('syrenka:toast', { detail: t(e.message) })) }
   }
   return (
     <div className="pp-add">
@@ -274,12 +269,17 @@ function AddFriend({ onSent }) {
 function EditProfile({ features, onDone }) {
   const { t } = useLang()
   const spring = useSpring()
-  const [me, setMe] = useState(null)
+  const me = useMe()
   const [v, setV] = useState(null)
   const [name, setName] = useState({ state: 'same' }) // same | checking | ok | bad
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-  useEffect(() => { fetchMe().then((m) => { setMe(m); setV({ display_name: m.display_name, username: m.username, gender: m.gender || '', first_name: m.first_name || '', last_name: m.last_name || '', age: m.age ?? '', bio: m.bio || '', interests: m.interests || [], hangouts: m.hangouts || [], photos: m.photos || [] }) }) }, [])
+  // the form starts from my account once: a later refresh (e.g. after saving) doesn't overwrite what's typed
+  useEffect(() => {
+    const m = me
+    if (m === null) onDone()
+    else if (m && !v) setV({ display_name: m.display_name, username: m.username, gender: m.gender || '', first_name: m.first_name || '', last_name: m.last_name || '', age: m.age ?? '', bio: m.bio || '', interests: m.interests || [], hangouts: m.hangouts || [], photos: m.photos || [] })
+  }, [me]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!v || !me) return

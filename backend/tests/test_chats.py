@@ -118,6 +118,64 @@ def test_delete_message(client, alice, bob):
     assert [(m["deleted"], m["body"]) for m in msgs] == [(True, None), (True, None)]
 
 
+def test_my_chats_matches_each_chat_in_a_fixed_number_of_queries(client, alice, bob):
+    """GET /me/chats is batched: it says what opening each chat says, in as many queries for 2 chats as for 5."""
+    from sqlalchemy import event
+
+    from app.db import engine
+
+    carol = register(client, "carol@example.com", "Carol")
+    befriend(client, alice, bob, "bob")
+    befriend(client, carol, bob, "bob")
+    public = create(client, alice)
+    private = create(client, alice, audience="friends", title="Friends' picnic")
+    gone = create(client, carol, audience="friends", title="Carol's party")
+    say(client, bob, f"event/{public['event_id']}", "I'm in")
+    say(client, alice, f"event/{public['event_id']}", "great")
+    say(client, bob, f"userevent/{private['id']}", "cake?")
+    oops = say(client, bob, f"userevent/{private['id']}", "oops").json()
+    client.delete(f"/chats/messages/{oops['id']}", headers=bob)  # the last message is a deleted one
+    say(client, bob, f"userevent/{gone['id']}", "see you")
+    bob_id = client.get("/me", headers=bob).json()["id"]
+    client.delete(f"/friends/{bob_id}", headers=carol)  # Carol's friends-only chat is gone for Bob
+
+    def my_chats(headers):
+        queries = []
+        count = lambda *_: queries.append(1)  # noqa: E731
+        event.listen(engine, "before_cursor_execute", count)
+        try:
+            chats = client.get("/me/chats", headers=headers).json()
+        finally:
+            event.remove(engine, "before_cursor_execute", count)
+        return chats, len(queries)
+
+    def opened_one_by_one(headers, chats):
+        out = []
+        for c in chats:
+            path = f"{c['kind']}/{c['target_id']}"
+            last = client.get(f"/chats/{path}/messages", params={"limit": 1}, headers=headers).json()
+            info = client.get(f"/chats/{path}", headers=headers).json()
+            out.append(
+                info | {"last_message": last[-1] if last else None, "last_message_at": c["last_message_at"]}
+            )
+        return out
+
+    for who in (alice, bob):
+        chats, _ = my_chats(who)
+        assert chats == opened_one_by_one(who, chats)
+    chats, before = my_chats(bob)
+    assert [c["key"] for c in chats] == [f"userevent:{private['id']}", f"event:{public['event_id']}"]
+    assert chats[0]["last_message"]["deleted"] is True and chats[0]["unread"] == 0
+    assert client.get("/me/chats", headers=alice).json()[0]["unread"] == 1  # "cake?"; the deleted one isn't
+
+    for i in range(3):
+        ev = create(client, alice, title=f"Run {i}")
+        say(client, bob, f"event/{ev['event_id']}", "hi")
+    chats, after = my_chats(bob)
+    assert len(chats) == 5 and after == before
+    assert chats == opened_one_by_one(bob, chats)
+
+
 def test_rate_limit(client, alice):
     ev = create(client, alice)
     path = f"event/{ev['event_id']}"

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from '../config/store'
 import { isLoggedIn, LoginRequired, onAuthChange } from '../data/api'
@@ -6,6 +6,7 @@ import { refreshPeople, shareArea, usePeople } from '../data/people'
 import { useLang } from '../i18n'
 import { Users } from './Icons'
 import { LoginForm } from './LoginForm'
+import { usePopover } from '../hooks/usePopover'
 
 const RESEND_MS = 10 * 60_000 // a shared area goes stale after 6 h without news (backend/app/routers/people.py)
 
@@ -20,23 +21,14 @@ export function PeopleMenu({ me }) {
   const { t } = useLang()
   const spring = useSpring()
   const { people, mine } = usePeople()
-  const [open, setOpen] = useState(false)
+  const { open, setOpen, ref } = usePopover() // closes on a tap outside and on Escape
   const [needLogin, setNeedLogin] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
-  const ref = useRef(null)
   const showing = values.showPeople !== false
   const sharing = Boolean(mine?.share)
   const others = people.filter((p) => !p.is_self).length
 
-  useEffect(() => {
-    if (!open) return
-    const onDoc = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
-    document.addEventListener('pointerdown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('pointerdown', onDoc); document.removeEventListener('keydown', onKey) }
-  }, [open])
 
   useEffect(() => onAuthChange(() => { if (isLoggedIn()) setNeedLogin(false); refreshPeople() }), [])
 

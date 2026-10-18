@@ -4,7 +4,7 @@ import pytest
 
 from app.assistant.nlu import merge, understand
 from app.models import Attendance, Event, Occurrence, Source, User
-from app.routers.events import WARSAW
+from app.timeutil import WARSAW
 
 SUNDAY = datetime(2026, 10, 18, 15, 0)  # local Warsaw time
 

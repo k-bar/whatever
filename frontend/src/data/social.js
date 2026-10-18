@@ -7,7 +7,7 @@
  * every visitor sees.
  */
 import { useSyncExternalStore } from 'react'
-import { isLoggedIn, LoginRequired, requestJoin, setAttendance } from './api'
+import { isLoggedIn, LoginRequired, removeAttendance, requestJoin, setAttendance } from './api'
 
 const KEY = 'syrenka.social.v1'
 let state = read()
@@ -25,18 +25,19 @@ const subscribe = (fn) => { listeners.add(fn); return () => listeners.delete(fn)
 
 export const getSocial = () => state
 export const useSocial = () => useSyncExternalStore(subscribe, getSocial, getSocial)
-export const isGoing = (id) => Boolean(state.going[id])
-export const hasAsked = (id) => Boolean(state.joined[id])
 
 /** "I'm going, come with me". Returns 'on' | 'off' (toggled) and whether the API accepted it. */
 export async function toggleGoing(feature, { wantsCompany = true } = {}) {
   const p = feature.properties
   const id = String(p.event_id)
-  const on = !state.going[id]
-  write({ ...state, going: on ? { ...state.going, [id]: { at: Date.now(), wantsCompany, title: p.title } } : omit(state.going, id) })
+  const was = state.going[id]
+  const on = !was
+  // remember which date we said yes to: the pin may show another date of the same event by the time we say no
+  const occ = on ? p.occurrence_id : was.occurrenceId ?? p.occurrence_id
+  write({ ...state, going: on ? { ...state.going, [id]: { at: Date.now(), wantsCompany, title: p.title, occurrenceId: occ } } : omit(state.going, id) })
   let synced = false
-  if (on && isLoggedIn() && p.occurrence_id) {
-    try { await setAttendance(p.occurrence_id, wantsCompany); synced = true } catch (e) { if (!(e instanceof LoginRequired)) console.warn('attendance not saved', e) }
+  if (isLoggedIn() && occ) {
+    try { await (on ? setAttendance(occ, wantsCompany) : removeAttendance(occ)); synced = true } catch (e) { if (!(e instanceof LoginRequired)) console.warn('attendance not saved', e) }
   }
   return { on, synced }
 }

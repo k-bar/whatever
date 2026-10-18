@@ -1,23 +1,28 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { dataStatus, fetchJoinRequests, fetchSources } from '../data/api'
+import { dataStatus, fetchJoinRequests, fetchSources, onAuthChange } from '../data/api'
 import { categoryColor } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 import { Brand } from './Brand'
 import { ChevronL, ChevronR, Cog, Expand, Mermaid, Message, Plus, Shrink, Silhouette, Star, X } from './Icons'
 import { StartPointPicker } from './StartPointPicker'
-import { ProfilePage } from './ProfilePage'
 import { LanduseLegend } from './LanduseLegend'
 import { useConfig } from '../config/store'
 import { DEV_TOOLS } from '../config/env'
 import { PIN_GROUPS } from '../data/pinGroups'
 import { CITY_LAYERS } from './cityLayers'
 import { locale, useLang } from '../i18n'
-import { useMe, VerifyBanner } from './Account'
-import { EventChat } from './EventChat'
-import { assetUrl } from '../data/api'
+import { VerifyBanner } from './Account'
+import { useMe } from '../data/me'
+import { Avatar } from './Avatar'
 
-const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
+// The two heaviest sections (profile editor, chat with its socket) load when first opened.
+const ProfilePageLazy = lazy(() => import('./ProfilePage').then((m) => ({ default: m.ProfilePage })))
+const EventChatLazy = lazy(() => import('./EventChat').then((m) => ({ default: m.EventChat })))
+const PanelFallback = () => <div className="panel-loading" aria-busy="true"><span /><span /><span /></div>
+const ProfilePage = (props) => <Suspense fallback={<PanelFallback />}><ProfilePageLazy {...props} /></Suspense>
+const EventChat = (props) => <Suspense fallback={<PanelFallback />}><EventChatLazy {...props} /></Suspense>
+
 
 /** The tray's home: what used to be the burger pop-up. "create" starts a new event instead of opening a view. */
 const TRAY_ITEMS = [
@@ -97,7 +102,7 @@ export function ProfilePanel({ features, onPick, onFavourites, person }) {
   const me = useMe()
   const [other, setOther] = useState(false) // looking at someone else's profile (a friend, a person on the map)
   const [requests, setRequests] = useState([])
-  useEffect(() => { fetchJoinRequests().then(setRequests) }, [])
+  useEffect(() => { const load = () => fetchJoinRequests().then(setRequests); load(); return onAuthChange(load) }, [])
   return (
     <Shell title={t(other ? 'Profile' : 'Your profile')} sub={other ? null : t('What others see when you ask to join')}>
       {!other && <VerifyBanner me={me} />}
@@ -113,7 +118,7 @@ export function ProfilePanel({ features, onPick, onFavourites, person }) {
       <div className="blk-title" style={{ padding: '0 10px' }}>{t('Join requests')}</div>
       {requests.map((r) => (
         <div className="sp-row" key={r.id}>
-          <span className="av" style={{ background: AV[r.requester.id % AV.length] }}>{r.requester.display_name[0]}</span>
+          <Avatar user={r.requester} />
           <span><div className="t">{r.requester.display_name}</div><div className="s">{t('wants to join · {event}', { event: r.event_title })}</div></span>
           <span className="right">{fmtWhen(r.starts_at)}</span>
         </div>
@@ -130,16 +135,16 @@ export function ProfilePanel({ features, onPick, onFavourites, person }) {
  * Messages: the event chats I follow (posted in, host, or followed), newest activity first, with
  * unread counts; or one chat when `chat` is set. Opening a chat from a map box lands here too.
  */
-export function MessagesPanel({ chats, chat, onOpenChat, onOpenEvent }) {
+export function MessagesPanel({ chats, chat, onOpenChat, onOpenEvent, onOpenUser }) {
   const { t } = useLang()
-  if (chat) return <EventChat key={`${chat.kind}:${chat.id}`} target={chat} onBack={() => onOpenChat(null)} onOpenEvent={onOpenEvent} />
+  if (chat) return <EventChat key={`${chat.kind}:${chat.id}`} target={chat} onBack={() => onOpenChat(null)} onOpenEvent={onOpenEvent} onOpenUser={onOpenUser} />
   const list = chats.chats
   return (
     <Shell title={t('Messages')} sub={t('Chats of events you follow')}>
       {list === null && <div className="res-empty">{t('Loading…')}</div>}
       {list?.map((c) => (
         <button key={c.key} className={`sp-row chat-row ${c.unread ? 'unread' : ''}`} onClick={() => onOpenChat({ kind: c.kind, id: c.target_id })}>
-          <span className="av" style={c.image_url ? { background: `center / cover url(${assetUrl(c.image_url)})` } : { background: AV[c.target_id % AV.length] }}>{!c.image_url && c.title[0]}</span>
+          <Avatar user={{ id: c.target_id }} photo={c.image_url} label={c.title} />
           <span className="chat-row-txt">
             <div className="t">{c.title}</div>
             <div className="s">{c.last_message

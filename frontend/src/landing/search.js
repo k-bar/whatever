@@ -37,7 +37,15 @@ export function whereSuggestions(text, features, limit = 7, areas = []) {
 }
 
 /** Addresses and landmarks in Warsaw (OpenStreetMap Nominatim) for "Where". */
+const geoCache = new Map()
 export async function geocodeWarsaw(text, signal) {
+  const key = text.trim().toLowerCase()
+  if (geoCache.has(key)) return geoCache.get(key)
+  const hits = await geocodeWarsawNow(text, signal)
+  geoCache.set(key, hits)
+  return hits
+}
+async function geocodeWarsawNow(text, signal) {
   const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=4&countrycodes=pl&bounded=1&viewbox=20.85,52.37,21.27,52.10&q=${encodeURIComponent(text)}`
   const j = await (await fetch(url, { signal })).json()
   return j.map((r) => ({ kind: 'place', label: r.display_name.split(',').slice(0, 2).join(','), lngLat: [+r.lon, +r.lat] }))

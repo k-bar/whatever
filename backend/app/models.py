@@ -134,6 +134,8 @@ class User(Base):
     area_lat: Mapped[float | None] = mapped_column(Float)
     area_lng: Mapped[float | None] = mapped_column(Float)
     area_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # the demo people from app/mocksocial.py (dev and prod, settings.demo_people): their profiles and event lists are public
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     @property
@@ -143,6 +145,9 @@ class User(Base):
 
 class Attendance(Base):
     __tablename__ = "attendance"
+    # the primary key starts with user_id; "who goes to this date" (counts, attendee lists, the ingest's
+    # "does anyone attend it" check) needs its own index
+    __table_args__ = (Index("ix_attendance_occurrence_id", "occurrence_id"),)
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     occurrence_id: Mapped[int] = mapped_column(

@@ -5,13 +5,9 @@ and tag mapping, returning RawEvents (kind="place") for the shared pipeline.
 Data © OpenStreetMap contributors (ODbL). Refreshed once a day.
 """
 
-import json
-import urllib.parse
-import urllib.request
-
-from app.config import settings
 from app.ingest.base import RawEvent, SourceSpec
-from app.ingest.sources.osm_venues import OVERPASS_URLS, osm_hours
+from app.ingest.overpass import overpass
+from app.ingest.sources.osm_venues import osm_hours
 
 RESTAURANT_AMENITIES = (
     "restaurant",
@@ -30,16 +26,7 @@ QUERY = (
 
 
 def fetch_records() -> list[dict]:
-    body = urllib.parse.urlencode({"data": QUERY}).encode()
-    last_error: Exception | None = None
-    for url in OVERPASS_URLS:
-        req = urllib.request.Request(url, data=body, headers={"User-Agent": settings.nominatim_user_agent})
-        try:
-            with urllib.request.urlopen(req, timeout=240) as r:
-                return json.loads(r.read().decode("utf-8")).get("elements", [])
-        except OSError as e:
-            last_error = e
-    raise RuntimeError(f"all Overpass mirrors failed: {last_error}")
+    return overpass(QUERY)
 
 
 def parse(records: list[dict]) -> list[RawEvent]:

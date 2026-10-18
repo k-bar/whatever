@@ -80,9 +80,12 @@ const FROM_EATERY = [[/^(bar|pub|biergarten)\b/i, 'alcohol'], [/^cafe\b/i, 'cafe
  * warsztaty, warsztatów). Order matters: specific before general (sauna before film, festival before concert).
  */
 // JavaScript's \b treats ś, ż, ł, ó … as non-letters, so "\bświęt" would never match: every \b in the
-// rules below becomes a Unicode-aware word start (before a letter) or end (after one).
-const LETTER = '[\\p{L}\\p{N}]'
-const unicodeWords = (re) => new RegExp(re.source.replace(/\\b/g, (_, i, src) => (i === 0 || '|(['.includes(src[i - 1]) ? `(?<!${LETTER})` : `(?!${LETTER})`)), 'iu')
+// rules below becomes a word start (before a letter) or end (after one) that knows Polish letters.
+// Spelled out as a plain character list on purpose: Safari runs Unicode-property regexes (\p{L}, the "u"
+// flag) and lookbehind about 20× slower than Chrome, which made each switch in the event search take seconds.
+const LETTER = '[0-9a-ząćęłńóśźżäöüßéèêáàâíìîúùûçñ]'
+const NOT_LETTER = '[^0-9a-ząćęłńóśźżäöüßéèêáàâíìîúùûçñ]'
+const unicodeWords = (re) => new RegExp(re.source.replace(/\\b/g, (_, i, src) => (i === 0 || '|(['.includes(src[i - 1]) ? `(?:^|${NOT_LETTER})` : `(?!${LETTER})`)), 'i')
 
 const RULES = [
   // places by name (OpenStreetMap venues come without their tag)
@@ -167,8 +170,21 @@ export function classify(p) {
 // fallback for a straggler so the map never shows a pin without a type: what kind of thing it is
 const LAST_RESORT = { place: 'venue', class: 'sports_class', event: 'community' }
 
+// Worked out once per pin and remembered: the map, search and the event search ask about every pin on
+// every change, so this must cost nothing the second time. Keyed by what decides the answer.
+const ONE = new Map(), ALL = new Map()
+const keyOf = (p) => `${p.source || ''}|${p.event_id ?? ''}|${p.kind || ''}|${p.event_type || p.type || ''}|${p.title || ''}`
+const remember = (cache, p, work) => {
+  const k = keyOf(p)
+  let v = cache.get(k)
+  if (v === undefined) { v = work(original(p)); cache.set(k, v) }
+  return v
+}
+// a translated pin is classified by its original (Polish) words, so its type is the same in every language
+const original = (p) => (p.original?.title ? { ...p, title: p.original.title, lead: p.original.lead ?? p.lead } : p)
+
 /** A pin's type: always one of TYPES. */
-export const typeOf = (p) => classify(p) || LAST_RESORT[p?.kind] || 'community'
+export const typeOf = (p) => (p ? remember(ONE, p, (q) => classify(q) || LAST_RESORT[q.kind] || 'community') : 'community')
 
 const SPECIFIC = new Set(['music', 'nightlife', 'theatre', 'film', 'exhibitions', 'running', 'yoga', 'festivals', 'markets', 'family', 'business', 'food', 'grzybki', 'study_buddies'])
 
@@ -187,8 +203,11 @@ const ALSO_WORDS = [
  * Search and the type switches use these, so a pin shows under each of its types.
  */
 export function typesOf(p) {
+  return p ? remember(ALL, p, workOutTypes) : ['community']
+}
+
+function workOutTypes(p) {
   const out = [typeOf(p)]
-  if (!p) return out
   const add = (t) => { if (t && TYPES[t] && !out.includes(t) && !['utility', 'station'].includes(t)) out.push(t) }
   const place = p.kind === 'place'
   const title = `${p.title || ''} ${p.subtitle || ''}`

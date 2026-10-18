@@ -43,7 +43,7 @@ export function StartPointPicker() {
       <div className="sp-current">
         <PinGlyph />
         <span>
-          <div className="t">{start ? start.label : t('Approximate (from your IP)')}</div>
+          <div className="t">{start ? t(start.label) : t('Approximate (from your IP)')}</div>
           <div className="s">{start ? (start.sub || t('Your starting point')) : t('Pick an address for accurate travel times')}</div>
         </span>
         {start && <button className="btn small" onClick={() => onSet(null)}>{t('Use IP')}</button>}

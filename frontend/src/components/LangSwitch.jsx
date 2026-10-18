@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import { useLang } from '../i18n'
+import { usePopover } from '../hooks/usePopover'
 
 /** Round flag badges. Each instance gets its own clipPath id so several can share a page. */
 export function FlagPL({ size = 22 }) {
@@ -37,18 +38,8 @@ const LANGS = [['pl', 'PL', FlagPL], ['en', 'EN', FlagUK]]
 export function LangSwitch() {
   const { lang, setLang, t } = useLang()
   const spring = useSpring()
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const { open, setOpen, ref } = usePopover() // closes on a tap outside and on Escape
   const [, code, Flag] = LANGS.find(([l]) => l === lang)
-
-  useEffect(() => {
-    if (!open) return
-    const onDoc = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
-    document.addEventListener('pointerdown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('pointerdown', onDoc); document.removeEventListener('keydown', onKey) }
-  }, [open])
 
   return (
     <div className="lang" ref={ref}>

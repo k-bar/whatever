@@ -10,13 +10,12 @@ import json
 import re
 import urllib.request
 from datetime import date, datetime, timedelta
-from zoneinfo import ZoneInfo
 
 from app.config import settings
 from app.ingest.base import Occurrence, RawEvent, SourceSpec
+from app.timeutil import WARSAW
 
 API = "https://dane.um.warszawa.pl/api/action/"
-WARSAW = ZoneInfo("Europe/Warsaw")
 WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 PL_WEEKDAYS = {
     "Poniedziałek": "monday",
