@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { forgotPassword, login, register } from '../data/api'
+import { fetchMe, forgotPassword, login, register } from '../data/api'
 import { useLang } from '../i18n'
 
 /**
  * Log in / sign up / forgot password (POST /auth/login, /auth/register, /auth/password/forgot).
- * Signing up logs you in straight away and mails a confirmation link: the form then says so, and
- * onDone() runs when you close that note. Everything listening to onAuthChange() updates too.
+ * Signing up logs you in straight away and mails a confirmation link. When the server requires a
+ * confirmed email (me.verify_required) the form then says so and onDone() runs when you close that
+ * note; otherwise onDone() runs straight away. Everything listening to onAuthChange() updates too.
  * `compact`: placeholders instead of labels (the small card under the top-right "Log in" button).
  */
 export function LoginForm({ onDone, onRegistered, intro, compact = false }) {
@@ -26,7 +27,11 @@ export function LoginForm({ onDone, onRegistered, intro, compact = false }) {
     if (!valid || busy) return
     setBusy(true); setError(null)
     try {
-      if (signup) { await register(name.trim(), email.trim(), password); onRegistered?.(); setMode('sent') }
+      if (signup) {
+        await register(name.trim(), email.trim(), password)
+        if ((await fetchMe())?.verify_required === false) onDone?.()
+        else { onRegistered?.(); setMode('sent') }
+      }
       else if (forgot) { await forgotPassword(email.trim()); setMode('reset-sent') }
       else { await login(email.trim(), password); onDone?.() }
     } catch (err) {

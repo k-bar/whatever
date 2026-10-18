@@ -5,6 +5,7 @@ from typing import Annotated, Any, Literal
 from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, HttpUrl, TypeAdapter
 
 from app.categories import CATEGORIES
+from app.config import settings
 
 CategorySlug = Literal[tuple(CATEGORIES)]  # type: ignore[valid-type]
 
@@ -119,7 +120,10 @@ class ContactUser(PublicUser):
 
 class Me(ContactUser):
     email: str
-    email_verified: bool  # false: friends, creating events, join requests and chats are locked
+    email_verified: (
+        bool  # false + verify_required: friends, creating events, join requests and chats are locked
+    )
+    verify_required: bool = Field(default_factory=lambda: settings.require_verified_email)
     first_name: str | None
     last_name: str | None
     age: int | None

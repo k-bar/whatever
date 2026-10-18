@@ -118,6 +118,6 @@ def get_current_user(user: User | None = Depends(get_optional_user)) -> User:
 
 
 def get_verified_user(user: User = Depends(get_current_user)) -> User:
-    if user.email_verified_at is None:
+    if settings.require_verified_email and user.email_verified_at is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Confirm your email first")
     return user

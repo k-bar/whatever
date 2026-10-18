@@ -38,6 +38,23 @@ def test_register_mails_link_and_gates_social(client):
     assert client.post("/auth/verify", json={"token": mailed_token("ola@example.com")}).status_code == 200
 
 
+def test_verification_can_be_optional(client):
+    settings.require_verified_email = False
+    try:
+        h = register(client, "ola@example.com", "Ola", verify=False)
+        me = client.get("/me", headers=h).json()
+        assert me["email_verified"] is False and me["verify_required"] is False
+        assert len(mail.outbox) == 1  # the link is still mailed
+        register(client, "kuba@example.com", "Kuba")
+        assert client.post("/friends/requests", json={"username": "kuba"}, headers=h).status_code == 201
+        ev = create(client, h)
+        assert say(client, h, f"event/{ev['event_id']}", "hi").status_code == 201
+    finally:
+        settings.require_verified_email = True
+    assert client.get("/me", headers=h).json()["verify_required"] is True
+    assert client.post("/friends/requests", json={"username": "kuba"}, headers=h).status_code == 403
+
+
 def test_password_is_salted_argon2(client, db):
     register(client, "a@example.com", "A")
     register(client, "b@example.com", "B")
