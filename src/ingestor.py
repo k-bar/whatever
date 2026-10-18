@@ -14,7 +14,9 @@ from src.models import (
     Base,
     CityEvent,
     Defibrillator,
+    EntertainmentEvent,
     OpenSportsField,
+    Restaurant,
     SportsActivity,
     StreetsGlVenue,
     SyncLog,
@@ -685,6 +687,145 @@ def ingest_streets_gl_venues(
     return len(all_rows)
 
 
+def ingest_restaurants(
+    session: Session, records: list[dict[str, Any]]
+) -> int:
+    """Upsert OpenStreetMap restaurants and food/drink venues."""
+    now = utc_now()
+    rows_by_id: dict[str, dict[str, Any]] = {}
+
+    for item in records:
+        osm_id = _to_str(item.get("id"))
+        name = _to_str(item.get("name"))
+        if not osm_id or not name:
+            continue
+        raw_tags = item.get("tags")
+        tags = raw_tags if isinstance(raw_tags, dict) else {}
+        rows_by_id[osm_id] = {
+            "id": osm_id[:64],
+            "name": name[:500],
+            "amenity": ((_to_str(item.get("amenity")) or "")[:64] or None),
+            "cuisine": ((_to_str(item.get("cuisine")) or "")[:255] or None),
+            "location": ((_to_str(item.get("location")) or "")[:500] or None),
+            "street": ((_to_str(item.get("street")) or "")[:255] or None),
+            "housenumber": (
+                (_to_str(item.get("housenumber")) or "")[:64] or None
+            ),
+            "postcode": ((_to_str(item.get("postcode")) or "")[:32] or None),
+            "city": ((_to_str(item.get("city")) or "")[:120] or None),
+            "lat": _to_float(item.get("lat")),
+            "lon": _to_float(item.get("lon")),
+            "opening_hours": _to_str(item.get("opening_hours")),
+            "website": _to_str(item.get("website")),
+            "phone": ((_to_str(item.get("phone")) or "")[:120] or None),
+            "email": ((_to_str(item.get("email")) or "")[:255] or None),
+            "outdoor_seating": (
+                (_to_str(item.get("outdoor_seating")) or "")[:64] or None
+            ),
+            "diet_vegan": (
+                (_to_str(item.get("diet_vegan")) or "")[:64] or None
+            ),
+            "diet_vegetarian": (
+                (_to_str(item.get("diet_vegetarian")) or "")[:64] or None
+            ),
+            "wheelchair": (
+                (_to_str(item.get("wheelchair")) or "")[:64] or None
+            ),
+            "osm_url": _to_str(item.get("osm_url")),
+            "tags": tags,
+            "updated_at": now,
+        }
+
+    all_rows = list(rows_by_id.values())
+    batch_size = 500
+    for idx in range(0, len(all_rows), batch_size):
+        chunk = all_rows[idx: idx + batch_size]
+        stmt = pg_insert(Restaurant).values(chunk)
+        update_cols = {
+            col: getattr(stmt.excluded, col)
+            for col in chunk[0].keys()
+            if col != "id"
+        }
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["id"],
+            set_=update_cols,
+        )
+        session.execute(stmt)
+
+    return len(all_rows)
+
+
+def ingest_entertainment_events(
+    session: Session, records: list[dict[str, Any]]
+) -> int:
+    """Upsert Warsaw concerts and entertainment events."""
+    now = utc_now()
+    rows_by_id: dict[str, dict[str, Any]] = {}
+    seen_urls: set[str] = set()
+
+    for item in records:
+        ext_id = _to_str(item.get("id"))
+        source = _to_str(item.get("source")) or "external"
+        title = _to_str(item.get("title"))
+        url = _to_str(item.get("url"))
+        if not ext_id or not title or not url:
+            continue
+        if url in seen_urls and ext_id not in rows_by_id:
+            continue
+        seen_urls.add(url)
+
+        raw_performers = item.get("performers")
+        performers = (
+            raw_performers if isinstance(raw_performers, list) else []
+        )
+        raw_payload = item.get("raw_data")
+        raw_data = raw_payload if isinstance(raw_payload, dict) else {}
+
+        rows_by_id[ext_id] = {
+            "id": ext_id[:128],
+            "source": source[:64],
+            "title": title[:500],
+            "category": ((_to_str(item.get("category")) or "")[:120] or None),
+            "start_date": (
+                (_to_str(item.get("start_date")) or "")[:64] or None
+            ),
+            "end_date": ((_to_str(item.get("end_date")) or "")[:64] or None),
+            "venue_name": (
+                (_to_str(item.get("venue_name")) or "")[:255] or None
+            ),
+            "address": ((_to_str(item.get("address")) or "")[:500] or None),
+            "district": ((_to_str(item.get("district")) or "")[:120] or None),
+            "city": ((_to_str(item.get("city")) or "")[:120] or None),
+            "lat": _to_float(item.get("lat")),
+            "lon": _to_float(item.get("lon")),
+            "url": url,
+            "image_url": _to_str(item.get("image_url")),
+            "description": _to_str(item.get("description")),
+            "performers": performers,
+            "is_free": ((_to_str(item.get("is_free")) or "")[:16] or None),
+            "raw_data": raw_data,
+            "updated_at": now,
+        }
+
+    all_rows = list(rows_by_id.values())
+    batch_size = 500
+    for idx in range(0, len(all_rows), batch_size):
+        chunk = all_rows[idx: idx + batch_size]
+        stmt = pg_insert(EntertainmentEvent).values(chunk)
+        update_cols = {
+            col: getattr(stmt.excluded, col)
+            for col in chunk[0].keys()
+            if col != "id"
+        }
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["id"],
+            set_=update_cols,
+        )
+        session.execute(stmt)
+
+    return len(all_rows)
+
+
 INGEST_HANDLERS: dict[str, Callable[[Session, list[dict[str, Any]]], int]] = {
     "tourist_routes": ingest_tourist_routes,
     "toilets": ingest_toilets,
@@ -695,6 +836,8 @@ INGEST_HANDLERS: dict[str, Callable[[Session, list[dict[str, Any]]], int]] = {
     "city_events": ingest_city_events,
     "air_quality": ingest_air_quality,
     "streets_gl": ingest_streets_gl_venues,
+    "restaurants": ingest_restaurants,
+    "entertainment_events": ingest_entertainment_events,
 }
 
 
@@ -708,6 +851,7 @@ class DatabaseIngestor:
     ) -> None:
         self.engine = engine
         self.api_client = api_client or WarszawaApiClient()
+        self._schema_initialized: bool = False
 
     def init_schema(self) -> None:
         """Create missing tables in current_schema() only."""
@@ -723,9 +867,12 @@ class DatabaseIngestor:
             for table in Base.metadata.sorted_tables:
                 if table.name not in existing:
                     table.create(conn, checkfirst=False)
+        self._schema_initialized = True
 
     def sync_spec(self, spec: DatasetSpec) -> int:
         """Fetch and ingest a single DatasetSpec, recording a SyncLog entry."""
+        if not self._schema_initialized:
+            self.init_schema()
         started = utc_now()
         handler = INGEST_HANDLERS.get(spec.key)
         if handler is None:

@@ -1,0 +1,98 @@
+[
+  {
+    "id": "159961",
+    "title": "XIV Królewski Festiwal Światła",
+    "url": "https://waw4free.pl/wydarzenie-159961-xiv-krolewski-festiwal-swiatla",
+    "image_url": "https://waw4free.pl/upload/wydarzenia-warszawa-1791208755.webp",
+    "categories": [
+      "koncerty",
+      "dla dzieci",
+      "dla młodzieży",
+      "impreza",
+      "koncert",
+      "teatr",
+      "inne"
+    ],
+    "start_date": "2026-10-18T18:00:00",
+    "end_date": null,
+    "district": "Wilanów"
+  },
+  {
+    "id": "158978",
+    "title": "Da Pacem. Koncert jubileuszowy, S.Oak, D. Rasouli i inni",
+    "url": "https://waw4free.pl/wydarzenie-158978-da-pacem-koncert-jubileuszowy-s-oak-d-rasouli-i-inni",
+    "image_url": "https://waw4free.pl/upload/wydarzenia-warszawa-1790168391.webp",
+    "categories": [
+      "koncerty",
+      "koncert"
+    ],
+    "start_date": "2026-10-24T18:00:00",
+    "end_date": null,
+    "district": "Śródmieście"
+  },
+  {
+    "id": "159911",
+    "title": "Festiwal Kultury bez Barier",
+    "url": "https://waw4free.pl/wydarzenie-159911-festiwal-kultury-bez-barier",
+    "image_url": "https://waw4free.pl/upload/wydarzenia-warszawa-1791192471.webp",
+    "categories": [
+      "koncerty",
+      "dla dzieci",
+      "dla młodzieży",
+      "film",
+      "impreza",
+      "koncert",
+      "spacer lub rower",
+      "spotkanie",
+      "teatr",
+      "warsztaty",
+      "wykład",
+      "wystawa"
+    ],
+    "start_date": "2026-10-18T18:00:00",
+    "end_date": null,
+    "district": "Śródmieście"
+  },
+  {
+    "id": "160184",
+    "title": "IX Festiwal Natura - Kultura - Media im. Ryszarda Kapuścińskiego",
+    "url": "https://waw4free.pl/wydarzenie-160184-ix-festiwal-natura-kultura-media-im-ryszarda-kapuscinskiego",
+    "image_url": "https://waw4free.pl/upload/wydarzenia-warszawa-1000.1791529908.webp",
+    "categories": [
+      "koncerty",
+      "film",
+      "koncert",
+      "spacer lub rower",
+      "spotkanie"
+    ],
+    "start_date": "2026-10-18T18:00:00",
+    "end_date": null,
+    "district": "okolice Warszawy"
+  },
+  {
+    "id": "160336",
+    "title": "A kiedy wędrujesz... | koncert familijny",
+    "url": "https://waw4free.pl/wydarzenie-160336-a-kiedy-wedrujesz-koncert-familijny",
+    "image_url": "https://waw4free.pl/upload/wydarzenia-warszawa-1100.1791824947.webp",
+    "categories": [
+      "koncerty",
+      "koncert"
+    ],
+    "start_date": "2026-10-18T11:00:00",
+    "end_date": null,
+    "district": "Ochota"
+  },
+  {
+    "id": "160047",
+    "title": "Lunchowy Koncert Włączający - Filip Wojciechowski Trio",
+    "url": "https://waw4free.pl/wydarzenie-160047-lunchowy-koncert-wlaczajacy-filip-wojciechowski-trio",
+    "image_url": null,
+    "categories": [
+      "koncerty",
+      "koncert"
+    ],
+    "start_date": "2026-10-18T13:00:00",
+    "end_date": null,
+    "district": "Żoliborz"
+  }
+]
