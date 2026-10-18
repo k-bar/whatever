@@ -145,9 +145,16 @@ export function timeRange(window) {
 // Public invitations and everything users create themselves ("+ Create event" pins carry an `audience`)
 const IS_INVITE = ['any', ['to-boolean', ['get', 'is_public_invite']], ['has', 'audience']]
 
+// "is this pin one of these ids?" as a lookup (match), not a scan of the list ('in'): a few thousand ids per click.
+// Ids are compared as text: private user events have "ue-12", the rest numbers, and match wants one type.
+function idMatch(ids) {
+  const labels = [...new Set(ids.map(String))]
+  return labels.length ? ['match', ['to-string', ['get', 'event_id']], labels, true, false] : false
+}
+
 function buildFilter(v, favourites, favOnly, searchIds) {
   // the event search is in charge of the map (data/mapFilter.js): exactly its pins, already filtered in App
-  if (searchIds) return ['all', ['in', ['get', 'event_id'], ['literal', searchIds]], ...(favOnly ? [['in', ['get', 'event_id'], ['literal', [...favourites]]]] : [])]
+  if (searchIds) return ['all', idMatch(searchIds), ...(favOnly ? [['in', ['get', 'event_id'], ['literal', [...favourites]]]] : [])]
   const kinds = []
   const parts = ['any']
   if (v.showEvents) parts.push(['all', ['in', ['get', 'kind'], ['literal', ['event', 'class']]], ['!', IS_INVITE]]) // classes are dated too
