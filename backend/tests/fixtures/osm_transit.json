@@ -1,0 +1,94 @@
+[
+ {
+  "type": "node",
+  "id": 35121250,
+  "lat": 52.2452163,
+  "lon": 21.0008823,
+  "tags": {
+   "colour": "blue",
+   "level": "-2",
+   "name": "Ratusz-Arsenał",
+   "network": "Warsaw Metro",
+   "operator": "Metro Warszawskie",
+   "public_transport": "station",
+   "railway": "station",
+   "railway:ref": "Rz",
+   "start_date": "2001-05-11",
+   "station": "subway",
+   "subway": "yes",
+   "wheelchair": "yes",
+   "wikidata": "Q638595",
+   "wikipedia": "pl:Ratusz Arsenał"
+  }
+ },
+ {
+  "type": "node",
+  "id": 291414851,
+  "lat": 52.2715768,
+  "lon": 20.9719399,
+  "tags": {
+   "colour": "blue",
+   "name": "Marymont",
+   "name:pl": "Marymont",
+   "name:ru": "Марымонт",
+   "name:uk": "Маримонт",
+   "network": "Warsaw Metro",
+   "operator": "Metro Warszawskie",
+   "public_transport": "station",
+   "railway": "station",
+   "railway:ref": "Mt",
+   "ref": "A19",
+   "start_date": "2006-12-29",
+   "station": "subway",
+   "subway": "yes",
+   "wheelchair": "yes",
+   "wikidata": "Q638585",
+   "wikipedia": "pl:Marymont (stacja metra)"
+  }
+ },
+ {
+  "type": "node",
+  "id": 302913143,
+  "lat": 52.2181249,
+  "lon": 20.9626543,
+  "tags": {
+   "EE:gtfs:id": "126936",
+   "amenity": "bus_station",
+   "bus": "yes",
+   "internet_access": "wlan",
+   "name": "Dworzec Autobusowy Zachodni",
+   "name:be": "Варшава Заходняя",
+   "name:en": "Zachodni Bus Station",
+   "name:et": "Varssavi (PKS Zachodnia)",
+   "name:pl": "Dworzec Autobusowy Zachodni",
+   "name:ru": "Западный автовокзал Варшава",
+   "name:uk": "Заходній Автовокзал Варшава",
+   "public_transport": "station",
+   "wheelchair": "yes"
+  }
+ },
+ {
+  "type": "node",
+  "id": 1700789144,
+  "lat": 52.2910984,
+  "lon": 20.927888,
+  "tags": {
+   "amenity": "bus_station",
+   "bus": "yes",
+   "name": "Metro Młociny",
+   "name:ru": "Станция Млочины",
+   "name:uk": "Станція Млочини",
+   "public_transport": "station",
+   "wheelchair": "yes"
+  }
+ },
+ {
+  "type": "node",
+  "id": 1,
+  "lat": 52.2,
+  "lon": 21.0,
+  "tags": {
+   "amenity": "bus_station"
+  }
+ }
+]

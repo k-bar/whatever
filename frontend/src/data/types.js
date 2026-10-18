@@ -142,6 +142,7 @@ export function classify(p) {
   if (FROM_EVENT_TYPE[p.event_type]) return FROM_EVENT_TYPE[p.event_type]
   const cats = p.categories || []
   if (cats.includes('toilets') || cats.includes('aed') || p.source === 'warsaw_toilets' || p.source === 'warsaw_aed') return 'utility'
+  if (cats.includes('transit') || p.source === 'osm_transit') return 'station'
   if (p.source === 'warsaw_pitches') return 'pitch'
   if (p.source === 'osm_restaurants') {
     for (const [re, t] of FROM_EATERY) if (re.test(p.lead || '')) return t

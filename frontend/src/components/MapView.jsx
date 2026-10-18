@@ -345,7 +345,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   useEffect(() => { const m = map.current; if (m?.getLayer(AREA_LABEL)) m.setLayoutProperty(AREA_LABEL, 'text-field', t('Busy Area')) }, [lang, t])
   // toilets / AED / walking routes: new data, toggles, and the route whose box is open
   useEffect(() => { const m = map.current; if (m?.getSource('wl-amenities')) setCityData(m, city) }, [city])
-  useEffect(() => { const m = map.current; if (m) setCityVisibility(m, values) }, [values.showToilets, values.showAed, values.showWalks]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const m = map.current; if (m) setCityVisibility(m, values) }, [values.showToilets, values.showAed, values.showWalks, values.showStations]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const m = map.current; if (m) highlightWalk(m, selectedId) }, [selectedId])
   useEffect(() => { const m = map.current; if (m?.getSource(ROUTE)) m.getSource(ROUTE).setData(route || EMPTY) }, [route])
   useEffect(() => { const m = map.current; if (m?.getSource(SEARCH_AREA)) m.getSource(SEARCH_AREA).setData(searchArea || EMPTY) }, [searchArea])

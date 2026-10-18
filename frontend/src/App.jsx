@@ -82,10 +82,10 @@ export default function App() {
   const paths = useMemo(() => walkPaths(route, boxes), [route, boxes])
   const onPath = paths.length > 0
   useEffect(() => {
-    // toilets / AEDs wait for a route (or Settings, which counts them)
-    const need = (l) => l.id === 'walks' || onPath || panel === 'settings'
+    // toilets / AEDs wait for a route (or Settings, which counts them); walking routes and stations load straight away
+    const need = (l) => l.id === 'walks' || l.id === 'transit' || onPath || panel === 'settings'
     for (const l of CITY_LAYERS) if (values[l.param] && !city[l.id] && need(l)) fetchCityLayer(l.id).then((fc) => setCity((c) => ({ ...c, [l.id]: fc })))
-  }, [values.showToilets, values.showAed, values.showWalks, onPath, panel]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [values.showToilets, values.showAed, values.showWalks, values.showStations, onPath, panel]) // eslint-disable-line react-hooks/exhaustive-deps
   const cityShown = useMemo(() => alongPaths(city, paths), [city, paths])
   const cityCounts = Object.fromEntries(CITY_LAYERS.map((l) => [l.id, city[l.id]?.features.length])) // Settings -> Data sources
   const [draftPin, setDraftPin] = useState(null) // "+ Create event" is open: where the new event happens

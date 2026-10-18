@@ -214,7 +214,7 @@ def list_places(
     bbox: str | None = None,
     district: str | None = None,
     category: list[str] | None = Query(
-        None, description="repeatable; amenities only when asked: toilets, aed"
+        None, description="repeatable; amenities only when asked: toilets, aed, transit"
     ),
     q: str | None = Query(None, max_length=100),
     open_now: bool = False,
