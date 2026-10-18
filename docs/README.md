@@ -2,6 +2,7 @@
 
 | Page | For |
 |---|---|
+| [solution.md](solution.md) | Formalny opis rozwiązania na potrzeby Hackatonu: cele, dane, technologie, ograniczenia i AI |
 | [architecture.md](architecture.md) | How the pieces fit: pipelines, API, UI, AWS; repository map; ownership |
 | [data.md](data.md) | Data sources, the two ingestion pipelines, every table, migrations, categories |
 | [api.md](api.md) | Every HTTP endpoint, with auth, and which ones the UI uses |
