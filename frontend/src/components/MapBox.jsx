@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import { CloseButton } from './CloseButton'
-import { Bike, FACT_ICON, Plus, Star, Ticket, Walk } from './Icons'
+import { Bike, FACT_ICON, Message, Plus, Star, Ticket, Walk } from './Icons'
 import { categoryColor } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 import { useLang } from '../i18n'
 import { askToJoin, toggleGoing, useSocial } from '../data/social'
+import { chatTarget } from '../data/chat'
 
 const AV_COLORS = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
 
@@ -86,7 +87,7 @@ function Block({ b, feature }) {
 /**
  * One map info box. `data` comes from curate(); `expanded` turns it into the right-side panel.
  */
-export function MapBox({ data, feature, expanded, journey, onClose, onExpand, starred, onStar, showImage = true, layoutId }) {
+export function MapBox({ data, feature, expanded, journey, onClose, onExpand, starred, onStar, onChat, showImage = true, layoutId }) {
   const spring = useSpring()
   const { t } = useLang()
   const c = categoryColor(feature.properties.categories?.[0])
@@ -111,6 +112,9 @@ export function MapBox({ data, feature, expanded, journey, onClose, onExpand, st
         </div>
         <div className="mb-badges">
           {data.badges.map((b, i) => <span className={`badge ${i === 0 ? 'accent' : ''}`} key={i} style={i === 0 ? { background: `color-mix(in srgb, ${c} 15%, transparent)`, color: c } : {}}>{b}</span>)}
+          {onChat && chatTarget(feature) && (
+            <button className="badge mb-chat" onClick={() => onChat(chatTarget(feature))} title={t('Talk with people going')}><Message size={13} stroke={2.2} /> {t('Chat')}</button>
+          )}
         </div>
         {journey && (
           <div className={`blk journey ${journey.pending ? 'pending' : ''}`}>

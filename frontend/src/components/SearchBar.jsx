@@ -29,7 +29,7 @@ const readRecent = () => { try { return JSON.parse(localStorage.getItem(RECENT_K
  * The Gemini-style pill: burger (plain) · input · mode dropdown · spyglass (circle).
  * Focusing the input opens the focus panel (recents / category pills / assistant thread).
  */
-export function SearchBar({ onSearch, trayOpen = false, onBurger, results, onPick, onClear, searching, mobile, chat, onChatClear, initialQuery = '', features }) {
+export function SearchBar({ onSearch, trayOpen = false, unread = 0, onBurger, results, onPick, onClear, searching, mobile, chat, onChatClear, initialQuery = '', features }) {
   const { values } = useConfig()
   const { t } = useLang()
   const spring = useSpring()
@@ -100,6 +100,7 @@ export function SearchBar({ onSearch, trayOpen = false, onBurger, results, onPic
               {trayOpen ? <X size={26} stroke={2.2} /> : <Burger />}
             </motion.span>
           </AnimatePresence>
+          {unread > 0 && !trayOpen && <span className="burger-dot" aria-label={t('{n} unread', { n: unread })} />}
         </button>
         <input ref={inputRef} value={q} placeholder={mode === 'assistant' ? t('Ask the assistant…') : t(placeholder)} onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setFocused(false); inputRef.current?.blur() } }}

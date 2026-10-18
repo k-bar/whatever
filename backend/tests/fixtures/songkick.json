@@ -1,0 +1,348 @@
+[
+  {
+    "@context": "http://schema.org",
+    "@type": "MusicEvent",
+    "name": "Der Weg einer Freiheit @ Klub Mechanik",
+    "url": "https://www.songkick.com/concerts/43229949-der-weg-einer-freiheit-at-klub-mechanik?utm_medium=organic&utm_source=microformat",
+    "image": "https://images.sk-static.com/images/media/profile_images/artists/2953466/huge_avatar",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Warsaw",
+        "addressCountry": "Poland",
+        "streetAddress": "Ludwika Narbutta 87",
+        "postalCode": "02-525"
+      },
+      "name": "Klub Mechanik",
+      "sameAs": "https://www.facebook.com/klubmechanik",
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 52.20326,
+        "longitude": 21.00141
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "startDate": "2026-10-18T18:40:00",
+    "endDate": "2026-10-18",
+    "performer": [
+      {
+        "@type": "MusicGroup",
+        "name": "Der Weg einer Freiheit",
+        "genre": [
+          "metal"
+        ],
+        "sameAs": "https://www.songkick.com/artists/2953466-der-weg-einer-freiheit?utm_medium=organic&utm_source=microformat"
+      },
+      {
+        "@type": "MusicGroup",
+        "name": "Winiary Bookings",
+        "genre": [
+          "metal"
+        ],
+        "sameAs": "https://www.songkick.com/artists/10349823-winiary-bookings?utm_medium=organic&utm_source=microformat"
+      },
+      {
+        "@type": "MusicGroup",
+        "name": "Conjurer",
+        "genre": [
+          "metal"
+        ],
+        "sameAs": "https://www.songkick.com/artists/6035974-conjurer?utm_medium=organic&utm_source=microformat"
+      }
+    ],
+    "description": "Der Weg einer Freiheit, Winiary Bookings, and Conjurer at Klub Mechanik at 2026-10-18T18:40:00+0200",
+    "organizer": {
+      "@type": "Organization",
+      "name": "Der Weg einer Freiheit",
+      "url": "https://www.songkick.com/concerts/43229949-der-weg-einer-freiheit-at-klub-mechanik?utm_medium=organic&utm_source=microformat"
+    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "url": "http://www.songkick.com/concerts/43229949-der-weg-einer-freiheit-at-klub-mechanik?utm_medium=organic&utm_source=microformat"
+      }
+    ]
+  },
+  {
+    "@context": "http://schema.org",
+    "@type": "MusicEvent",
+    "name": "Babe Haven @ VooDoo Club",
+    "url": "https://www.songkick.com/concerts/43260391-babe-haven-at-voodoo-club?utm_medium=organic&utm_source=microformat",
+    "image": "https://images.sk-static.com/images/media/profile_images/artists/10170440/huge_avatar",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Warsaw",
+        "addressCountry": "Poland",
+        "streetAddress": "Aleja Prymasa Tysiąclecia 48A",
+        "postalCode": "01-242"
+      },
+      "name": "VooDoo Club",
+      "sameAs": "http://www.voodooclub.pl/",
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 52.22362,
+        "longitude": 20.95664
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "startDate": "2026-10-18",
+    "endDate": "2026-10-18",
+    "performer": [
+      {
+        "@type": "MusicGroup",
+        "name": "Babe Haven",
+        "genre": [],
+        "sameAs": "https://www.songkick.com/artists/10170440-babe-haven?utm_medium=organic&utm_source=microformat"
+      }
+    ],
+    "description": "Babe Haven at VooDoo Club at 2026-10-18",
+    "organizer": {
+      "@type": "Organization",
+      "name": "Babe Haven",
+      "url": "https://www.songkick.com/concerts/43260391-babe-haven-at-voodoo-club?utm_medium=organic&utm_source=microformat"
+    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "url": "http://www.songkick.com/concerts/43260391-babe-haven-at-voodoo-club?utm_medium=organic&utm_source=microformat"
+      }
+    ]
+  },
+  {
+    "@context": "http://schema.org",
+    "@type": "MusicEvent",
+    "name": "Babe Haven @ Stage 2, Voodoo Club",
+    "url": "https://www.songkick.com/concerts/43262042-babe-haven-at-stage-2-voodoo-club?utm_medium=organic&utm_source=microformat",
+    "image": "https://images.sk-static.com/images/media/profile_images/artists/10170440/huge_avatar",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Warsaw",
+        "addressCountry": "Poland",
+        "streetAddress": null,
+        "postalCode": "01-242"
+      },
+      "name": "Stage 2, Voodoo Club",
+      "sameAs": null,
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 52.22479,
+        "longitude": 20.95669
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "startDate": "2026-10-18T19:00:00",
+    "endDate": "2026-10-18",
+    "performer": [
+      {
+        "@type": "MusicGroup",
+        "name": "Babe Haven",
+        "genre": [],
+        "sameAs": "https://www.songkick.com/artists/10170440-babe-haven?utm_medium=organic&utm_source=microformat"
+      },
+      {
+        "@type": "MusicGroup",
+        "name": "The Latter",
+        "genre": [],
+        "sameAs": "https://www.songkick.com/artists/194271-latter?utm_medium=organic&utm_source=microformat"
+      },
+      {
+        "@type": "MusicGroup",
+        "name": "Winiary Bookings",
+        "genre": [],
+        "sameAs": "https://www.songkick.com/artists/10349823-winiary-bookings?utm_medium=organic&utm_source=microformat"
+      },
+      {
+        "@type": "MusicGroup",
+        "name": "Rabbit Hole",
+        "genre": [],
+        "sameAs": "https://www.songkick.com/artists/1837785-rabbit-hole?utm_medium=organic&utm_source=microformat"
+      }
+    ],
+    "description": "Babe Haven, The Latter, Winiary Bookings, and Rabbit Hole at Stage 2, Voodoo Club at 2026-10-18T19:00:00+0200",
+    "organizer": {
+      "@type": "Organization",
+      "name": "Babe Haven",
+      "url": "https://www.songkick.com/concerts/43262042-babe-haven-at-stage-2-voodoo-club?utm_medium=organic&utm_source=microformat"
+    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "url": "http://www.songkick.com/concerts/43262042-babe-haven-at-stage-2-voodoo-club?utm_medium=organic&utm_source=microformat"
+      }
+    ]
+  },
+  {
+    "@context": "http://schema.org",
+    "@type": "MusicEvent",
+    "name": "The HU @ Stodoła",
+    "url": "https://www.songkick.com/concerts/43107313-hu-at-stodola?utm_medium=organic&utm_source=microformat",
+    "image": "https://images.sk-static.com/images/media/profile_images/artists/429468/huge_avatar",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Warsaw",
+        "addressCountry": "Poland",
+        "streetAddress": "Stefana Batorego 10",
+        "postalCode": "02-591"
+      },
+      "name": "Stodoła",
+      "sameAs": "https://www.stodola.pl",
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 52.2116,
+        "longitude": 21.01019
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "startDate": "2026-10-19",
+    "endDate": "2026-10-19",
+    "performer": [
+      {
+        "@type": "MusicGroup",
+        "name": "The HU",
+        "genre": [
+          "rock"
+        ],
+        "sameAs": "https://www.songkick.com/artists/429468-hu?utm_medium=organic&utm_source=microformat"
+      },
+      {
+        "@type": "MusicGroup",
+        "name": "SKÁLD",
+        "genre": [
+          "rock"
+        ],
+        "sameAs": "https://www.songkick.com/artists/9725619-skald?utm_medium=organic&utm_source=microformat"
+      }
+    ],
+    "description": "The HU at Stodoła at 2026-10-19",
+    "organizer": {
+      "@type": "Organization",
+      "name": "The HU",
+      "url": "https://www.songkick.com/concerts/43107313-hu-at-stodola?utm_medium=organic&utm_source=microformat"
+    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "url": "http://www.songkick.com/concerts/43107313-hu-at-stodola?utm_medium=organic&utm_source=microformat"
+      }
+    ]
+  },
+  {
+    "@context": "http://schema.org",
+    "@type": "MusicEvent",
+    "name": "Alexandra Căpitănescu @ VooDoo Club",
+    "url": "https://www.songkick.com/concerts/43459011-alexandra-capitanescu-at-voodoo-club?utm_medium=organic&utm_source=microformat",
+    "image": "https://images.sk-static.com/images/media/profile_images/artists/10400808/huge_avatar",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Warsaw",
+        "addressCountry": "Poland",
+        "streetAddress": "Aleja Prymasa Tysiąclecia 48A",
+        "postalCode": "01-242"
+      },
+      "name": "VooDoo Club",
+      "sameAs": "http://www.voodooclub.pl/",
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 52.22362,
+        "longitude": 20.95664
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "startDate": "2026-10-19T19:30:00",
+    "endDate": "2026-10-19",
+    "performer": [
+      {
+        "@type": "MusicGroup",
+        "name": "Alexandra Căpitănescu",
+        "genre": [],
+        "sameAs": "https://www.songkick.com/artists/10400808-alexandra-capitanescu?utm_medium=organic&utm_source=microformat"
+      }
+    ],
+    "description": "Alexandra Căpitănescu at VooDoo Club at 2026-10-19T19:30:00+0200",
+    "organizer": {
+      "@type": "Organization",
+      "name": "Alexandra Căpitănescu",
+      "url": "https://www.songkick.com/concerts/43459011-alexandra-capitanescu-at-voodoo-club?utm_medium=organic&utm_source=microformat"
+    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "url": "http://www.songkick.com/concerts/43459011-alexandra-capitanescu-at-voodoo-club?utm_medium=organic&utm_source=microformat"
+      }
+    ]
+  },
+  {
+    "@context": "http://schema.org",
+    "@type": "MusicEvent",
+    "name": "Europe @ Torwar",
+    "url": "https://www.songkick.com/concerts/42907733-europe-at-torwar?utm_medium=organic&utm_source=microformat",
+    "image": "https://images.sk-static.com/images/media/profile_images/artists/337597/huge_avatar",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Warsaw",
+        "addressCountry": "Poland",
+        "streetAddress": "Łazienkowska 6a",
+        "postalCode": "00-449"
+      },
+      "name": "Torwar",
+      "sameAs": "http://www.torwar.cos.pl/",
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 52.22237,
+        "longitude": 21.04257
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "startDate": "2026-10-20T18:00:00",
+    "endDate": "2026-10-20",
+    "performer": [
+      {
+        "@type": "MusicGroup",
+        "name": "Europe",
+        "genre": [
+          "rock",
+          "metal"
+        ],
+        "sameAs": "https://www.songkick.com/artists/337597-europe?utm_medium=organic&utm_source=microformat"
+      },
+      {
+        "@type": "MusicGroup",
+        "name": "THE DAMN TRUTH",
+        "genre": [
+          "rock",
+          "metal"
+        ],
+        "sameAs": "https://www.songkick.com/artists/710296-damn-truth?utm_medium=organic&utm_source=microformat"
+      }
+    ],
+    "description": "Europe at Torwar at 2026-10-20T18:00:00+0200",
+    "organizer": {
+      "@type": "Organization",
+      "name": "Europe",
+      "url": "https://www.songkick.com/concerts/42907733-europe-at-torwar?utm_medium=organic&utm_source=microformat"
+    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "url": "http://www.songkick.com/concerts/42907733-europe-at-torwar?utm_medium=organic&utm_source=microformat"
+      }
+    ]
+  }
+]

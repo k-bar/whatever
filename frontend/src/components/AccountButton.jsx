@@ -17,6 +17,7 @@ export function AccountButton({ onProfile, view }) {
   const { open, setOpen, ref } = usePopover()
   const [me, setMe] = useState(null)
   const [loggedIn, setLoggedIn] = useState(isLoggedIn)
+  const [justJoined, setJustJoined] = useState(false) // keep the card for the "check your inbox" note
 
   useEffect(() => {
     const load = () => { const on = isLoggedIn(); setLoggedIn(on); if (on) fetchMe().then(setMe); else setMe(null) }
@@ -48,9 +49,9 @@ export function AccountButton({ onProfile, view }) {
         <button className={`account-login ${open ? 'open' : ''}`} onClick={() => setOpen(!open)} aria-expanded={open}>{t('Log in')}</button>
       )}
       <AnimatePresence>
-        {open && !loggedIn && (
+        {open && (!loggedIn || justJoined) && (
           <motion.div className="account-card surface" initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} transition={spring}>
-            <LoginForm compact onDone={() => setOpen(false)} />
+            <LoginForm compact onRegistered={() => setJustJoined(true)} onDone={() => { setOpen(false); setJustJoined(false) }} />
           </motion.div>
         )}
       </AnimatePresence>

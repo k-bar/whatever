@@ -10,7 +10,11 @@ import requests
 from requests.exceptions import SSLError
 
 from src.config import DANE_FILE, get_api_token
-from src.external_sources import fetch_streets_gl_venues
+from src.external_sources import (
+    fetch_entertainment_events,
+    fetch_restaurants,
+    fetch_streets_gl_venues,
+)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -92,6 +96,18 @@ EXTERNAL_DATASETS: dict[str, DatasetSpec] = {
         title="Miejsca wydarzeń (OpenStreetMap / streets.gl)",
         action_name="https://overpass-api.de/api/interpreter",
     ),
+    "restaurants": DatasetSpec(
+        catalogue_id="external-restaurants",
+        key="restaurants",
+        title="Restauracje i lokale gastronomiczne (OpenStreetMap)",
+        action_name="https://overpass-api.de/api/interpreter",
+    ),
+    "entertainment_events": DatasetSpec(
+        catalogue_id="external-entertainment-events",
+        key="entertainment_events",
+        title="Koncerty i wydarzenia rozrywkowe (Songkick / Waw4Free)",
+        action_name="https://www.songkick.com/metro-areas/31787-poland-warsaw",
+    ),
 }
 
 DATASETS_BY_KEY: dict[str, DatasetSpec] = {
@@ -169,6 +185,10 @@ class WarszawaApiClient:
         """Fetch records for a given DatasetSpec."""
         if spec.key == "streets_gl":
             return fetch_streets_gl_venues(session=self.session)
+        if spec.key == "restaurants":
+            return fetch_restaurants(session=self.session)
+        if spec.key == "entertainment_events":
+            return fetch_entertainment_events(session=self.session)
 
         url = spec.endpoint_url
         headers = self._headers()
