@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { dataStatus, fetchJoinRequests, fetchSources, onAuthChange } from '../data/api'
 import { categoryColor } from '../data/categories'
@@ -6,16 +6,22 @@ import { fmtWhen } from '../mapboxes/curate'
 import { Brand } from './Brand'
 import { ChevronL, ChevronR, Cog, Expand, Mermaid, Message, Plus, Shrink, Silhouette, Star, X } from './Icons'
 import { StartPointPicker } from './StartPointPicker'
-import { ProfilePage } from './ProfilePage'
 import { LanduseLegend } from './LanduseLegend'
 import { useConfig } from '../config/store'
 import { DEV_TOOLS } from '../config/env'
 import { PIN_GROUPS } from '../data/pinGroups'
 import { CITY_LAYERS } from './cityLayers'
 import { locale, useLang } from '../i18n'
-import { useMe, VerifyBanner } from './Account'
-import { EventChat } from './EventChat'
+import { VerifyBanner } from './Account'
+import { useMe } from '../data/me'
 import { Avatar } from './Avatar'
+
+// The two heaviest sections (profile editor, chat with its socket) load when first opened.
+const ProfilePageLazy = lazy(() => import('./ProfilePage').then((m) => ({ default: m.ProfilePage })))
+const EventChatLazy = lazy(() => import('./EventChat').then((m) => ({ default: m.EventChat })))
+const PanelFallback = () => <div className="panel-loading" aria-busy="true"><span /><span /><span /></div>
+const ProfilePage = (props) => <Suspense fallback={<PanelFallback />}><ProfilePageLazy {...props} /></Suspense>
+const EventChat = (props) => <Suspense fallback={<PanelFallback />}><EventChatLazy {...props} /></Suspense>
 
 
 /** The tray's home: what used to be the burger pop-up. "create" starts a new event instead of opening a view. */

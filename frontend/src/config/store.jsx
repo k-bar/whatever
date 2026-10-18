@@ -36,6 +36,7 @@ export function applyConfig(v) {
     else root.dataset[id] = String(value)
   }
   // derived
+  ensureFont(v.titleFont); ensureFont(v.bodyFont)
   root.style.setProperty('--titleFontFamily', `'${v.titleFont}', system-ui, sans-serif`)
   root.style.setProperty('--bodyFontFamily', `'${v.bodyFont}', system-ui, sans-serif`)
   root.style.setProperty('--anim', `${(1 / (v.animSpeed || 1)).toFixed(2)}`)
@@ -96,4 +97,15 @@ export function useSpring(overrides = {}) {
   const speed = values.animSpeed || 1
   const bounce = values.reduceMotion ? 0 : values.bounce
   return { type: 'spring', stiffness: 420 * speed, damping: 34 - bounce * 40, mass: 0.9, ...overrides }
+}
+
+/** Only Inter and Manrope ship with the page; any other family the editor picks is fetched the first time. */
+const SHIPPED_FONTS = new Set(['Inter', 'Manrope'])
+const FONT_WEIGHTS = { 'Space Grotesk': '400;500;600;700', 'DM Sans': '400;500;600;700', 'Playfair Display': '500;600;700', 'Fraunces': '500;600;700', 'Syne': '500;600;700;800', 'JetBrains Mono': '400;500' }
+function ensureFont(family) {
+  if (!family || SHIPPED_FONTS.has(family) || document.getElementById(`font-${family}`)) return
+  const link = document.createElement('link')
+  link.id = `font-${family}`; link.rel = 'stylesheet'
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, '+')}:wght@${FONT_WEIGHTS[family] || '400;600;700'}&display=swap`
+  document.head.appendChild(link)
 }

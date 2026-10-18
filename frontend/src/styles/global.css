@@ -1445,3 +1445,15 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
   /* mode picker: icon + chevron only, the word ("Wydarzenia") took a third of the pill */
   .mode-btn { font-size: 0; gap: 2px; padding: 0 6px 0 8px; }
 }
+
+/* ---------- performance pass ---------- */
+.sel-card { content-visibility: auto; contain-intrinsic-size: auto 300px; } /* off-screen cards are not laid out or painted */
+.sel-img { background: var(--surface-2); } /* a quiet block while the poster decodes, no white flash */
+.sel-photo { transition: opacity .3s; }
+.sel-card:hover { transition: transform .2s; } /* hover lifts with transform only; the shadow stays put */
+.sel-card { transition: transform .2s; }
+.syr-cal-loading { min-height: 300px; border-radius: 16px; background: linear-gradient(110deg, var(--surface-solid) 30%, var(--surface-2) 50%, var(--surface-solid) 70%); background-size: 300% 100%; animation: sel-sk 1.4s linear infinite; }
+.panel-loading { display: flex; gap: 6px; justify-content: center; padding: 40px; }
+.panel-loading span { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: blink 1.2s infinite; }
+.panel-loading span:nth-child(2) { animation-delay: .2s; } .panel-loading span:nth-child(3) { animation-delay: .4s; }
+.lb, .ln-bubble, .me-marker .ring { will-change: transform, opacity; } /* the start-page people and the position pulse animate on the compositor */

@@ -1,7 +1,5 @@
+import { Suspense, lazy } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { DayPicker } from 'react-day-picker'
-import { enGB, pl } from 'react-day-picker/locale'
-import 'react-day-picker/style.css'
 import { useSpring } from '../config/store'
 import { locale, useLang } from '../i18n'
 import { Calendar as CalendarIcon } from './Icons'
@@ -18,17 +16,25 @@ export const fmtDay = (d) => { const s = d.toLocaleDateString(locale(), { weekda
  * The app's calendar (react-day-picker, restyled in global.css under .syr-cal): Monday first,
  * Polish or English, past days off by default. Pass mode="single" or mode="range" like DayPicker.
  */
+// react-day-picker (~60 kB with its locales and stylesheet) is only needed once someone opens a date
+// picker, so it loads on demand instead of sitting in the first bundle.
+// the two locales come straight from date-fns: 'react-day-picker/locale' would drag in all ~100 of them (690 kB)
+const DayPickerLazy = lazy(() => Promise.all([import('react-day-picker'), import('date-fns/locale/pl'), import('date-fns/locale/en-GB'), import('react-day-picker/style.css')])
+  .then(([m, pl, en]) => ({ default: ({ lang, ...props }) => <m.DayPicker locale={lang === 'pl' ? pl.pl : en.enGB} {...props} /> })))
+
 export function Calendar({ allowPast = false, ...props }) {
   const { lang } = useLang()
   return (
-    <DayPicker
-      className="syr-cal"
-      locale={lang === 'pl' ? pl : enGB}
-      weekStartsOn={1}
-      showOutsideDays
-      disabled={allowPast ? undefined : { before: startOfToday() }}
-      {...props}
-    />
+    <Suspense fallback={<div className="syr-cal syr-cal-loading" aria-busy="true" />}>
+      <DayPickerLazy
+        lang={lang}
+        className="syr-cal"
+        weekStartsOn={1}
+        showOutsideDays
+        disabled={allowPast ? undefined : { before: startOfToday() }}
+        {...props}
+      />
+    </Suspense>
   )
 }
 
