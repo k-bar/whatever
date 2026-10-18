@@ -64,6 +64,7 @@ export default function App() {
   const [revealed, setRevealed] = useState(false) // pins and areas shown: only once the pill has landed on the map
   const flight = useRef(null) // { from: DOMRect, text, after } for the next view change
   const [entryQuery, setEntryQuery] = useState('')
+  const [entryMode, setEntryMode] = useState('events') // the map's search bar opens in this mode
   const [results, setResults] = useState(null)
   const [searching, setSearching] = useState(false)
   const [sheet, setSheet] = useState(null) // mobile: 'results' | 'box' | null
@@ -245,7 +246,10 @@ export default function App() {
   // ---------- start page <-> map ----------
   const enterMap = ({ q = '', window, category, label, feature, when, where, summary } = {}) => {
     const text = category ? label : summary || q
-    setEntryQuery(text)
+    // the start page bar is an omnibar: typed words (no When / Where picked) go to the assistant
+    const ask = !feature && !category && !when && !where && !!q.trim()
+    setEntryMode(ask ? 'assistant' : 'events')
+    setEntryQuery(ask ? '' : text)
     if (window) set('timeWindow', window)
     if (when) set('timeWindow', windowFor(when))
     // the map stays still while the pill flies; it searches / moves only once the pill has landed
@@ -255,7 +259,7 @@ export default function App() {
         if (feature) openBox(feature)
         else if (category) onSearch('events', label || category, { category })
         else if (when || where) showLandingSearch({ q, when, where, summary })
-        else if (q.trim()) onSearch('search', q)
+        else if (ask) onSearch('assistant', q.trim())
         else mapRef.current?.home()
       },
     }
@@ -346,7 +350,7 @@ export default function App() {
       <AnimatePresence>{view === 'map' && [
 
       <div className="top-left" key="top-left">
-        <SearchBar onSearch={onSearch} matchCount={searchIds?.length || 0} trayOpen={!!panel} unread={myChats.total} onBurger={slide.toggleTray} initialQuery={entryQuery} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} features={featureList} />
+        <SearchBar onSearch={onSearch} matchCount={searchIds?.length || 0} trayOpen={!!panel} unread={myChats.total} onBurger={slide.toggleTray} initialQuery={entryQuery} initialMode={entryMode} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} features={featureList} />
         <motion.div className="side-controls" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0, transition: { ...spring, delay: 0.35 } }}>
           {/* the Syrenka: back to the start page (a button, not a toggle) */}
           <motion.button className="btn icon mermaid-btn" onClick={goHome} aria-label={t('Back to the start page')} title={t('Back to the start page')}
