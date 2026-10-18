@@ -174,7 +174,7 @@ export function MapBox({ data, feature, expanded, journey, onClose, onExpand, st
         {expanded && data.url && <a className="mb-link" href={data.url} target="_blank" rel="noreferrer">{t('Open source page ↗')}</a>}
         {!expanded && <div className="mb-foot" />}
       </div>
-      {onExpand && !expanded && <button className="btn icon small primary mb-plus" onClick={onExpand} aria-label={t('Expand')}><Plus size={16} /></button>}
+      {onExpand && !expanded && <button className="btn icon small primary mb-plus" onClick={onExpand} aria-label={t('Expand')}><Plus size={48} stroke={1.3} /></button>}
     </motion.article>
   )
 }

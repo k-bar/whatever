@@ -181,7 +181,8 @@ h2 { font-size: var(--titleSize); }
 .badge { font-size: 11px; font-weight: 700; letter-spacing: .02em; padding: 4px 9px; border-radius: 999px; background: var(--surface-2); color: var(--fg-2); text-transform: capitalize; }
 .badge.accent { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
 .mapbox .mb-x { position: absolute; top: 10px; right: 10px; z-index: 2; background: var(--surface-solid); }
-.mapbox .mb-plus { position: absolute; bottom: 10px; right: 10px; z-index: 2; }
+.mapbox .mb-plus { position: absolute; bottom: 10px; right: 10px; z-index: 2; width: 48px; height: 48px; min-width: 48px; padding: 0; } /* a big plus: easy to spot and to hit */
+.mapbox .mb-plus svg { flex: none; }
 .mapbox .mb-star { position: absolute; top: 10px; right: 50px; z-index: 2; background: var(--surface-solid); }
 .mapbox .mb-star.on { color: #f2a900; }
 .mapbox .mb-foot { height: 14px; }

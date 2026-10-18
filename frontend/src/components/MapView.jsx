@@ -470,8 +470,9 @@ function styleMarkers(m, v) {
   const color = v.colorBy === 'category' ? categoryMatchExpr()
     : v.colorBy === 'kind' ? ['case', ['to-boolean', ['get', 'is_public_invite']], '#0fa37f', ['==', ['get', 'kind'], 'event'], v.accent, '#2b6be7']
     : v.accent
-  const base = ['interpolate', ['linear'], ['zoom'], 9, 3 * s, 11, 3.6 * s, 13, 5 * s, 16, 9 * s, 19, 14 * s] // readable even on a phone's whole-city view
-  const bigger = (k) => ['interpolate', ['linear'], ['zoom'], 9, 3 * s * k, 11, 3.6 * s * k, 13, 5 * s * k, 16, 9 * s * k, 19, 14 * s * k]
+  // readable even on a phone's whole-city view, and much bigger once you're down in a street
+  const bigger = (k) => ['interpolate', ['linear'], ['zoom'], 9, 3.5 * s * k, 11, 4.3 * s * k, 13, 6.2 * s * k, 15, 10 * s * k, 17, 15 * s * k, 19, 21 * s * k]
+  const base = bigger(1)
   const paint = {
     dot: { 'circle-radius': base, 'circle-color': color, 'circle-stroke-width': 0, 'circle-opacity': 0.95 },
     ring: { 'circle-radius': base, 'circle-color': 'rgba(255,255,255,0.15)', 'circle-stroke-color': color, 'circle-stroke-width': 2.2, 'circle-opacity': 1 },
@@ -496,11 +497,11 @@ function styleMarkers(m, v) {
 // ---------- pin icons (data/pinTypes.js) ----------
 const ICON_R = 14 // badge radius in CSS px at icon-size 1 (white rim included)
 /** icon-size by zoom: small over the whole city, full size in a street. `k` scales it (marker size, radius). */
-const iconScale = (k) => ['interpolate', ['linear'], ['zoom'], 9, 0.42 * k, 11, 0.55 * k, 13, 0.72 * k, 15, 0.9 * k, 17, 1.05 * k, 19, 1.25 * k]
+const iconScale = (k) => ['interpolate', ['linear'], ['zoom'], 9, 0.5 * k, 11, 0.68 * k, 13, 0.92 * k, 14, 1.12 * k, 15, 1.38 * k, 16, 1.65 * k, 17, 1.9 * k, 19, 2.4 * k]
 
 /** One image per type: a round badge in the type's colour, white rim, soft shadow, the emoji in the middle. */
 function ensurePinIcons(m) {
-  const ratio = 2, pad = 3, r = ICON_R, size = (r + pad) * 2
+  const ratio = 4, pad = 3, r = ICON_R, size = (r + pad) * 2 // drawn at 4x: still sharp when zoomed right in on a retina screen
   for (const [id, t] of Object.entries(PIN_TYPES)) {
     if (m.hasImage(`pt-${id}`)) continue
     const c = document.createElement('canvas')
