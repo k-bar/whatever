@@ -48,6 +48,9 @@ export const setFriendsOnly = (on) => write({ source: 'search', friends: on })
 export const setWhen = (when) => write({ source: 'search', when })
 export const setWhere = (where) => write({ source: 'search', where })
 
+/** Put back a state taken with getMapFilter() (the presentation demo restores what it touched). */
+export const restoreMapFilter = (s) => write({ ...EMPTY, ...s })
+
 export const allTypesOn = (s = state) => SEARCH_TYPES.every((id) => s.types.includes(id))
 export const groupState = (group, s = state) => {
   const ids = SEARCH_TYPES.filter((id) => TYPES[id].group === group)

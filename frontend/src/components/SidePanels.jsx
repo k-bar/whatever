@@ -38,7 +38,7 @@ function TrayMenu({ onSection, unread = 0 }) {
   return (
     <nav className="tray-menu" aria-label={t('Menu')}>
       {TRAY_ITEMS.map((it) => (
-        <button key={it.id} className="tray-item" onClick={() => onSection(it.id)}>
+        <button key={it.id} data-id={it.id} className="tray-item" onClick={() => onSection(it.id)}>
           <span className={`tray-ic ${it.tone}`}>{it.icon}</span>
           <span className="tray-txt"><b>{t(it.label)}</b><small>{t(it.hint)}</small></span>
           {it.id === 'messages' && unread > 0 && <span className="tray-badge" aria-label={t('{n} unread', { n: unread })}>{unread > 99 ? '99+' : unread}</span>}

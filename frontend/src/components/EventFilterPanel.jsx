@@ -47,14 +47,14 @@ export function EventFilterPanel({ features, matchCount = 0, onSearch }) {
           const gs = groupState(g.id, f)
           return (
             <section key={g.id} className="evf-group">
-              <button className={`evf-ghead ${gs}`} onClick={() => setGroup(g.id, gs !== 'on')} aria-pressed={gs === 'on'}>
+              <button className={`evf-ghead ${gs}`} data-group={g.id} onClick={() => setGroup(g.id, gs !== 'on')} aria-pressed={gs === 'on'}>
                 <span className="emo">{g.emoji}</span>{t(g.label)}<small>{t(gs === 'on' ? 'All on' : gs === 'some' ? 'Some on' : 'Off')}</small>
               </button>
               <div className="evf-chips">
                 {SEARCH_TYPES.filter((id) => TYPES[id].group === g.id).map((id) => {
                   const on = f.types.includes(id)
                   return (
-                    <button key={id} className={`evf-chip ${on ? 'on' : ''}`} style={{ '--c': TYPES[id].color }} onClick={() => toggleType(id)} aria-pressed={on}>
+                    <button key={id} data-type={id} className={`evf-chip ${on ? 'on' : ''}`} style={{ '--c': TYPES[id].color }} onClick={() => toggleType(id)} aria-pressed={on}>
                       <span className="emo">{TYPES[id].emoji}</span>{typeLabel(id)}
                     </button>
                   )
