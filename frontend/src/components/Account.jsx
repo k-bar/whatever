@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import {
-  changeEmail, changePassword, fetchMe, logout, logoutEverywhere, onAuthChange, resendVerification, resetPassword, verifyEmail,
+  changeEmail, changePassword, deleteAccount, fetchMe, logout, logoutEverywhere, onAuthChange, resendVerification, resetPassword, verifyEmail,
 } from '../data/api'
 import { useLang } from '../i18n'
 import { Check, X } from './Icons'
@@ -49,7 +49,7 @@ export function VerifyBanner({ me, compact = false }) {
 export function AccountSecurity({ me }) {
   const { t } = useLang()
   const spring = useSpring()
-  const [open, setOpen] = useState(null) // null | 'email' | 'password'
+  const [open, setOpen] = useState(null) // null | 'email' | 'password' | 'delete'
   const [notice, setNotice] = useState(null)
   if (!me) return null
   const done = (msg) => { setOpen(null); setNotice(msg) }
@@ -79,7 +79,13 @@ export function AccountSecurity({ me }) {
       <div className="acct-actions">
         <button className="btn small" onClick={() => logoutEverywhere().then(() => setNotice(t('Logged out on every other device.'))).catch((e) => setNotice(t(e.message)))}>{t('Log out everywhere')}</button>
         <button className="btn small" onClick={logout}>{t('Log out')}</button>
+        <button className="btn text small acct-delete" onClick={() => setOpen(open === 'delete' ? null : 'delete')}>{t('Delete account')}</button>
       </div>
+      <AnimatePresence initial={false}>
+        {open === 'delete' && <motion.div key="d" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={spring} style={{ overflow: 'hidden' }}>
+          <DeleteForm onCancel={() => setOpen(null)} />
+        </motion.div>}
+      </AnimatePresence>
     </section>
   )
 }
@@ -128,6 +134,23 @@ function PasswordForm({ onDone, onCancel }) {
       <div className="acct-form-actions">
         <button type="button" className="btn text small" onClick={onCancel}>{t('Cancel')}</button>
         <button type="submit" className="btn small primary" disabled={f.busy || !current || next.length < 8}>{t(f.busy ? 'Saving…' : 'Save')}</button>
+      </div>
+    </form>
+  )
+}
+
+function DeleteForm({ onCancel }) {
+  const { t } = useLang()
+  const [password, setPassword] = useState('')
+  const f = useForm(() => deleteAccount(password)) // logs out: the profile closes by itself
+  return (
+    <form className="acct-form acct-danger" onSubmit={f.run}>
+      <p>{t('This deletes your profile, friends, events you host and your chat messages. It can’t be undone.')}</p>
+      <input className="ce-input" type="password" placeholder={t('Current password')} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" autoFocus />
+      {f.error && <div className="ce-error" role="alert">{f.error}</div>}
+      <div className="acct-form-actions">
+        <button type="button" className="btn text small" onClick={onCancel}>{t('Cancel')}</button>
+        <button type="submit" className="btn small danger" disabled={f.busy || !password}>{t(f.busy ? 'Deleting…' : 'Delete for good')}</button>
       </div>
     </form>
   )
