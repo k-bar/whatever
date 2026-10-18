@@ -168,7 +168,7 @@ export function SearchBar({ onSearch, matchCount = 0, trayOpen = false, unread =
                 </div>
                 <div className="fp-foot">
                   <button className="btn icon small primary" onClick={() => setChatFull(!chatFull)} aria-label={t(chatFull ? 'Shrink' : 'Expand')}>{chatFull ? <Minus size={18} /> : <Plus size={18} />}</button>
-                  <span className="fp-hint">{chat?.length ? t('{n} messages', { n: chat.length }) : t('assistant')}</span>
+                  <span className="fp-hint">{chat?.length ? t('{n} messages', { n: chat.length }) : t('assistant · rules-based search')}</span>
                   {chat?.length > 0 && <button className="btn text small" onClick={onChatClear}>{t('Clear thread')}</button>}
                 </div>
               </>

@@ -55,8 +55,8 @@ def ask(body: AssistantIn, db: Session = Depends(get_db)):
     lang = question_lang(body.q, body.lang)
     parsed = nlu.merge(nlu.understand(body.q, now), body.context)
     here = (body.lng, body.lat) if body.lat is not None and body.lng is not None else None
-    if parsed.near and here is None and parsed.intent not in ("amenity_toilets", "amenity_aed"):
-        parsed.near = False  # no position: "near me" can't narrow anything
+    if parsed.near and here is None and parsed.intent not in ("find", "amenity_toilets", "amenity_aed"):
+        parsed.near = False  # no position: "near me" can't narrow anything; `find` says so instead
     ctx = body.context or {}
     offset = ctx.get("offset", 0) + answers.SHOWN if parsed.more and ctx.get("intent") == parsed.intent else 0
     text, results, suggestions = answers.answer(db, parsed, lang, here, offset)

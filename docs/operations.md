@@ -88,6 +88,26 @@ Other variables: `API_URL`, `APP_ENV`, `DB_SCHEMA`, `DB_POOL_SIZE`, `INGEST_SCHE
 Never print, log or commit secret values. CI runs gitleaks on every PR (`.gitleaksignore` lists the
 acknowledged old leak).
 
+### Prompt search (the Assistant)
+
+`POST /assistant` uses deterministic rules (k-bar's rule-based search). It does not call an LLM and
+does not send prompts to an external service. It extracts known categories, music genres, cuisines,
+soft preferences, Warsaw districts and areas, dates, and near-me / open-now requests. Then it applies
+those filters in PostgreSQL. Category names come from `backend/app/categories.py`. The aliases and
+phrase rules are in `backend/app/assistant/nlu.py`.
+
+`results` holds exact matches only: every asked word appears in the listing, and the category matches.
+Broader matches go in `suggestions`, in groups whose label says what was relaxed: the area, the day, or
+the genre. A broad match (for example, another music event when the asked genre is not in the listing)
+is labelled as unconfirmed. It is never presented as an exact match. "Near me" without a position gets
+no exact results: the answer says the location is missing. Soft preferences such as "free" and
+"family-friendly" only affect ranking. They are not guaranteed unless the listing confirms them.
+
+The parser is bounded on purpose: it understands the phrases in its word lists, not arbitrary
+language. Add a rule only together with a test for the prompt and the expected filters. Search can
+only return records already in the database. Exact genre and cuisine matching depends on the source
+records containing that detail.
+
 ## Warsaw API relay
 
 `dane.um.warszawa.pl` drops connections from AWS IPs, and the SCP rules out a Polish AWS region. Calls

@@ -187,7 +187,11 @@ export default function App() {
       showSearch(r, mode, mf.where)
       return
     }
-    if (!q.trim() && mode !== 'assistant') { setResults(null); return }
+    if (!q.trim()) {
+      if (mode === 'assistant') setChat((c) => [...c, { role: 'assistant', text: t('Describe an event or place to search for.') }])
+      else setResults(null)
+      return
+    }
     setSearching(true)
     if (mode === 'assistant') setChat((c) => [...c, { role: 'user', text: q }])
     const r = await runSearch(mode, q, featureList, { ...opts, me })

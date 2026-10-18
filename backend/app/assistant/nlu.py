@@ -40,7 +40,9 @@ SYNONYMS = {
     "exhibitions": "exhibition,exhibitions,museum,museums,gallery,galleries,art,vernissage,wystawa,wystawy,"
     "wystawe,muzeum,muzea,galeria,galerii,sztuka,wernisaz",
     "meetups": "meetup,meetups,meet up,networking,language exchange,spotkanie,spotkania,wymiana jezykowa",
-    "running": "run,runs,running,jogging,parkrun,bieganie,bieg,biegi,biegac",
+    "running": "run,runs,running,jogging,parkrun,park run,bieganie,bieg,biegi,biegac,maraton,running club,"
+    "running clubs,run club,run clubs,club run,club runs,klub biegowy,kluby biegowe,grupa biegowa,grupy biegowe,"
+    "wspolne bieganie",
     "yoga": "yoga,joga,jogi,jodze,joge",
     "sports": "sport,sports,football,basketball,volleyball,gym,swimming,pool,tennis,fitness,workout,pilka,"
     "pilka nozna,koszykowka,siatkowka,silownia,plywanie,basen,tenis,trening,boisko,boiska",
@@ -58,16 +60,51 @@ SYNONYMS = {
 }
 # also rank items that mention these ("jazz" within music)
 KEEP_AS_TERM = {
-    "jazz",
-    "rock",
-    "techno",
     "opera",
     "recital",
-    "parkrun",
     "stand up",
     "standup",
     "kabaret",
     "rave",
+}
+# k-bar's rule-based search (feature/rule-based-prompt-search): a music genre or a cuisine sets its category
+# and stays a search term, so "death metal" is exact only where the listing says so. Any alias confirms the
+# term in a listing ("wloska" is italian).
+GENRES = {
+    "death metal": "death metal",
+    "black metal": "black metal",
+    "thrash metal": "thrash metal",
+    "heavy metal": "heavy metal",
+    "metal": "metal,metalowy,metalowa,metalowe",
+    "rock": "rock,rockowy,rockowa,rockowe",
+    "punk": "punk,punkowy,punkowa",
+    "jazz": "jazz,jazzu,jazzowy,jazzowa,jazzowe",
+    "disco polo": "disco polo",
+    "techno": "techno",
+    "hip hop": "hip hop",
+    "classical music": "classical music,muzyka klasyczna",
+    "electronic music": "electronic music,muzyka elektroniczna",
+}
+CUISINES = {
+    "italian": "italian,wloska,wloskie",
+    "mexican": "mexican,meksykanska,meksykanskie",
+    "japanese": "japanese,japonska,japonskie",
+    "sushi": "sushi",
+    "thai": "thai,tajska,tajskie",
+    "indian": "indian,indyjska,indyjskie",
+    "polish": "polish,polska,polskie",
+    "vegan": "vegan,weganskie,weganska",
+    "vegetarian": "vegetarian,wegetarianskie,wegetarianska",
+    "pizza": "pizza,pizzeria",
+}
+# soft preferences only rank: nothing guarantees "free" unless the listing says so
+PREFERENCES = {
+    "free": "free,darmowy,darmowa,darmowe,bezplatny,bezplatna,bezplatne",
+    "cheap": "cheap,inexpensive,tani,tania,tanie",
+    "family-friendly": "family friendly,dla rodzin,przyjazne rodzinom",
+}
+TERM_FORMS = {
+    term: forms.split(",") for table in (GENRES, CUISINES, PREFERENCES) for term, forms in table.items()
 }
 # venues with opening hours are a full answer for these (a bar is open on Saturday night)
 VENUE_CATEGORIES = {"nightlife", "food"}
@@ -265,6 +302,7 @@ class Parsed:
     name: str = ""  # the rest of the sentence, for "is Spatif open" / "when is Jazz na Starówce"
     more: bool = False
     follow_up: bool = False
+    preferences: list[str] = field(default_factory=list)  # free / cheap / family-friendly: ranking only
 
     def context(self) -> dict:
         """What the frontend sends back next time, so "and tomorrow?" keeps the rest."""
@@ -284,6 +322,7 @@ class Parsed:
             "near": self.near,
             "terms": self.terms,
             "name": self.name,
+            "preferences": self.preferences,
         }
 
 
@@ -357,6 +396,13 @@ def synonym_index() -> list[tuple[list[str], str]]:
         phrases = {fold(label), *(s.strip() for s in SYNONYMS.get(slug, "").split(","))} - {""}
         pairs += [(p.split(), slug) for p in phrases]
     return sorted(pairs, key=lambda p: -len(p[0]))  # "zycie nocne" before "nocne"
+
+
+@lru_cache(maxsize=3)
+def phrase_index(table: str) -> list[tuple[list[str], str]]:
+    """PREFERENCES / GENRES / CUISINES as (words, term), longest first: "death metal" before "metal"."""
+    pairs = [(f.split(), term) for term, forms in globals()[table].items() for f in forms.split(",")]
+    return sorted(pairs, key=lambda p: -len(p[0]))
 
 
 def day_start(d: date) -> datetime:
@@ -478,8 +524,24 @@ def understand(query: str, now: datetime) -> Parsed:
 
     intent = detect_intent(tokens, text)
 
-    # what
-    categories, keep = [], []
+    def phrase_at(phrase: list[str]) -> bool:
+        n = len(phrase)
+        for i in range(len(tokens) - n + 1):
+            if not any(used[i : i + n]) and tokens[i : i + n] == phrase:
+                take(i, n)
+                return True
+        return False
+
+    # what: soft preferences, then genres and cuisines (k-bar's rules), then the categories
+    categories, keep, preferences = [], [], []
+    for phrase, pref in phrase_index("PREFERENCES"):
+        if phrase_at(phrase) and pref not in preferences:
+            preferences.append(pref)
+    for table, slug in (("GENRES", "music"), ("CUISINES", "food")):
+        for phrase, term in phrase_index(table):
+            if phrase_at(phrase):
+                categories += [slug] if slug not in categories else []
+                keep += [term] if term not in keep else []
     for phrase, slug in synonym_index():
         n = len(phrase)
         for i in range(len(tokens) - n + 1):
@@ -554,7 +616,7 @@ def understand(query: str, now: datetime) -> Parsed:
     name = " ".join(words)  # "czy Spatif jest otwarty" -> "spatif"; inner words stay ("jazz na starowce")
 
     if intent is None:
-        slots = categories or when or found or near or evening or morning
+        slots = categories or when or found or near or evening or morning or preferences
         if not slots and (chat := small_talk(text)):
             intent = chat
         elif QUESTION_INFO.match(text) and terms and not categories:
@@ -563,7 +625,9 @@ def understand(query: str, now: datetime) -> Parsed:
             intent = "unknown"
         else:
             intent = "find"
-    return Parsed(intent, categories, when, evening, morning, found, near, terms, name, more, follow_up)
+    return Parsed(
+        intent, categories, when, evening, morning, found, near, terms, name, more, follow_up, preferences
+    )
 
 
 def merge(new: Parsed, ctx: dict | None) -> Parsed:
@@ -591,6 +655,7 @@ def merge(new: Parsed, ctx: dict | None) -> Parsed:
         new.evening = new.evening or bool(ctx.get("evening"))
         new.morning = new.morning or bool(ctx.get("morning"))
     new.name = new.name or ctx.get("name") or ""
+    new.preferences = new.preferences or list(ctx.get("preferences") or [])
     return new
 
 

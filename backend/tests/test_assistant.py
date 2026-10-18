@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from app.assistant.nlu import merge, understand
+from app.categories import CATEGORIES
 from app.models import Attendance, Event, Occurrence, Source, User
 from app.timeutil import WARSAW
 
@@ -78,6 +79,38 @@ def test_follow_ups_keep_the_last_question():
     assert merge(understand("więcej", SUNDAY), ctx).more
     assert merge(understand("pogoda", SUNDAY), ctx).intent == "weather"  # a new question
     assert merge(understand("dzięki", SUNDAY), ctx).intent == "thanks"
+
+
+# k-bar's rule-based search (feature/rule-based-prompt-search, 4021855): his parser tests, on this parser
+
+
+def test_genre_district_and_weekday():
+    p = understand("Koncert death metal w sobotę na Pradze", SUNDAY)
+    assert (p.intent, p.terms, p.categories) == ("find", ["death metal"], ["music"])
+    assert [a.name for a in p.areas] == ["Praga-Północ", "Praga-Południe"] and p.when.start.weekday() == 5
+
+
+@pytest.mark.parametrize(
+    "q", ["running club", "run clubs in Mokotow", "club run", "klub biegowy", "grupy biegowe", "parkrun"]
+)
+def test_running_clubs_are_running_not_nightlife(q):
+    p = understand(q, SUNDAY)
+    assert (p.categories, p.terms) == (["running"], [])
+
+
+def test_cuisine_near_me_and_soft_preference():
+    p = understand("Darmowa wegetariańska restauracja blisko mnie", SUNDAY)
+    assert (p.categories, p.terms, p.near, p.preferences) == (["food"], ["vegetarian"], True, ["free"])
+
+
+def test_every_category_label_is_understood():
+    for slug, name in CATEGORIES.items():
+        assert understand(name, SUNDAY).categories == [slug], name
+
+
+def test_open_now_has_no_search_terms():
+    p = understand("restaurants open now", SUNDAY)
+    assert (p.intent, p.categories, p.terms) == ("open", ["food"], [])
 
 
 # ---------- API ----------
@@ -219,7 +252,7 @@ def test_suggestions_relax_the_area_or_the_day(client, city):
     r = ask(client, "teatr dzisiaj")
     assert r["results"] == [] and [g["kind"] for g in r["suggestions"]] == ["later"]
     r = ask(client, "rock tomorrow", lang="en")
-    assert r["suggestions"][0]["label"].startswith("More music") and "Related options" in r["answer"]
+    assert r["suggestions"][0]["label"].startswith("More music") and "No exact matches" in r["answer"]
     assert ask(client, "joga jutro na Mokotowie")["suggestions"] == []  # nothing relaxed when it all matches
 
 
@@ -252,3 +285,32 @@ def test_answers_in_the_language_of_the_question(q, ui, lang):
     from app.assistant.router import question_lang
 
     assert question_lang(q, ui) == lang
+
+
+def test_exact_needs_every_word_and_the_category(client, city, db):
+    add(db, "Nordic Walking", ["sports"], 52.20, 21.00, start=at(1, 9))
+    add(db, "Death metal live", ["music"], 52.25, 21.03, start=at(1, 21))
+    add(db, "Metal quiz", ["music"], 52.25, 21.03, start=at(1, 19))
+    r = ask(client, "death metal jutro", lang="en")
+    assert titles(r) == ["Death metal live"]  # "Metal quiz" says metal, not death metal: broad
+    assert "Metal quiz" in [f["properties"]["title"] for g in r["suggestions"] for f in g["results"]]
+    assert "Nordic Walking" not in str(r)
+
+
+def test_cuisine_is_confirmed_by_its_polish_name(client, db):
+    add(db, "Trattoria Włoska", ["food"], 52.23, 21.01, kind="place")
+    add(db, "Bar Mleczny", ["food"], 52.23, 21.01, kind="place")
+    r = ask(client, "italian restaurants", lang="en")
+    assert titles(r) == ["Trattoria Włoska"] and r["suggestions"][0]["kind"] == "broad"
+
+
+def test_near_me_without_a_location_is_not_faked(client, city):
+    r = ask(client, "koncerty blisko mnie jutro")
+    assert r["results"] == [] and r["answer"].startswith("Nie mam Twojej lokalizacji")
+    assert [g["kind"] for g in r["suggestions"]] == ["elsewhere"]
+    lat, lng = city["praga"]
+    assert titles(ask(client, "koncerty blisko mnie jutro", lat=lat, lng=lng)) == ["Jazz w Hydrozagadce"]
+
+
+def test_nothing_in_the_database_says_so(client, city):
+    assert "not in the database" in ask(client, "hamlet xyzzy", lang="en")["answer"]
