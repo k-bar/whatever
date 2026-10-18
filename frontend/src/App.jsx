@@ -35,6 +35,7 @@ import { isPast, upcoming } from './data/api'
 import { loadAreas } from './search/areas'
 import { getMapFilter, passesToggles, setAllTypes, setTypes, useFriendIds, useMapFilter } from './data/mapFilter'
 import { typeOf } from './data/types'
+import { demoHost } from './demo/host'
 
 /** Map controls arrive part by part after the start page, never all at once. */
 const Stage = ({ delay = 0, children }) => (
@@ -45,9 +46,9 @@ const Stage = ({ delay = 0, children }) => (
 const rectOf = (selector) => document.querySelector(selector)?.getBoundingClientRect() ?? null
 
 export default function App() {
-  const { values, set } = useConfig()
+  const { values, set, setMany } = useConfig()
   const spring = useSpring()
-  const { lang, t } = useLang()
+  const { lang, setLang, t } = useLang()
   const mobile = useIsMobile()
   const mapRef = useRef(null)
   const getMap = useCallback(() => mapRef.current?.getMap(), []) // stable: the start page's network visual keeps its timers across renders
@@ -302,6 +303,9 @@ export default function App() {
   }
 
   const pickResult = (f) => { openBox(f); if (mobile) setSheet('box') }
+
+  // the presentation demo (double-click Home): the map, the settings it puts back, the create panel it closes
+  useEffect(() => { demoHost.current = { getMap, values, setMany, lang, setLang, view, closeCreate: () => setDraftPin(null) } })
 
 
   const sheetContent = useMemo(() => {

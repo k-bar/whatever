@@ -48,7 +48,7 @@ export function LangSwitch() {
           <motion.div className="lang-menu surface" role="menu" aria-label={t('Language')}
             initial={{ opacity: 0, y: 16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.9 }} transition={spring}>
             {LANGS.map(([l, label, F]) => (
-              <button key={l} role="menuitemradio" aria-checked={lang === l} className={`lang-opt ${lang === l ? 'on' : ''}`}
+              <button key={l} data-lang={l} role="menuitemradio" aria-checked={lang === l} className={`lang-opt ${lang === l ? 'on' : ''}`}
                 onClick={() => { setLang(l); setOpen(false) }}>
                 <F size={22} />{label}
               </button>
