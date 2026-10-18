@@ -9,6 +9,7 @@ from sqlalchemy import text
 
 from app import realtime
 from app.assistant.router import router as assistant_router
+from app.assistant_search import router as assistant_search_router
 from app.config import settings
 from app.db import engine
 from app.routers import chats, events, map, people, profiles, social, users
@@ -37,6 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(events.router)
+app.include_router(assistant_search_router)
 app.include_router(users.router)
 app.include_router(social.router)
 app.include_router(profiles.router)

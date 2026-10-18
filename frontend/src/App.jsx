@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
 import { useLang } from './i18n'
-import { fetchBusyAreas, fetchCityLayer, fetchFeatures, locateByIp, routeTo, runSearch, WARSAW_CENTER } from './data/api'
+import { fetchBusyAreas, fetchCityLayer, fetchFeatures, locateByIp, routeTo, runSearch, searchAssistant, WARSAW_CENTER } from './data/api'
 import { alongPaths, CITY_LAYERS, walkBoxFeature, walkPaths } from './components/cityLayers'
 import { useFavourites } from './hooks/useFavourites'
 import { useScrollFade } from './hooks/useScrollFade'
@@ -92,6 +92,7 @@ export default function App() {
   const meRef = useRef(null)
   useEffect(() => { meRef.current = me }, [me])
   const [chat, setChat] = useState(() => { try { return JSON.parse(localStorage.getItem('warszawa-live.chat.v1') || '[]') } catch { return [] } })
+  const chatLanguageRequest = useRef(0)
   useEffect(() => { localStorage.setItem('warszawa-live.chat.v1', JSON.stringify(chat.map((m) => ({ ...m, results: undefined })))) }, [chat])
 
   useEffect(() => {
@@ -154,7 +155,42 @@ export default function App() {
       const byId = new Map(fc.features.map((f) => [String(f.properties.event_id), f]))
       setBoxes((b) => b.map((x) => { const f = byId.get(x.key); return f ? { ...x, feature: f, data: curate(f) } : x }))
     })
-  }, [lang])
+    const requestId = ++chatLanguageRequest.current
+    const replies = []
+    let latestUserQuery = null
+    chat.forEach((message, index) => {
+      if (message.role === 'user') latestUserQuery = message.text
+      else if (message.role === 'assistant') {
+        const prompt = message.prompt || latestUserQuery
+        if (prompt) replies.push({ message, index, prompt })
+      }
+    })
+    Promise.all(replies.map(async ({ message, index, prompt }) => {
+      try {
+        const response = await searchAssistant(prompt)
+        return { message, index, response }
+      } catch {
+        return { message, index, error: true }
+      }
+    })).then((updates) => {
+      if (chatLanguageRequest.current !== requestId) return
+      const updatesByIndex = new Map(updates.map((update) => [update.index, update]))
+      setChat((current) => current.map((message, index) => {
+        const update = updatesByIndex.get(index)
+        if (update?.message !== message) return message
+        if (update.error) {
+          return { ...message, text: t('Could not update this reply in the selected language. Try searching again.') }
+        }
+        return {
+          ...message,
+          text: update.response.answer,
+          results: update.response.results,
+          suggestions: update.response.suggestions,
+        }
+      }))
+    })
+    return () => { chatLanguageRequest.current += 1 }
+  }, [lang]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // re-curate open boxes so their text follows a language switch
   useEffect(() => {
@@ -180,14 +216,56 @@ export default function App() {
       showSearch(await smartSearch(opts.category || opts.type ? '' : q.split(' · ')[0], upcoming(featureList), { mode: 'events', category: opts.category, type: opts.type, when: opts.when, where: opts.where }), mode, opts.where)
       return
     }
-    if (!q.trim() && mode !== 'assistant') { setResults(null); return }
+    if (!q.trim()) {
+      if (mode === 'assistant') setChat((c) => [...c, { role: 'assistant', text: t('Describe an event or place to search for.') }])
+      else setResults(null)
+      return
+    }
     setSearching(true)
     if (mode === 'assistant') setChat((c) => [...c, { role: 'user', text: q }])
-    const r = await runSearch(mode, q, featureList, { ...opts, me })
-    setSearching(false)
-    if (mode === 'assistant') { setChat((c) => [...c, { role: 'assistant', text: r.answer, results: r.results }]); if (r.results?.length && r.results.length <= 40) fitResults(r.results); return }
-    if (r.understood?.when) set('timeWindow', windowFor(r.understood.when))
-    showSearch(r, mode)
+    try {
+      const asksNearby = /\b(near(?:by)?(?:\s+me)?|close to me|around me|w pobliżu|blisko mnie|niedaleko mnie|w okolicy)\b/i.test(q)
+      const location = asksNearby && me ? { latitude: me[1], longitude: me[0] } : null
+      const usesBackendSearch = mode === 'assistant' || mode === 'search'
+      const r = usesBackendSearch
+        ? await searchAssistant(q, location)
+        : await runSearch(mode, q, featureList, opts)
+      if (mode === 'assistant') {
+        const suggested = r.suggestions.flatMap((group) => group.results)
+        const found = [...r.results, ...suggested]
+        if (found.length) {
+          setFeatures((current) => ({
+            type: 'FeatureCollection',
+            features: [...(current?.features || []).filter((f) => !found.some((item) => item.id === f.id)), ...found],
+          }))
+        }
+        setChat((c) => [...c, { role: 'assistant', prompt: q, text: r.answer, results: r.results, suggestions: r.suggestions }])
+        fitResults(r.results.length ? r.results : suggested)
+      } else if (usesBackendSearch) {
+        const suggested = r.suggestions.flatMap((group) => group.results)
+        const found = [...r.results, ...suggested]
+        if (found.length) {
+          setFeatures((current) => ({
+            type: 'FeatureCollection',
+            features: [...(current?.features || []).filter((f) => !found.some((item) => item.id === f.id)), ...found],
+          }))
+        }
+        setResults({ mode, q, ...r })
+        if (mobile) setSheet('results')
+        fitResults(r.results.length ? r.results : suggested)
+      } else {
+        if (r.understood?.when) set('timeWindow', windowFor(r.understood.when))
+        showSearch(r, mode)
+      }
+    } catch (error) {
+      if (mode === 'assistant') {
+        setChat((c) => [...c, { role: 'assistant', prompt: q, text: `${t('Search failed')}: ${error.message}` }])
+      } else {
+        say(error.message || t('Search failed'))
+      }
+    } finally {
+      setSearching(false)
+    }
   }
   // results list + the map: the searched area outlined and in view, else the matches in view
   const showSearch = (r, mode, where) => {
@@ -273,8 +351,34 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view])
   // start page "what · when · where": filter the loaded pins, list them, frame them on the map
-  const showLandingSearch = async ({ q, when, where }) => {
-    showSearch(await landingSearch({ q, when, where }, featureList), when ? 'events' : 'search', where)
+  const showLandingSearch = async ({ q, when, where, summary }) => {
+    if (q.trim() && !when && !where) {
+      setSearching(true)
+      try {
+        const response = await searchAssistant(q)
+        const suggested = response.suggestions.flatMap((group) => group.results)
+        const found = [...response.results, ...suggested]
+        if (found.length) {
+          setFeatures((current) => ({
+            type: 'FeatureCollection',
+            features: [...(current?.features || []).filter((f) => !found.some((item) => item.id === f.id)), ...found],
+          }))
+        }
+        setResults({ mode: 'search', q: summary, ...response })
+        if (mobile) setSheet('results')
+        fitResults(response.results.length ? response.results : suggested)
+      } catch (error) {
+        say(error.message || t('Search failed'))
+      } finally {
+        setSearching(false)
+      }
+      return
+    }
+    const list = landingSearch({ q, when, where }, featureList)
+    setResults({ mode: when ? 'events' : 'search', q: summary, results: list })
+    if (mobile) setSheet('results')
+    if (list.length) fitResults(list)
+    else if (where?.lngLat) mapRef.current?.getMap()?.flyTo({ center: where.lngLat, zoom: 15, duration: 1100 })
   }
   // toasts raised from deep components (map box CTAs)
   useEffect(() => {

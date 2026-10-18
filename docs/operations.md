@@ -85,6 +85,24 @@ Other variables: `API_URL`, `APP_ENV`, `DB_SCHEMA`, `DB_POOL_SIZE`, `INGEST_SCHE
 `INGEST_GEOCODE_LIMIT`, `WEB_BUCKET`, `WEB_DISTRIBUTION_ID`, `GIT_REPO`, `RELEASE_BRANCH`. Locally,
 `backend/.env` (template: `backend/.env.example`).
 
+### Prompt search
+
+`POST /search/assistant` uses deterministic rules; it does not call an LLM or send prompts to an
+external service. It extracts known categories, music genres, food preferences, Warsaw districts,
+relative dates, nearby/open-now requests, then applies those filters to PostgreSQL. Category names
+come from `backend/app/categories.py`; the aliases and phrase rules are in
+`backend/app/assistant_search.py`.
+
+Exact results are kept separate from broader category and date suggestions. A broad match (for
+example, another music event when the requested genre is not present in the listing) is labelled as
+unconfirmed, not presented as an exact match. Soft preferences such as "free" and "family-friendly"
+only affect ranking; they cannot be guaranteed unless the event data confirms them.
+
+The parser is intentionally bounded: it understands the phrases and aliases in its dictionaries,
+not arbitrary language. Add a rule only with a test for the prompt and expected filters. Search can
+only return records already in the database, and exact genre/cuisine matching depends on source
+records containing that detail.
+
 Never print, log or commit secret values. CI runs gitleaks on every PR (`.gitleaksignore` lists the
 acknowledged old leak).
 

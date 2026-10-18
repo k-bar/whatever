@@ -183,13 +183,24 @@ export function SearchBar({ onSearch, trayOpen = false, unread = 0, onBurger, re
                           <span className="thumb" style={f.properties.image_url ? { backgroundImage: `url(${f.properties.image_url})` } : { background: categoryColor(f.properties.categories?.[0]) }}>{!f.properties.image_url && f.properties.title[0]}</span>
                           <span><div className="t">{f.properties.title}</div><div className="s">{f.properties.kind === 'event' ? fmtWhenFor(f.properties) : f.properties.venue_name}</div></span>
                         </button>))}</div>}
+                      {m.suggestions?.map((group) => (
+                        <div key={group.label} className="msg-results">
+                          <small>{group.label}</small>
+                          {group.results.slice(0, 4).map((f) => (
+                            <button key={f.id} className="res-item mini" onClick={() => onPick(f)}>
+                              <span className="thumb" style={f.properties.image_url ? { backgroundImage: `url(${f.properties.image_url})` } : { background: categoryColor(f.properties.categories?.[0]) }}>{!f.properties.image_url && f.properties.title[0]}</span>
+                              <span><div className="t">{f.properties.title}</div><div className="s">{f.properties.kind === 'event' ? fmtWhenFor(f.properties) : f.properties.venue_name}</div></span>
+                            </button>
+                          ))}
+                        </div>
+                      ))}
                     </div>
                   ))}
                   {searching && <div className="msg assistant"><div className="bubble typing"><i /><i /><i /></div></div>}
                 </div>
                 <div className="fp-foot">
                   <button className="btn icon small primary" onClick={() => setChatFull(!chatFull)} aria-label={t(chatFull ? 'Shrink' : 'Expand')}>{chatFull ? <Minus size={18} /> : <Plus size={18} />}</button>
-                  <span className="fp-hint">{chat?.length ? t('{n} messages', { n: chat.length }) : t('assistant')}</span>
+                  <span className="fp-hint">{chat?.length ? t('{n} messages', { n: chat.length }) : t('assistant · rules-based search')}</span>
                   {chat?.length > 0 && <button className="btn text small" onClick={onChatClear}>{t('Clear thread')}</button>}
                 </div>
               </>
@@ -245,6 +256,30 @@ export function ResultsList({ results, onPick, onClear }) {
             </Fragment>
           )
         })}
+        {results.suggestions?.map((group) => (
+          <div key={group.label} className="msg-results">
+            <small>{group.label}</small>
+            {group.results.map((f) => {
+              const p = f.properties
+              const c = categoryColor(p.categories?.[0])
+              return (
+                <button key={f.id} className="res-item" onClick={() => onPick(f)}>
+                  <span className="thumb" style={p.image_url ? { backgroundImage: `url(${p.image_url})` } : { background: c }}>
+                    {!p.image_url && (p.title || '?')[0]}
+                  </span>
+                  <span>
+                    <div className="t">{p.title}</div>
+                    <div className="s">
+                      {p.kind === 'event' ? fmtWhenFor(p) : (p.venue_type || t('venue')).replace('_', ' ')}
+                      {p.venue_name && p.kind === 'event' ? ` · ${p.venue_name}` : ''}
+                      {' · '}<span style={{ color: c, fontWeight: 600 }}>{categoryLabel(p.categories?.[0])}</span>
+                    </div>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        ))}
         {!list.length && !results.answer && <div className="res-empty">{t('Nothing found. Try “jazz”, “Praga”, “run” or “teatr”.')}</div>}
       </div>
     </>

@@ -98,6 +98,27 @@ export const upcoming = (features) => (features || []).filter((f) => !isPast(f.p
  * knows weather, toilets, opening hours and follow-ups; if the API is down it falls back to local search.
  * opts.me: the viewer's [lng, lat], for "near me".
  */
+/** Assistant mode uses the rule-based PostgreSQL endpoint; ordinary search stays client-side. */
+export async function searchAssistant(prompt, location = null) {
+  const body = { prompt, lang: getLang() }
+  if (location) Object.assign(body, location)
+  const response = await get('/search/assistant', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+    timeout: 60000,
+  })
+  return {
+    ...response,
+    results: (response.results || []).map(withAssets),
+    suggestions: (response.suggestions || []).map((group) => ({
+      ...group,
+      results: (group.results || []).map(withAssets),
+    })),
+  }
+}
+
+/** Search the already-loaded features for ordinary Search and Events modes. */
 export async function runSearch(mode, q, features, opts = {}) {
   if (mode === 'assistant') {
     try { return await askAssistant(q, opts.me) } catch { /* offline: local search below */ }
