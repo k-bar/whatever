@@ -7,14 +7,13 @@ error so a failed listing never drops the remaining categories.
 import html as html_lib
 import re
 from datetime import datetime, time, timedelta
-from zoneinfo import ZoneInfo
 
 import httpx
 
 from app.config import settings
 from app.ingest.base import Occurrence, RawEvent, SourceSpec
+from app.timeutil import WARSAW
 
-WARSAW_TZ = ZoneInfo("Europe/Warsaw")
 WAW4FREE_BASE_URL = "https://waw4free.pl"
 
 WAW4FREE_LISTINGS = (
@@ -65,7 +64,7 @@ DISTRICT_RE = re.compile(r'href="warszawa-za-darmo-[^"]+"[^>]*>([^<]+)</a>')
 
 
 def _extract_cards_from_html(html: str, default_category: str) -> list[dict]:
-    today = datetime.now(WARSAW_TZ).date()
+    today = datetime.now(WARSAW).date()
     cards: list[dict] = []
     for chunk in BOX_RE.findall(html):
         link_m = LINK_RE.search(chunk)
@@ -159,7 +158,7 @@ def _parse_dt(val: str | None, default_hour: int = 18) -> datetime | None:
         return None
     if "T" not in val and " " not in val:
         dt = datetime.combine(dt.date(), time(default_hour, 0))
-    return dt if dt.tzinfo is not None else dt.replace(tzinfo=WARSAW_TZ)
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=WARSAW)
 
 
 def parse(records: list[dict]) -> list[RawEvent]:

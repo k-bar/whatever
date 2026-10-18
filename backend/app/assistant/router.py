@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.assistant import answers, nlu
 from app.db import get_db
-from app.routers.events import WARSAW
+from app.timeutil import WARSAW
 
 router = APIRouter(tags=["assistant"])
 

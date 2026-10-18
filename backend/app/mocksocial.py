@@ -19,19 +19,19 @@ import random
 import secrets
 import zlib
 from datetime import UTC, datetime, time, timedelta
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth import hash_password
 from app.db import SessionLocal
+from app.friends import pair
 from app.models import Attendance, Event, Friendship, JoinRequest, Occurrence, Source, User
+from app.timeutil import WARSAW
 from app.userevents import EVENT_TYPES, SOURCE_SLUG
 from app.userevents.models import UserEvent
-from app.userevents.router import publish
+from app.userevents.service import publish
 
-WARSAW = ZoneInfo("Europe/Warsaw")
 AVATAR = "/people/avatar.svg"
 EMAIL = "{}@demo.syrenka.me"
 SEED = 1830  # the graph and the people are the same on every run
@@ -183,12 +183,7 @@ def ensure_people(db: Session, now: datetime) -> list[User]:
 def ensure_friends(db: Session, users: list[User], now: datetime) -> None:
     for a, b in friend_graph(len(users)):
         ua, ub = users[a], users[b]
-        f = db.scalar(
-            select(Friendship).where(
-                func.least(Friendship.requester_id, Friendship.addressee_id) == min(ua.id, ub.id),
-                func.greatest(Friendship.requester_id, Friendship.addressee_id) == max(ua.id, ub.id),
-            )
-        )
+        f = pair(db, ua.id, ub.id)
         if f is None:
             db.add(Friendship(requester_id=ua.id, addressee_id=ub.id, status="accepted", responded_at=now))
         elif f.status != "accepted":

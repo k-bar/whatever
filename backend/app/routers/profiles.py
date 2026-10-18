@@ -27,7 +27,7 @@ from app.schemas import (
     UsernameCheck,
 )
 from app.userevents.models import UserEvent
-from app.userevents.router import can_see, photo_url
+from app.userevents.service import can_see, photo_url
 
 router = APIRouter(tags=["profiles"])
 

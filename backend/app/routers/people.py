@@ -22,8 +22,8 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.db import get_db
+from app.friends import friend_ids
 from app.models import User
-from app.routers.profiles import friend_ids
 from app.userevents.models import UserEvent
 
 router = APIRouter(tags=["people"])

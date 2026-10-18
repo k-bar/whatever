@@ -11,7 +11,7 @@ Audiences
     friends         the host's friends (and invited users)
     invite          only invited users (and the host)
 
-Endpoints (router.py)
+Endpoints (router.py; the parts other modules use, like can_see and publish, are in service.py)
     POST   /userevents/photos     {"data_url": "data:image/jpeg;base64,..."} -> {"id", "url"}
     GET    /userevents/photos/{id}  the image
     POST   /userevents            create -> {"event": UserEventOut, "feature": GeoJSON Feature}

@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.assistant.nlu import VENUE_CATEGORIES, Parsed, fold
 from app.categories import AMENITIES, CATEGORIES
 from app.models import AirStation, Attendance, Event, Occurrence, WeatherStation
-from app.routers.events import WARSAW, attendance_counts, feature, is_open
+from app.routers.events import attendance_counts, feature, is_open
+from app.timeutil import WARSAW
 
 CENTER = (21.0114, 52.2306)  # Rondo Dmowskiego, like the frontend's WARSAW_CENTER
 NEAR_M = 2000

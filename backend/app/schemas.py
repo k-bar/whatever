@@ -245,22 +245,6 @@ class EventOut(ORM):
     occurrences: list[OccurrenceOut] = []
 
 
-class InviteIn(BaseModel):
-    """A public invitation: picnic, concert, 'come to my place'..."""
-
-    title: str = Field(min_length=3, max_length=200)
-    description: str | None = Field(None, max_length=5000)
-    categories: list[CategorySlug] = Field(min_length=1)
-    starts_at: datetime
-    ends_at: datetime | None = None
-    lat: float = Field(ge=52.09, le=52.37)
-    lng: float = Field(ge=20.85, le=21.28)
-    venue_name: str | None = Field(None, max_length=200)
-    address: str | None = Field(None, max_length=300)
-    image_url: HttpUrl | None = None
-    capacity: int | None = Field(None, ge=1, le=1000)
-
-
 class GeoJSONFeature(BaseModel):
     type: Literal["Feature"] = "Feature"
     id: int

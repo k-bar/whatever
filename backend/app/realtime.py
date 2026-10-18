@@ -4,7 +4,7 @@ The API runs several uvicorn workers, so a message posted through one worker mus
 held by the others. Postgres does the fan-out: posting a message runs pg_notify(<channel>, ...) in
 the same transaction (app/routers/chats.py), and every worker LISTENs on that channel (listen(),
 started in app.main's lifespan) and pushes to its own sockets. No extra broker to run.
-Prod and dev share one RDS database, so the channel name carries the schema.
+Prod and dev share one RDS database, so the channel name carries the schema (app/chats.py).
 
 Protocol (JSON text frames):
     -> {"type": "auth", "token": "<login token>"}      first frame, within 10 s
@@ -29,11 +29,13 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy import make_url, select
 from starlette.concurrency import run_in_threadpool
 
+from app.auth import user_from_token
+from app.chats import CHANNEL, message_out, parse_key, resolve
 from app.config import settings
 from app.db import SessionLocal
+from app.models import ChatMember, ChatMessage, User
 
 log = logging.getLogger(__name__)
-CHANNEL = f"chat_{settings.db_schema or 'public'}"
 
 router = APIRouter(tags=["chats"])
 
@@ -95,9 +97,6 @@ def _notification(
 ) -> tuple[dict, set[int]] | None:
     """Load what a notification points at, and who may receive it: the chat's members and this
     worker's subscribers, minus anyone who can no longer open the chat. (Runs in a thread: the ORM is sync.)"""
-    from app.models import ChatMember, ChatMessage, User
-    from app.routers.chats import message_out, parse_key, resolve
-
     with SessionLocal() as db:
         members = set(db.scalars(select(ChatMember.user_id).where(ChatMember.chat_id == chat_id)))
         kind, target_id = parse_key(key)
@@ -147,16 +146,11 @@ async def listen() -> None:
 
 
 def _authenticate(token: str) -> int:
-    from app.auth import user_from_token
-
     with SessionLocal() as db:
         return user_from_token(db, token).id
 
 
 def _may_open(user_id: int, key: str) -> None:
-    from app.models import User
-    from app.routers.chats import parse_key, resolve
-
     with SessionLocal() as db:
         kind, target_id = parse_key(key)
         resolve(db, kind, target_id, db.get(User, user_id))

@@ -25,7 +25,6 @@
 | GET | `/events` | One feature per occurrence (events and classes) | `bbox=w,s,e,n`, `from` (default now), `to` (default from + 30 days), `category` (repeatable), `kind=event\|class`, `q`, `include_unlocated`, `limit` (default 500), `lang` |
 | GET | `/events/now` | Starting near a point within a few hours | `lat`, `lng`, `radius_m` (default 3000), `hours` (default 3), `lang` |
 | GET | `/events/{id}` | One event, class or place with its occurrences | `past=true` to include finished ones, `lang` |
-| POST 🔒 | `/events` | Create an invitation (host auto-attends) | body `InviteIn` |
 | GET | `/places` | Venues and pitches; toilets and AEDs only when asked for with `category` | `bbox`, `category` (repeatable), `q`, `open_now`, `lang` |
 | GET | `/conditions` | `{weather, air}`: latest reading per station | |
 | GET | `/routes` | Tourist routes as LineStrings | |
@@ -91,7 +90,7 @@
 - **Profiles and friends:** the profile, friend and people endpoints
 - **User events:** `/userevents*`
 
-Not called by the UI yet: `/events/now`, `/events/{id}`, `POST /events`, `/conditions`,
+Not called by the UI yet: `/events/now`, `/events/{id}`, `/conditions`,
 `/userevents/public`, `/userevents/mine`, `/categories`.
 
 Kamil's raw tables have no endpoints.

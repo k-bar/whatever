@@ -1,14 +1,11 @@
 import re
-import uuid
 from datetime import UTC, datetime, timedelta
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, defer, selectinload
 
 from app import translate, userevents
-from app.auth import get_verified_user
 from app.categories import AMENITIES, CATEGORIES
 from app.db import get_db
 from app.models import Attendance, Event, Occurrence, Source, User
@@ -17,15 +14,13 @@ from app.schemas import (
     EventOut,
     FeatureCollection,
     GeoJSONFeature,
-    InviteIn,
     OccurrenceOut,
     PublicUser,
     SourceOut,
 )
+from app.timeutil import WARSAW
 
 router = APIRouter(tags=["events"])
-WARSAW = ZoneInfo("Europe/Warsaw")
-USER_SOURCE = "user"
 MAX_FEATURES = 2000
 
 
@@ -283,48 +278,6 @@ def get_event(event_id: int, past: bool = False, db: Session = Depends(get_db)):
     if event is None:
         raise HTTPException(404, "Event not found")
     return event_out(db, event, upcoming_only=not past)
-
-
-@router.post("/events", response_model=EventOut, status_code=201)
-def create_invite(body: InviteIn, user: User = Depends(get_verified_user), db: Session = Depends(get_db)):
-    """Create a public invitation. The host is marked as attending and open to company."""
-    if body.ends_at and body.ends_at < body.starts_at:
-        raise HTTPException(422, "ends_at is before starts_at")
-    source = db.scalar(select(Source).where(Source.slug == USER_SOURCE))
-    if source is None:
-        source = Source(slug=USER_SOURCE, name="Warszawa Live users", url=None, is_reliable=False)
-        db.add(source)
-        db.flush()
-    event = Event(
-        source=source,
-        external_key=str(uuid.uuid4()),
-        kind="event",
-        title=body.title,
-        categories=list(body.categories),
-        categories_raw=[],
-        lead=body.description[:300] if body.description else None,
-        text_plain=body.description,
-        image_url=str(body.image_url) if body.image_url else None,
-        venue_name=body.venue_name,
-        address=body.address,
-        lat=body.lat,
-        lng=body.lng,
-        location=f"SRID=4326;POINT({body.lng} {body.lat})",
-        audience=[],
-        contact={},
-        host_user_id=user.id,
-        is_public_invite=True,
-        capacity=body.capacity,
-        seats_left=body.capacity,
-        occurrences=[Occurrence(starts_at=body.starts_at, ends_at=body.ends_at)],
-    )
-    db.add(event)
-    db.flush()
-    db.add(Attendance(user_id=user.id, occurrence_id=event.occurrences[0].id, wants_company=True))
-    source.item_count = (source.item_count or 0) + 1
-    db.commit()
-    db.refresh(event)
-    return event_out(db, event)
 
 
 @router.get("/categories", response_model=list[Category])

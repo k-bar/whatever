@@ -10,9 +10,7 @@ then shows in GET /me/chats with an unread count, and new messages reach you liv
 import json
 import time
 from collections import defaultdict, deque
-from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
@@ -21,34 +19,15 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth import get_current_user, get_verified_user
+from app.chats import CHANNEL, ChatMessageOut, Kind, Target, chat_ref, message_out, resolve, resolve_many
 from app.db import get_db
-from app.models import Chat, ChatMember, ChatMessage, Event, Occurrence, User
-from app.realtime import CHANNEL
-from app.userevents.models import UserEvent
-from app.userevents.router import can_see, photo_url
+from app.models import Chat, ChatMember, ChatMessage, User
 
 router = APIRouter(tags=["chats"])
 
-Kind = Literal["event", "userevent"]
 MAX_BODY = 2000
 RATE = (8, 10.0)  # at most 8 messages per 10 seconds per person (per API worker)
 _recent: dict[int, deque] = defaultdict(deque)
-
-
-class ChatAuthor(BaseModel):
-    id: int
-    username: str
-    display_name: str
-    photo: str | None
-
-
-class ChatMessageOut(BaseModel):
-    id: int
-    key: str
-    user: ChatAuthor
-    body: str | None  # null once deleted
-    created_at: datetime
-    deleted: bool
 
 
 class ChatInfo(BaseModel):
@@ -75,53 +54,6 @@ class MessageIn(BaseModel):
 
 class ReadIn(BaseModel):
     last_read_id: int = Field(ge=0)
-
-
-@dataclass
-class Target:
-    kind: Kind
-    target_id: int
-    title: str
-    starts_at: datetime | None
-    image_url: str | None
-    host_user_id: int | None
-
-    @property
-    def key(self) -> str:
-        return f"{self.kind}:{self.target_id}"
-
-    @property
-    def column(self):
-        return Chat.event_id if self.kind == "event" else Chat.user_event_id
-
-
-def parse_key(key: str) -> tuple[Kind, int]:
-    kind, _, raw = key.partition(":")
-    if kind not in ("event", "userevent") or not raw.isdigit():
-        raise HTTPException(404, "Chat not found")
-    return kind, int(raw)  # type: ignore[return-value]
-
-
-def next_start(occurrences: list[Occurrence]) -> datetime | None:
-    now = datetime.now(UTC)
-    upcoming = [o.starts_at for o in occurrences if (o.ends_at or o.starts_at) >= now]
-    return min(upcoming) if upcoming else (occurrences[-1].starts_at if occurrences else None)
-
-
-def resolve(db: Session, kind: Kind, target_id: int, user: User | None) -> Target:
-    """The event a chat belongs to, if this user may see it. A user event that is also published
-    in /events answers as kind "event", so both ways of opening it share one thread."""
-    if kind == "userevent":
-        ue = db.get(UserEvent, target_id)
-        if ue is None or not can_see(db, user, ue):
-            raise HTTPException(404, "Chat not found")
-        if ue.event_id is None:
-            return Target("userevent", ue.id, ue.title, ue.starts_at, photo_url(ue.photo_id), ue.host_user_id)
-        target_id = ue.event_id
-    ev = db.scalar(select(Event).where(Event.id == target_id).options(selectinload(Event.occurrences)))
-    if ev is None:
-        raise HTTPException(404, "Chat not found")
-    return Target("event", ev.id, ev.title, next_start(ev.occurrences), ev.image_url, ev.host_user_id)
 
 
 def find_chat(db: Session, t: Target) -> Chat | None:
@@ -156,20 +88,6 @@ def unread_count(db: Session, chat_id: int, user_id: int, after: int) -> int:
             ChatMessage.user_id != user_id,
             ChatMessage.deleted_at.is_(None),
         )
-    )
-
-
-def message_out(m: ChatMessage, key: str) -> ChatMessageOut:
-    u = m.user
-    return ChatMessageOut(
-        id=m.id,
-        key=key,
-        user=ChatAuthor(
-            id=u.id, username=u.username, display_name=u.display_name, photo=(u.photos or [None])[0]
-        ),
-        body=None if m.deleted_at else m.body,
-        created_at=m.created_at,
-        deleted=m.deleted_at is not None,
     )
 
 
@@ -278,8 +196,7 @@ def delete_message(message_id: int, user: User = Depends(get_current_user), db: 
     if msg is None or msg.deleted_at is not None:
         raise HTTPException(404, "Message not found")
     chat = db.get(Chat, msg.chat_id)
-    kind, target_id = ("event", chat.event_id) if chat.event_id else ("userevent", chat.user_event_id)
-    t = resolve(db, kind, target_id, user)
+    t = resolve(db, *chat_ref(chat), user)
     if user.id not in (msg.user_id, t.host_user_id):
         raise HTTPException(403, "Only the author or the host can delete this")
     msg.deleted_at = datetime.now(UTC)
@@ -338,34 +255,49 @@ def my_chats(user: User = Depends(get_current_user), db: Session = Depends(get_d
         .order_by(func.coalesce(Chat.last_message_at, Chat.created_at).desc())
         .limit(100)
     ).all()
-    out = []
-    for chat, m in rows:
-        kind, target_id = ("event", chat.event_id) if chat.event_id else ("userevent", chat.user_event_id)
-        try:
-            t = resolve(db, kind, target_id, user)
-        except HTTPException:  # no longer visible (unfriended, uninvited)
-            continue
-        last = db.scalar(
-            select(ChatMessage)
-            .where(ChatMessage.chat_id == chat.id)
-            .order_by(ChatMessage.id.desc())
-            .limit(1)
-            .options(selectinload(ChatMessage.user))
+    targets = resolve_many(db, [chat_ref(chat) for chat, _ in rows], user)
+    rows = [(chat, m, targets[chat_ref(chat)]) for chat, m in rows if chat_ref(chat) in targets]
+    chat_ids = [chat.id for chat, _, _ in rows]
+    if not chat_ids:
+        return []
+    newest = (
+        select(func.max(ChatMessage.id))
+        .where(ChatMessage.chat_id.in_(chat_ids))
+        .group_by(ChatMessage.chat_id)
+    )
+    last = {
+        msg.chat_id: msg
+        for msg in db.scalars(
+            select(ChatMessage).where(ChatMessage.id.in_(newest)).options(selectinload(ChatMessage.user))
         )
-        out.append(
-            ChatSummary(
-                key=t.key,
-                kind=t.kind,
-                target_id=t.target_id,
-                title=t.title,
-                starts_at=t.starts_at,
-                image_url=t.image_url,
-                host_user_id=t.host_user_id,
-                joined=True,
-                unread=unread_count(db, chat.id, user.id, m.last_read_id),
-                last_read_id=m.last_read_id,
-                last_message=message_out(last, t.key) if last else None,
-                last_message_at=chat.last_message_at,
+    }
+    unread = dict(
+        db.execute(
+            select(ChatMessage.chat_id, func.count())
+            .join(ChatMember, and_(ChatMember.chat_id == ChatMessage.chat_id, ChatMember.user_id == user.id))
+            .where(
+                ChatMessage.chat_id.in_(chat_ids),
+                ChatMessage.id > ChatMember.last_read_id,
+                ChatMessage.user_id != user.id,
+                ChatMessage.deleted_at.is_(None),
             )
+            .group_by(ChatMessage.chat_id)
+        ).all()
+    )
+    return [
+        ChatSummary(
+            key=t.key,
+            kind=t.kind,
+            target_id=t.target_id,
+            title=t.title,
+            starts_at=t.starts_at,
+            image_url=t.image_url,
+            host_user_id=t.host_user_id,
+            joined=True,
+            unread=unread.get(chat.id, 0),
+            last_read_id=m.last_read_id,
+            last_message=message_out(last[chat.id], t.key) if chat.id in last else None,
+            last_message_at=chat.last_message_at,
         )
-    return out
+        for chat, m, t in rows
+    ]
