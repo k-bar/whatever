@@ -32,7 +32,15 @@ function toTimes(date, start, end) {
 }
 
 /** Street + number near the pin (OpenStreetMap Nominatim), shown under the place field. */
+const addrCache = new Map() // the pin is dragged in small steps; ~10 m cells avoid re-asking Nominatim
 async function reverseGeocode([lng, lat], signal) {
+  const key = `${lng.toFixed(4)},${lat.toFixed(4)},${getLang()}`
+  if (addrCache.has(key)) return addrCache.get(key)
+  const out = await reverseGeocodeNow([lng, lat], signal)
+  addrCache.set(key, out)
+  return out
+}
+async function reverseGeocodeNow([lng, lat], signal) {
   const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${lat}&lon=${lng}&accept-language=${getLang()}`
   const j = await (await fetch(url, { signal })).json()
   const a = j.address || {}
