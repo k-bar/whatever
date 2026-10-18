@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
-import { createUserEvent, isLoggedIn, onAuthChange } from '../data/api'
+import { createUserEvent } from '../data/api'
 import { AUDIENCES } from '../data/categories'
 import { SEARCH_TYPES, TYPES, typeColor, typeLabel } from '../data/types'
 import { CloseButton } from './CloseButton'
 import { Check, Globe, Lock, Photo, Pin, UserCheck, Users } from './Icons'
 import { LoginForm } from './LoginForm'
-import { useMe, VerifyBanner } from './Account'
+import { VerifyBanner } from './Account'
+import { useLoggedIn, useMe } from '../data/me'
 import { DateField } from './Calendar'
 import { getLang, useLang } from '../i18n'
 
@@ -62,9 +63,8 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
   const [saving, setSaving] = useState(false)
   const me = useMe() // creating needs a confirmed email: the banner says so up front
   const [error, setError] = useState(null)
-  const [loggedIn, setLoggedIn] = useState(isLoggedIn)
+  const loggedIn = useLoggedIn() // a session that expired mid-way (LoginRequired) flips it back to "Log in"
   const retry = useRef(false) // Done was pressed while logged out: create right after logging in
-  useEffect(() => onAuthChange(() => setLoggedIn(isLoggedIn())), [])
   const fileRef = useRef(null)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e?.target ? e.target.value : e }))
 
@@ -99,11 +99,11 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
       onCreated(feature, event)
     } catch (e) {
       setSaving(false)
-      if (e.loginRequired) { retry.current = true; setLoggedIn(false); return } // session expired: back to "Log in"
+      if (e.loginRequired) { retry.current = true; return } // session expired: back to "Log in"
       setError(e.status ? t(e.message) : t('Could not reach the server. Try again in a moment.'))
     }
   }
-  const afterLogin = () => { setLoggedIn(true); if (retry.current) { retry.current = false; submit() } }
+  const afterLogin = () => { if (retry.current) { retry.current = false; submit() } }
 
   return (
     <motion.aside className="create-panel surface" initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }} transition={spring}

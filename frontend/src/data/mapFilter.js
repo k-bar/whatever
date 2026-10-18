@@ -12,7 +12,8 @@
  */
 import { useSyncExternalStore } from 'react'
 import { SEARCH_TYPES, TYPES, typesOf } from './types'
-import { fetchFriends, fetchMe, onAuthChange } from './api'
+import { fetchFriends } from './api'
+import { getMe, subscribeMe } from './me'
 
 const KEY = 'syrenka.mapfilter.v1'
 const EMPTY = { source: 'pins', types: [], users: false, friends: false, when: null, where: null }
@@ -62,14 +63,18 @@ const hostOf = (p) => p.host?.id ?? p.host_user_id ?? null
 
 let friendIds = new Set()
 const friendSubs = new Set()
+let friendsOf // whose friends friendIds holds (null: logged out)
 async function loadFriends() {
-  const me = await fetchMe().catch(() => null)
-  const list = me ? await fetchFriends(me.id).catch(() => []) : []
+  const me = getMe()
+  if (me === undefined || (me?.id ?? null) === friendsOf) return // still loading, or the same person
+  const id = friendsOf = me?.id ?? null
+  const list = id ? await fetchFriends(id).catch(() => []) : []
+  if (id !== friendsOf) return // logged in / out meanwhile
   friendIds = new Set(list.map((u) => u.id))
   friendSubs.forEach((fn) => fn())
 }
 loadFriends()
-onAuthChange(loadFriends)
+subscribeMe(loadFriends) // log in / out (data/me.js)
 export const useFriendIds = () => useSyncExternalStore((fn) => { friendSubs.add(fn); return () => friendSubs.delete(fn) }, () => friendIds)
 export const isFriendEvent = (p, ids = friendIds) => isUserEvent(p) && ids.has(hostOf(p))
 

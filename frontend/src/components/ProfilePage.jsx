@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import {
-  answerFriendRequest, assetUrl, checkUsername, fetchFriendRequests, fetchFriends, fetchMe, fetchProfile, fetchProfileEvents,
-  isLoggedIn, logout, onAuthChange, searchPeople, sendFriendRequest, unfriend, updateMe, uploadProfilePhoto,
+  answerFriendRequest, assetUrl, checkUsername, fetchFriendRequests, fetchFriends, fetchProfile, fetchProfileEvents,
+  isLoggedIn, logout, searchPeople, sendFriendRequest, unfriend, updateMe, uploadProfilePhoto,
 } from '../data/api'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
 import { fmtWhenFor } from '../mapboxes/curate'
@@ -11,7 +11,8 @@ import { locale, useLang } from '../i18n'
 import { Check, ChevronL, Photo, Pin, Plus, Search, UserCheck, X } from './Icons'
 import { Avatar } from './Avatar'
 import { LoginForm } from './LoginForm'
-import { AccountSecurity, useMe } from './Account'
+import { AccountSecurity } from './Account'
+import { useMe } from '../data/me'
 
 /**
  * The "mini Facebook" profile: @username, Friends · Been to · Hosted, "You can find me at …",
@@ -33,18 +34,16 @@ function labels(lang, gender) {
 /** Profile area of the slide-over: me by default; tapping a friend opens theirs (with a way back). */
 export function ProfilePage({ features, onPick, person, onViewing }) {
   const { t } = useLang()
-  const [meId, setMeId] = useState(undefined) // undefined = loading, null = logged out
+  const me = useMe()
+  const meId = me && me.id // undefined = loading, null = logged out
   const [viewing, setViewing] = useState(null) // another person's id, null = me
   const [editing, setEditing] = useState(false)
   const [rev, setRev] = useState(0) // bump to reload after edits / friend changes
   const personRef = useRef(person) // someone tapped on the map: open on them, not on me
   personRef.current = person
 
-  useEffect(() => {
-    const load = () => fetchMe().then((m) => { setMeId(m ? m.id : null); setViewing(personRef.current?.id ?? null); setEditing(false) })
-    load()
-    return onAuthChange(load)
-  }, [])
+  // logged in / out (or my account arrived): start over on the person asked for, or on me
+  useEffect(() => { setViewing(personRef.current?.id ?? null); setEditing(false) }, [meId])
   useEffect(() => { if (person) { setViewing(person.id ?? null); setEditing(false) } }, [person]) // id null: back to mine
   useEffect(() => { onViewing?.(viewing != null && viewing !== meId) }, [viewing, meId, onViewing])
 
@@ -135,8 +134,7 @@ function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, featu
 /** My private details from GET /me: first / last name, age, gender, member since (email: AccountSecurity). Only on my own profile. */
 function PersonalDetails({ gender }) {
   const { t } = useLang()
-  const [me, setMe] = useState(null)
-  useEffect(() => { fetchMe().then(setMe) }, [])
+  const me = useMe()
   if (!me) return null
   const sex = me.gender ?? gender
   const rows = [
@@ -271,12 +269,17 @@ function AddFriend({ onSent }) {
 function EditProfile({ features, onDone }) {
   const { t } = useLang()
   const spring = useSpring()
-  const [me, setMe] = useState(null)
+  const me = useMe()
   const [v, setV] = useState(null)
   const [name, setName] = useState({ state: 'same' }) // same | checking | ok | bad
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-  useEffect(() => { fetchMe().then((m) => { if (!m) { onDone(); return } setMe(m); setV({ display_name: m.display_name, username: m.username, gender: m.gender || '', first_name: m.first_name || '', last_name: m.last_name || '', age: m.age ?? '', bio: m.bio || '', interests: m.interests || [], hangouts: m.hangouts || [], photos: m.photos || [] }) }) }, [])
+  // the form starts from my account once: a later refresh (e.g. after saving) doesn't overwrite what's typed
+  useEffect(() => {
+    const m = me
+    if (m === null) onDone()
+    else if (m && !v) setV({ display_name: m.display_name, username: m.username, gender: m.gender || '', first_name: m.first_name || '', last_name: m.last_name || '', age: m.age ?? '', bio: m.bio || '', interests: m.interests || [], hangouts: m.hangouts || [], photos: m.photos || [] })
+  }, [me]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!v || !me) return

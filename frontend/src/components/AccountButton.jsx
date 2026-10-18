@@ -1,7 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useSpring } from '../config/store'
-import { assetUrl, fetchMe, isLoggedIn, onAuthChange, onMeChange } from '../data/api'
+import { assetUrl } from '../data/api'
+import { useLoggedIn, useMe } from '../data/me'
 import { useLang } from '../i18n'
 import { usePopover } from '../hooks/usePopover'
 import { LoginForm } from './LoginForm'
@@ -16,17 +17,9 @@ export function AccountButton({ onProfile, view }) {
   const { t } = useLang()
   const spring = useSpring()
   const { open, setOpen, ref } = usePopover()
-  const [me, setMe] = useState(null)
-  const [loggedIn, setLoggedIn] = useState(isLoggedIn)
+  const me = useMe() // follows log in / out and Edit profile (new name / photo)
+  const loggedIn = useLoggedIn()
   const [justJoined, setJustJoined] = useState(false) // keep the card for the "check your inbox" note
-
-  useEffect(() => {
-    const load = () => { const on = isLoggedIn(); setLoggedIn(on); if (on) fetchMe().then(setMe); else setMe(null) }
-    load()
-    const offMe = onMeChange(load) // new name / photo from Edit profile
-    const offAuth = onAuthChange(load)
-    return () => { offMe(); offAuth() }
-  }, [])
 
   // publish the width so the editor toggle / slide-over actions sit to its left
   useLayoutEffect(() => {
