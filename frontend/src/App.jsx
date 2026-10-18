@@ -304,7 +304,7 @@ export default function App() {
   }, [sheet, results, boxes, fav.ids, values.boxImages, featureList, lang])
 
   return (
-    <div className={`app ${view === 'map' && panel && !mobile ? (panelFull ? 'slide-full' : 'slide-open') : ''} ${flying ? 'flying' : ''}`}>
+    <div className={`app ${view === 'map' && panel && !mobile ? (panelFull ? 'slide-full' : 'slide-open') : ''} ${view === 'map' && panel && mobile ? 'slide-phone' : ''} ${flying ? 'flying' : ''}`}>
       <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
         onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={revealed} draftPin={draftPin} onDraftPin={setDraftPin}
         city={cityShown} onPickWalk={pickWalk} />

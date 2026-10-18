@@ -5,6 +5,7 @@ import { assetUrl, fetchMe, isLoggedIn, onAuthChange } from '../data/api'
 import { useLang } from '../i18n'
 import { usePopover } from './Calendar'
 import { LoginForm } from './LoginForm'
+import { Silhouette } from './Icons'
 
 /**
  * Far top right, on every screen (start page, map, full-screen slide-over). Logged out: "Log in", which
@@ -45,7 +46,9 @@ export function AccountButton({ onProfile, view }) {
           <span className="account-name">{name}</span>
         </motion.button>
       ) : (
-        <button className={`account-login ${open ? 'open' : ''}`} onClick={() => setOpen(!open)} aria-expanded={open}>{t('Log in')}</button>
+        <button className={`account-login ${open ? 'open' : ''}`} onClick={() => setOpen(!open)} aria-expanded={open} aria-label={t('Log in')}>
+          <Silhouette size={20} className="account-login-ic" /><span className="account-login-txt">{t('Log in')}</span>{/* phones: just the icon */}
+        </button>
       )}
       <AnimatePresence>
         {open && !loggedIn && (
