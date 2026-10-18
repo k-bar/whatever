@@ -32,7 +32,7 @@ const readRecent = () => { try { return JSON.parse(localStorage.getItem(RECENT_K
  * The Gemini-style pill: burger (plain) · input · mode dropdown · spyglass (circle).
  * Focusing the input opens the focus panel (recents / category pills / assistant thread).
  */
-export function SearchBar({ onSearch, matchCount = 0, trayOpen = false, unread = 0, onBurger, results, onPick, onClear, searching, mobile, chat, onChatClear, initialQuery = '', features }) {
+export function SearchBar({ onSearch, matchCount = 0, trayOpen = false, unread = 0, onBurger, results, onPick, onClear, searching, mobile, chat, onChatClear, initialQuery = '', initialMode = 'events', features }) {
   const { values } = useConfig()
   const { t } = useLang()
   const spring = useSpring()
@@ -40,9 +40,9 @@ export function SearchBar({ onSearch, matchCount = 0, trayOpen = false, unread =
   const push = usePush()
   const [q, setQ] = useState(initialQuery)
   const placeholder = values.searchPlaceholder === 'Search Warsaw tonight…' ? "What's the plan today?" : values.searchPlaceholder
-  const [mode, setMode] = useState('events')
+  const [mode, setMode] = useState(initialMode)
   const [modeOpen, setModeOpen] = useState(false)
-  const [focused, setFocused] = useState(false)
+  const [focused, setFocused] = useState(initialMode === 'assistant') // from the start page: the thread open
   const [chatFull, setChatFull] = useState(false)
   const [recent, setRecent] = useState(readRecent)
   const [pushed, setPushed] = useState(false)
@@ -168,7 +168,7 @@ export function SearchBar({ onSearch, matchCount = 0, trayOpen = false, unread =
                 </div>
                 <div className="fp-foot">
                   <button className="btn icon small primary" onClick={() => setChatFull(!chatFull)} aria-label={t(chatFull ? 'Shrink' : 'Expand')}>{chatFull ? <Minus size={18} /> : <Plus size={18} />}</button>
-                  <span className="fp-hint">{chat?.length ? t('{n} messages', { n: chat.length }) : t('assistant')}</span>
+                  <span className="fp-hint">{chat?.length ? t('{n} messages', { n: chat.length }) : t('assistant · rules-based search')}</span>
                   {chat?.length > 0 && <button className="btn text small" onClick={onChatClear}>{t('Clear thread')}</button>}
                 </div>
               </>

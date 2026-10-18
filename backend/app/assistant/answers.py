@@ -8,7 +8,7 @@ from rapidfuzz import fuzz
 from sqlalchemy import cast, func, literal, or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.assistant.nlu import VENUE_CATEGORIES, Parsed, fold
+from app.assistant.nlu import TERM_FORMS, VENUE_CATEGORIES, Parsed, fold
 from app.categories import AMENITIES, CATEGORIES
 from app.models import AirStation, Attendance, Event, Occurrence, WeatherStation
 from app.routers.events import attendance_counts, feature, is_open
@@ -29,6 +29,11 @@ PL_LABELS = {
     "education": "edukacja", "family": "rodzina i dzieci", "business": "biznes", "health": "zdrowie",
     "food": "jedzenie i picie", "other": "inne", "toilets": "toalety", "aed": "defibrylatory (AED)",
 }  # fmt: skip
+PREFERENCE_LABELS = {
+    "free": {"pl": "za darmo", "en": "free"},
+    "cheap": {"pl": "tanio", "en": "cheap"},
+    "family-friendly": {"pl": "dla rodzin", "en": "family-friendly"},
+}
 WEEKDAYS = {
     "pl": ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."],
     "en": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -69,21 +74,33 @@ TEXT = {
         "en": "I didn't get that. Try “theatre tomorrow”, “yoga in Mokotów”, “what's on tonight in Praga”, or type “help”.",
     },
     "none": {
-        "pl": "Nic nie znalazłem dla: {what}. Spróbuj innego dnia albo dzielnicy.",
-        "en": "Nothing found for: {what}. Try another day or district.",
+        "pl": "Nic nie znalazłem dla: {what}. Wyszukiwarka nie pokaże ofert, których nie ma w bazie.",
+        "en": "Nothing found for: {what}. Search cannot show listings that are not in the database.",
     },
     "found": {"pl": "Znalazłem {n} dla: {what}.", "en": "Found {n} for: {what}."},
     "close": {
-        "pl": "Nic dokładnie dla: {what}. Podobne propozycje:",
-        "en": "Nothing exactly for: {what}. Related options:",
+        "pl": "Nic dokładnie dla: {what}. Poniżej są oddzielnie opisane alternatywy i zmienione kryteria:",
+        "en": "No exact matches for: {what}. The separately labelled alternatives below say what changed:",
     },
-    # suggestion groups: never presented as matches, each label says what was relaxed
+    "no_location": {
+        "pl": "Nie mam Twojej lokalizacji, więc nie potwierdzę, co jest blisko. "
+        "Podaj dzielnicę lub udostępnij lokalizację.",
+        "en": "I do not have your location, so I cannot confirm what is nearby. "
+        "Add a district or share your location.",
+    },
+    # suggestion groups (k-bar's labels): never presented as matches, each label says what was relaxed
     "sugg_broad": {
-        "pl": "Więcej z kategorii: {cats}; dokładne dopasowanie nie jest potwierdzone",
-        "en": "More {cats}; the exact match is not confirmed",
+        "pl": "Więcej wydarzeń z kategorii: {cats}; dokładny gatunek nie jest potwierdzony",
+        "en": "More {cats} events; the exact match is not confirmed",
     },
-    "sugg_elsewhere": {"pl": "Pasujące w innych częściach Warszawy", "en": "Matches elsewhere in Warsaw"},
-    "sugg_later": {"pl": "Pasujące w ciągu najbliższych 30 dni", "en": "Matches in the next 30 days"},
+    "sugg_elsewhere": {
+        "pl": "Więcej podobnych wyników w innych dzielnicach Warszawy",
+        "en": "More matches elsewhere in Warsaw",
+    },
+    "sugg_later": {
+        "pl": "Podobne wydarzenia w ciągu najbliższych 30 dni",
+        "en": "Similar matches in the next 30 days",
+    },
     "more_end": {"pl": "To już wszystko dla: {what}.", "en": "That's everything for: {what}."},
     "more_hint": {"pl": "Napisz „więcej”, żeby zobaczyć kolejne.", "en": "Type “more” for the next ones."},
     "map_hint": {"pl": "Kliknij, żeby otworzyć na mapie.", "en": "Tap one to open it on the map."},
@@ -205,6 +222,7 @@ def describe(p: Parsed, lang: str) -> str:
         for x in p.terms
         if not any(x in fold(label(c, lang)) for c in p.categories)
     ]
+    parts += [PREFERENCE_LABELS[x][lang] for x in p.preferences]
     if p.when:
         if p.when.key in TEXT["when"]:
             parts.append(TEXT["when"][p.when.key][lang])
@@ -250,14 +268,32 @@ def point(here: tuple[float, float]):
     return func.ST_GeogFromText(literal(f"SRID=4326;POINT({here[0]} {here[1]})"))
 
 
-def term_score(terms: list[str], e: Event) -> int:
-    title, rest = fold(e.title), fold(f"{e.venue_name or ''} {e.lead or ''} {e.address or ''}")
+def forms(term: str) -> list[str]:
+    return TERM_FORMS.get(term, [term])  # "italian" is also "wloska"
+
+
+def mentions(text: str, term: str) -> bool:
+    return any(f in text or stem(f) in text for f in forms(term))
+
+
+def confirmed(terms: list[str], e: Event) -> bool:
+    """Exact (k-bar's rule): every asked word is in the listing, not just one of them."""
+    fields = [e.title, e.lead, e.text_plain, e.venue_name, e.address, e.district, *(e.categories or [])]
+    text = fold(" ".join(filter(None, fields)))
+    return all(mentions(text, term) for term in terms)
+
+
+def term_score(terms: list[str], e: Event, preferences: list[str] = ()) -> int:
+    """k-bar's ranking: a word in the title counts 4, elsewhere 1; soft preferences count double."""
+    title = fold(e.title)
+    rest = fold(" ".join(filter(None, [e.lead, e.text_plain, e.venue_name])))
     score = 0
-    for term in terms:
-        if term in title or stem(term) in title:
-            score += 3
-        elif term in rest or stem(term) in rest:
-            score += 1
+    for term in [*terms, *preferences]:
+        weight = 2 if term in preferences else 1
+        if mentions(title, term):
+            score += 4 * weight
+        elif mentions(rest, term):
+            score += weight
     return score
 
 
@@ -266,8 +302,11 @@ def term_filter(terms: list[str]):
         folded(Event.title),
         folded(func.coalesce(Event.venue_name, "")),
         folded(func.coalesce(Event.lead, "")),
+        folded(func.coalesce(Event.text_plain, "")),
+        folded(func.coalesce(Event.address, "")),
+        folded(func.coalesce(Event.district, "")),
     ]
-    return or_(*(c.contains(stem(term)) for term in terms for c in cols))
+    return or_(*(c.contains(stem(f)) for term in terms for f in forms(term) for c in cols))
 
 
 def window(p: Parsed, now: datetime, default_days: int = 30) -> tuple[datetime, datetime]:
@@ -396,30 +435,44 @@ def count(n: int, lang: str) -> str:
 # ---------- handlers: (db, parsed, lang, here, now, offset) -> (answer, features) ----------
 
 
+def rank(rows: list, p: Parsed, here, start: datetime) -> list:
+    """k-bar's order: the asked words, then distance (when asked for "near me"), then what starts first."""
+    far = float("inf")
+
+    def key(r):
+        e, o = r[0], r[1]
+        near = here and p.near and e.lat is not None
+        dist = (e.lng - here[0]) ** 2 * 0.37 + (e.lat - here[1]) ** 2 if near else far  # cos(52°)² ≈ 0.37
+        on_already = o is not None and o.starts_at < start  # what starts in the window first
+        return (
+            -term_score(p.terms, e, p.preferences),
+            dist,
+            on_already,
+            o.starts_at.timestamp() if o else far,
+        )
+
+    return sorted(rows, key=key)
+
+
 def matches(db, p, lang, here, now):
-    """Exact matches (the words, if any, appear in the event) and broad ones (only the category matches)."""
+    """Exact matches (every asked word appears in the listing) and broad ones (only the category matches)."""
     start, end = window(p, now)
+    if p.near and here is None:
+        return [], [], start  # "near me" without a position: nothing can be confirmed as nearby
     rows = [(e, o, a, w) for e, o, a, w in occurrences(db, p, start, end, here)]
     broad: list = []
     if p.terms:
-        scored = [(term_score(p.terms, r[0]), r) for r in rows]
-        if any(score for score, _ in scored):
-            broad = [r for score, r in scored if not score] if p.categories else []
-            scored = [x for x in scored if x[0] > 0]
-            scored.sort(key=lambda x: -x[0])  # stable: soonest first within a score
-            rows = [r for _, r in scored]
-        elif p.categories:
-            rows, broad = [], rows  # nothing mentions the words: the category matches are broad, not exact
+        broad = [r for r in rows if not confirmed(p.terms, r[0])] if p.categories else []
+        rows = [r for r in rows if confirmed(p.terms, r[0])]
     if VENUE_CATEGORIES & set(p.categories) or (not rows and (p.categories or p.terms)):
         at, _ = check_time(p, now)
         venues = [v for v in places(db, p, here) if not v.opening_hours or open_at(v, at)]
         if p.terms:
-            venues.sort(key=lambda v: -term_score(p.terms, v))
             if p.categories:
-                broad += [(v, None, 0, 0) for v in venues if not term_score(p.terms, v)]
-                venues = [v for v in venues if term_score(p.terms, v)]
+                broad += [(v, None, 0, 0) for v in venues if not confirmed(p.terms, v)]
+            venues = [v for v in venues if confirmed(p.terms, v)]
         rows += [(v, None, 0, 0) for v in venues]
-    return rows, broad, start
+    return rank(rows, p, here, start), rank(broad, p, here, start), start
 
 
 def suggestions(db, p, lang, here, now, exact: list, broad: list) -> list[dict]:
@@ -437,8 +490,6 @@ def suggestions(db, p, lang, here, now, exact: list, broad: list) -> list[dict]:
         if picked:
             groups.append({"kind": kind, "label": heading, "results": picked})
 
-    if broad:
-        group("broad", t("sugg_broad", lang, cats=", ".join(label(c, lang) for c in p.categories)), broad)
     if not exact and (p.areas or p.near):
         group(
             "elsewhere",
@@ -447,20 +498,25 @@ def suggestions(db, p, lang, here, now, exact: list, broad: list) -> list[dict]:
         )
     if not exact and p.when and p.when.key != "now":
         group("later", t("sugg_later", lang), matches(db, replace(p, when=None), lang, here, now)[0])
+    if broad:
+        group("broad", t("sugg_broad", lang, cats=", ".join(label(c, lang) for c in p.categories)), broad)
     return groups
 
 
 def find(db, p, lang, here, now, offset):
-    if not (p.categories or p.terms or p.when or p.areas or p.near or p.evening or p.morning):
+    if not (
+        p.categories or p.terms or p.when or p.areas or p.near or p.evening or p.morning or p.preferences
+    ):
         return t("unknown", lang), []
     rows, broad, start = matches(db, p, lang, here, now)
     groups = suggestions(db, p, lang, here, now, rows, broad)
     what = describe(p, lang)
     features = [feature(e, o, a, w, lang=lang) for e, o, a, w in rows]
     if not rows:
+        no_position = p.near and here is None
         if not groups:
-            return t("none", lang, what=what), []
-        lines = [t("close", lang, what=what)]
+            return t("no_location" if no_position else "none", lang, what=what), []
+        lines = [t("no_location" if no_position else "close", lang, what=what)]
         for g in groups:
             lines += [g["label"] + ":", *("• " + f.properties["title"] for f in g["results"][:2])]
         lines.append(t("map_hint", lang))
