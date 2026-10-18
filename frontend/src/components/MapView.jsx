@@ -5,6 +5,7 @@ import { useConfig } from '../config/store'
 import { WARSAW_CENTER } from '../data/api'
 import { categoryMatchExpr } from '../data/categories'
 import { closedNow, enabledPinGroups, PIN_GROUPS, pinGroup, withPinGroups } from '../data/pinGroups'
+import { PIN_TYPES } from '../data/pinTypes'
 import { ME_STYLES } from './meMarker'
 import { CITY_CLICK_LAYERS, ensureCityLayers, highlightWalk, setCityData, setCityVisibility } from './cityLayers'
 
@@ -18,7 +19,7 @@ const AREA_FILL_OPACITY = ['interpolate', ['linear'], ['zoom'], 11, 0.5, 16, 0.3
 const FADE = { duration: 900, delay: 0 }
 // what fades out on the start page and back in when the map is entered: [layer, paint property, shown value]
 const REVEAL = [
-  ['wl-dots', 'circle-stroke-opacity', 1], ['wl-glow', 'circle-opacity', 0.55], ['wl-starred', 'circle-stroke-opacity', 1],
+  ['wl-dots', 'circle-stroke-opacity', 1], ['wl-glow', 'circle-opacity', 0.55], ['wl-starred', 'circle-stroke-opacity', 1], ['wl-icons', 'icon-opacity', 1],
   ['wl-busyareas-fill', 'fill-opacity', AREA_FILL_OPACITY], ['wl-busyareas-line', 'line-opacity', 1], ['wl-busyareas-label', 'text-opacity', 1],
   ['wl-route', 'line-opacity', 1], ['wl-route-casing', 'line-opacity', 0.9],
 ]
@@ -121,7 +122,7 @@ function homeView(m, features) {
 }
 
 const EMPTY = { type: 'FeatureCollection', features: [] }
-const LAYERS = ['wl-glow', 'wl-dots', 'wl-starred', 'wl-selected']
+const LAYERS = ['wl-glow', 'wl-dots', 'wl-icons', 'wl-starred', 'wl-selected']
 
 function timeRange(window) {
   const now = new Date()
@@ -298,6 +299,11 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
       paint: { 'line-color': vRef.current.accent, 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 2, 16, 3], 'line-dasharray': [2, 1.5], 'line-opacity': 0.9 } })
     if (!m.getLayer('wl-glow')) m.addLayer({ id: 'wl-glow', type: 'circle', source: SRC, paint: { 'circle-blur': 1, 'circle-opacity': 0.55 } })
     if (!m.getLayer('wl-dots')) m.addLayer({ id: 'wl-dots', type: 'circle', source: SRC, paint: {} })
+    // pin icons: a round badge per type (cinema, bank, school …) on top of the dots, which stay as the tap target
+    ensurePinIcons(m)
+    if (!m.getLayer('wl-icons')) m.addLayer({ id: 'wl-icons', type: 'symbol', source: SRC,
+      layout: { 'icon-image': ['concat', 'pt-', ['coalesce', ['get', 'pin_type'], 'other']], 'icon-allow-overlap': true, 'icon-ignore-placement': true },
+      paint: { 'icon-opacity': 1 } })
     if (!m.getLayer('wl-starred')) m.addLayer({ id: 'wl-starred', type: 'circle', source: SRC, paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#f2a900', 'circle-stroke-width': 3 } })
     if (!m.getLayer('wl-selected')) m.addLayer({ id: 'wl-selected', type: 'circle', source: SRC, filter: ['==', ['get', 'event_id'], '__none__'], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3, 'circle-radius': 16 } })
     ensureCityLayers(m, cityRef.current.city, before, 'wl-glow')
@@ -392,7 +398,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     m.setPaintProperty('wl-boundary-line', 'line-color', values.accent)
   }, [values.cityBoundary, values.accent])
 
-  useEffect(() => { const m = map.current; if (m?.getLayer('wl-dots')) { styleMarkers(m, values); if (!revealedRef.current) applyReveal(m, values, false) } }, [values.markerStyle, values.markerSize, values.colorBy, values.accent])
+  useEffect(() => { const m = map.current; if (m?.getLayer('wl-dots')) { styleMarkers(m, values); if (!revealedRef.current) applyReveal(m, values, false) } }, [values.markerStyle, values.markerSize, values.colorBy, values.accent, values.pinIcons])
 
   function refreshFilters(m) {
     if (!m?.getLayer('wl-dots')) return
@@ -400,6 +406,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     const f = buildFilter(vRef.current, favourites, favOnly)
     m.setFilter('wl-dots', f)
     m.setFilter('wl-glow', f)
+    if (m.getLayer('wl-icons')) m.setFilter('wl-icons', f)
     m.setFilter('wl-starred', ['all', f, ['in', ['get', 'event_id'], ['literal', [...favourites]]]])
     m.setLayoutProperty('wl-starred', 'visibility', vRef.current.starredDefault || favOnly ? 'visible' : 'none')
   }
@@ -469,11 +476,45 @@ function styleMarkers(m, v) {
     glow: { 'circle-radius': base, 'circle-color': color, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.2, 'circle-opacity': 1 },
     pin: { 'circle-radius': bigger(1.5), 'circle-color': color, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5, 'circle-opacity': 1 },
   }[v.markerStyle]
+  const icons = v.pinIcons !== false && m.getLayer('wl-icons')
+  if (icons) {
+    // the dots turn into invisible tap targets the size of the badge; the badge does the showing
+    const size = iconScale(s)
+    Object.assign(paint, { 'circle-radius': iconScale(s * ICON_R), 'circle-opacity': 0, 'circle-stroke-width': 0 })
+    m.setLayoutProperty('wl-icons', 'icon-size', size)
+  }
   for (const [k, val] of Object.entries(paint)) m.setPaintProperty('wl-dots', k, val)
+  if (m.getLayer('wl-icons')) m.setLayoutProperty('wl-icons', 'visibility', icons ? 'visible' : 'none')
   m.setPaintProperty('wl-glow', 'circle-color', color)
   m.setPaintProperty('wl-glow', 'circle-radius', bigger(2.6))
-  m.setLayoutProperty('wl-glow', 'visibility', v.markerStyle === 'glow' ? 'visible' : 'none')
-  m.setPaintProperty('wl-starred', 'circle-radius', bigger(1.7))
+  m.setLayoutProperty('wl-glow', 'visibility', v.markerStyle === 'glow' && !icons ? 'visible' : 'none')
+  m.setPaintProperty('wl-starred', 'circle-radius', icons ? iconScale(s * (ICON_R + 2.5)) : bigger(1.7))
+}
+
+// ---------- pin icons (data/pinTypes.js) ----------
+const ICON_R = 14 // badge radius in CSS px at icon-size 1 (white rim included)
+/** icon-size by zoom: small over the whole city, full size in a street. `k` scales it (marker size, radius). */
+const iconScale = (k) => ['interpolate', ['linear'], ['zoom'], 9, 0.42 * k, 11, 0.55 * k, 13, 0.72 * k, 15, 0.9 * k, 17, 1.05 * k, 19, 1.25 * k]
+
+/** One image per type: a round badge in the type's colour, white rim, soft shadow, the emoji in the middle. */
+function ensurePinIcons(m) {
+  const ratio = 2, pad = 3, r = ICON_R, size = (r + pad) * 2
+  for (const [id, t] of Object.entries(PIN_TYPES)) {
+    if (m.hasImage(`pt-${id}`)) continue
+    const c = document.createElement('canvas')
+    c.width = c.height = size * ratio
+    const g = c.getContext('2d')
+    g.scale(ratio, ratio)
+    const mid = size / 2
+    g.shadowColor = 'rgba(0,0,0,.3)'; g.shadowBlur = 3; g.shadowOffsetY = 1
+    g.beginPath(); g.arc(mid, mid, r, 0, Math.PI * 2); g.fillStyle = '#ffffff'; g.fill()
+    g.shadowColor = 'transparent'
+    g.beginPath(); g.arc(mid, mid, r - 2.2, 0, Math.PI * 2); g.fillStyle = t.color; g.fill()
+    g.font = '14px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'
+    g.textAlign = 'center'; g.textBaseline = 'middle'
+    g.fillText(t.emoji, mid, mid + 1)
+    m.addImage(`pt-${id}`, g.getImageData(0, 0, c.width, c.height), { pixelRatio: ratio })
+  }
 }
 
 function styleRoute(m, v) {

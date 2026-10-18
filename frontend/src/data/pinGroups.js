@@ -1,4 +1,5 @@
 import { isOpenNow } from './hours'
+import { pinType } from './pinTypes'
 
 /**
  * The toolbar pin button's options. Every pin belongs to exactly one group (first match wins), so turning
@@ -37,13 +38,13 @@ export function pinGroup(p) {
 }
 
 /**
- * The same features with `pin_group` set, and `closed_now` on places whose opening hours say they're
- * closed right now (for the pin box's "Open now"), for the map's filter.
+ * The same features with `pin_group` set, `pin_type` (which icon: data/pinTypes.js), and `closed_now` on
+ * places whose opening hours say they're closed right now (for the pin box's "Open now"), for the map.
  */
 export function withPinGroups(fc) {
   if (!fc) return fc
   const at = new Date()
-  return { ...fc, features: fc.features.map((f) => ({ ...f, properties: { ...f.properties, pin_group: pinGroup(f.properties), closed_now: closedNow(f.properties, at) } })) }
+  return { ...fc, features: fc.features.map((f) => ({ ...f, properties: { ...f.properties, pin_group: pinGroup(f.properties), pin_type: pinType(f.properties), closed_now: closedNow(f.properties, at) } })) }
 }
 
 /** "Open now" hides places that are closed or have no hours; dated events and classes are left alone. */

@@ -423,3 +423,11 @@ export async function fetchAttendees(occurrenceId) {
 export async function requestJoin(occurrenceId, targetUserId, message = null) {
   return authed(`/occurrences/${occurrenceId}/join-requests`, { method: 'POST', body: { target_user_id: targetUserId, message }, timeout: 8000 })
 }
+
+/* ---------- people on the map: "share my area" (backend/app/routers/people.py) ---------- */
+
+/** Everyone sharing their area right now (rounded to ~100 m), with the open invitation they host next. */
+export const fetchSharingPeople = () => maybeAuthed('/people/sharing')
+export const fetchMyArea = () => authed('/me/area')
+/** share: true needs where I am ([lng, lat]); false hides my pin at once. */
+export const setMyArea = (share, lngLat) => authed('/me/area', { method: 'PUT', body: { share, ...(lngLat && { lng: lngLat[0], lat: lngLat[1] }) } })

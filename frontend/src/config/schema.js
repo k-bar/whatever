@@ -88,6 +88,8 @@ export const SECTIONS = [
     params: [
       { id: 'markerStyle', label: 'Marker style', type: 'select', default: 'glow', options: [
         { value: 'dot', label: 'Dot' }, { value: 'ring', label: 'Ring' }, { value: 'glow', label: 'Glow' }, { value: 'pin', label: 'Pin (big)' }] },
+      // a small round badge per pin with the emoji and colour of its type (data/pinTypes.js); off = the style above
+      { id: 'pinIcons', label: 'Pin icons (emoji per type)', type: 'toggle', default: true },
       { id: 'markerSize', label: 'Marker size', type: 'range', min: 0.5, max: 2, step: 0.1, default: 1 },
       { id: 'colorBy', label: 'Colour markers by', type: 'select', default: 'category', options: [
         { value: 'category', label: 'Category' }, { value: 'kind', label: 'Event / place' }, { value: 'mono', label: 'Accent colour' }] },
@@ -104,6 +106,8 @@ export const SECTIONS = [
       { id: 'showToilets', label: 'Map: toilets near your route', type: 'toggle', default: true },
       { id: 'showAed', label: 'Map: defibrillators (AED) near your route', type: 'toggle', default: true },
       { id: 'showWalks', label: 'Map: walking routes', type: 'toggle', default: true },
+      // toolbar "People": everyone sharing their area, as pulsing photos (components/PeopleLayer.jsx)
+      { id: 'showPeople', label: 'Map: people sharing their area', type: 'toggle', default: true },
       { id: 'showEvents', label: 'Show events', type: 'toggle', default: true },
       { id: 'showPlaces', label: 'Show venues', type: 'toggle', default: true },
       { id: 'showPitches', label: 'Show open pitches', type: 'toggle', default: false },

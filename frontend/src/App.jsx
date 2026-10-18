@@ -11,6 +11,7 @@ import { useIsMobile } from './hooks/useMedia'
 import { curate } from './mapboxes/curate'
 import { BottomSheet } from './components/BottomSheet'
 import { BottomToolbar } from './components/BottomToolbar'
+import { PeopleLayer } from './components/PeopleLayer'
 import { InterfaceEditor } from './components/InterfaceEditor'
 import { DEV_TOOLS } from './config/env'
 import { Mermaid } from './components/Icons'
@@ -58,6 +59,7 @@ export default function App() {
   const [eventChat, setEventChat] = useState(null) // the event chat open in Messages: { kind: 'event' | 'userevent', id }
   const myChats = useMyChats()
   useEffect(() => startChatSocket(), []) // live chat messages while logged in (data/chat.js)
+  const [person, setPerson] = useState(null) // { id } of someone tapped on the map: their profile in the slide-over
   const [view, setView] = useState('landing') // every visit starts on the start page ("Search")
   const [flying, setFlying] = useState(false) // the search pill is in flight between the start page and the map
   const [revealed, setRevealed] = useState(false) // pins and areas shown: only once the pill has landed on the map
@@ -211,7 +213,7 @@ export default function App() {
   // ---------- the slide-over tray: the burger opens it on its menu ('menu'), items open inside it ----------
   // the map shows only favourite spots while that section is open
   const onMenu = (id) => { if (id === 'create') { startCreate(); return } setFavOnly(id === 'favourites'); setPanel(id) }
-  const closePanel = () => { setPanel(null); setPanelFull(false); setFavOnly(false); setEventChat(null) }
+  const closePanel = () => { setPanel(null); setPanelFull(false); setFavOnly(false); setEventChat(null); setPerson(null) }
   const openChat = (target) => { setDraftPin(null); setEventChat(target); setPanel('messages') }
   // the event a chat belongs to, back on the map: public pins by id, private ones by user_event_id
   const openChatEvent = (info) => {
@@ -293,7 +295,9 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   })
   // the account pill (top right, everywhere) opens the profile section of the slide-over
-  const openProfile = () => { setDraftPin(null); if (view !== 'map') setView('map'); setFavOnly(false); setPanel('profile') }
+  const openProfile = () => { setDraftPin(null); if (view !== 'map') setView('map'); setFavOnly(false); setPerson(null); setPanel('profile') }
+  // a person's pulsing pin on the map ("share my area"): their profile, in the same slide-over
+  const openPerson = (id) => { setDraftPin(null); setFavOnly(false); setPerson({ id, at: Date.now() }); setPanel('profile') }
   const goHome = () => {
     flight.current = { from: rectOf('.top-left .search'), text: document.querySelector('.top-left .search input')?.value || '' }
     setFlying(true); setRevealed(false)
@@ -329,6 +333,7 @@ export default function App() {
       <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} searchArea={results?.area} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
         onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={revealed} draftPin={draftPin} onDraftPin={setDraftPin}
         city={cityShown} onPickWalk={pickWalk} />
+      <PeopleLayer getMap={getMap} show={view === 'map' && values.showPeople !== false} onOpen={openPerson} />
 
       <AuthLinks />
 
@@ -372,7 +377,7 @@ export default function App() {
 
       <Stage key="toolbar" delay={0.45}>
         <BottomToolbar busy={values.busyAreas} onBusy={() => { set('busyAreas', !values.busyAreas); say(t(values.busyAreas ? 'Busy areas off' : 'Busy areas on')) }}
-          onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()} />
+          onZoom={(d) => mapRef.current?.zoomBy(d)} onHome={() => mapRef.current?.home()} me={me} />
       </Stage>,
 
       // the live API status and the land-use key live in the Data sources panel (SidePanels.jsx)
@@ -384,7 +389,7 @@ export default function App() {
           <SlideOver key="slideover" section={panel} onSection={onMenu} onBack={backToMenu} onClose={closePanel} full={panelFull}
             onFull={panel === 'selects' && !panelFull ? showSelectsPage : () => setPanelFull((f) => !f)} onHome={goHome} mobile={mobile} unread={myChats.total}>
             {panel === 'selects' && <SelectsRail features={featureList} inSheet single onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
-            {panel === 'profile' && <ProfilePanel features={featureList} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} onFavourites={() => onMenu('favourites')} />}
+            {panel === 'profile' && <ProfilePanel person={person} features={featureList} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} onFavourites={() => onMenu('favourites')} />}
             {panel === 'messages' && <MessagesPanel chats={myChats} chat={eventChat} onOpenChat={setEventChat} onOpenEvent={openChatEvent} />}
             {panel === 'favourites' && <FavouritesPanel features={featureList} favourites={fav.ids} onPick={(f) => { if (mobile || panelFull) closePanel(); openBox(f) }} />}
             {panel === 'settings' && <SettingsPanel pins={featureList.length} pinCounts={pinCounts} cityCounts={cityCounts} getMap={() => mapRef.current?.getMap()} mobile={mobile} />}

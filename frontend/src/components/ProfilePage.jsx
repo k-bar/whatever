@@ -40,18 +40,22 @@ export function Avatar({ user, size = 44 }) {
 }
 
 /** Profile area of the slide-over: me by default; tapping a friend opens theirs (with a way back). */
-export function ProfilePage({ features, onPick }) {
+export function ProfilePage({ features, onPick, person, onViewing }) {
   const { t } = useLang()
   const [meId, setMeId] = useState(undefined) // undefined = loading, null = logged out
   const [viewing, setViewing] = useState(null) // another person's id, null = me
   const [editing, setEditing] = useState(false)
   const [rev, setRev] = useState(0) // bump to reload after edits / friend changes
+  const personRef = useRef(person) // someone tapped on the map: open on them, not on me
+  personRef.current = person
 
   useEffect(() => {
-    const load = () => fetchMe().then((m) => { setMeId(m ? m.id : null); setViewing(null); setEditing(false) })
+    const load = () => fetchMe().then((m) => { setMeId(m ? m.id : null); setViewing(personRef.current?.id ?? null); setEditing(false) })
     load()
     return onAuthChange(load)
   }, [])
+  useEffect(() => { if (person) { setViewing(person.id); setEditing(false) } }, [person])
+  useEffect(() => { onViewing?.(viewing != null && viewing !== meId) }, [viewing, meId, onViewing])
 
   if (meId === undefined) return <div className="res-empty">{t('Loading…')}</div>
   if (meId === null && viewing == null) {
