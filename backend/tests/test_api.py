@@ -40,7 +40,7 @@ def test_anonymous_browse(client, db):
     assert r.status_code == 200
     fc = r.json()
     assert fc["type"] == "FeatureCollection" and fc["features"]
-    f = fc["features"][0]
+    f = next(x for x in fc["features"] if x["properties"]["source"] == "warsaw_events")
     assert f["geometry"]["type"] == "Point" and "starts_at" in f["properties"]
 
     event = client.get(f"/events/{f['properties']['event_id']}", params={"past": True}).json()

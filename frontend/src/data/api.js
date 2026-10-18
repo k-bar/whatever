@@ -266,10 +266,43 @@ export async function login(email, password) {
   writeToken(r.access_token)
 }
 
-/** POST /auth/register: a new account, logged in straight away. */
+/** POST /auth/register: a new account, logged in straight away. A confirmation link is mailed to `email`. */
 export async function register(display_name, email, password) {
   const r = await get('/auth/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ display_name, email, password }), timeout: 10000 })
   writeToken(r.access_token)
+}
+
+const post = (path, body) => get(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), timeout: 10000 })
+
+/** The link in the confirmation mail (?verify=…). Works logged out too. */
+export async function verifyEmail(token) {
+  const me = await post('/auth/verify', { token })
+  window.dispatchEvent(new Event(AUTH_EVENT)) // email_verified changed for everyone showing "confirm your email"
+  return me
+}
+export const resendVerification = () => authed('/auth/verify/resend', { method: 'POST' })
+/** Mails a reset link; answers the same whether or not the address has an account. */
+export const forgotPassword = (email) => post('/auth/password/forgot', { email })
+/** From the reset mail (?reset=…): new password, every other session ends, this browser is logged in. */
+export async function resetPassword(token, password) {
+  writeToken((await post('/auth/password/reset', { token, password })).access_token)
+}
+/** Needs the current password; other devices are logged out, this one gets a fresh token. */
+export async function changePassword(current_password, new_password) {
+  writeToken((await authed('/me/password', { method: 'POST', body: { current_password, new_password } })).access_token)
+}
+export async function changeEmail(email, password) {
+  const me = await authed('/me/email', { method: 'POST', body: { email, password } })
+  window.dispatchEvent(new Event(AUTH_EVENT))
+  return me
+}
+export async function logoutEverywhere() {
+  writeToken((await authed('/auth/logout-all', { method: 'POST' })).access_token)
+}
+/** Delete the account for good (DELETE /me, needs the password); logs out here too. */
+export async function deleteAccount(password) {
+  await authed('/me', { method: 'DELETE', body: { password } })
+  writeToken(null)
 }
 
 /** A call made as the logged-in user. No token, or an expired one, throws LoginRequired. */
@@ -284,9 +317,15 @@ async function authed(path, { body, ...opts } = {}) {
     })
   } catch (e) {
     if (e.status === 401) { writeToken(null); throw new LoginRequired() }
+    if (e.status === 403 && e.message === 'Confirm your email first') e.verifyRequired = true
     throw e
   }
 }
+
+/** The current login token, for the chat socket (data/chat.js). */
+export const sessionToken = readToken
+export const authedCall = (path, opts) => authed(path, opts)
+export const apiBase = BASE
 
 /** My profile (GET /me) from PostgreSQL. Only when this browser already has a session: looking never creates an account. */
 export async function fetchMe() {

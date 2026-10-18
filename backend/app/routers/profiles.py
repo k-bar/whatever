@@ -12,8 +12,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app import usernames
-from app.auth import get_current_user, get_optional_user
+from app.auth import get_current_user, get_optional_user, get_verified_user
 from app.db import get_db
+from app.friends import friend_ids, pair
 from app.models import Attendance, Event, Friendship, Occurrence, User
 from app.schemas import (
     FriendDecisionIn,
@@ -31,15 +32,6 @@ from app.userevents.router import photo_url
 router = APIRouter(tags=["profiles"])
 
 
-def pair(db: Session, a: int, b: int) -> Friendship | None:
-    return db.scalar(
-        select(Friendship).where(
-            func.least(Friendship.requester_id, Friendship.addressee_id) == min(a, b),
-            func.greatest(Friendship.requester_id, Friendship.addressee_id) == max(a, b),
-        )
-    )
-
-
 def relation(db: Session, viewer: User | None, user: User) -> str:
     if viewer is None:
         return "none"
@@ -51,16 +43,6 @@ def relation(db: Session, viewer: User | None, user: User) -> str:
     if f.status == "accepted":
         return "friends"
     return "request_sent" if f.requester_id == viewer.id else "request_received"
-
-
-def friend_ids(db: Session, user_id: int) -> list[int]:
-    rows = db.execute(
-        select(Friendship.requester_id, Friendship.addressee_id).where(
-            Friendship.status == "accepted",
-            or_(Friendship.requester_id == user_id, Friendship.addressee_id == user_id),
-        )
-    ).all()
-    return [b if a == user_id else a for a, b in rows]
 
 
 ENDED = func.coalesce(Occurrence.ends_at, Occurrence.starts_at)
@@ -239,7 +221,7 @@ def request_out(f: Friendship, me: User) -> FriendRequestOut:
 
 @router.post("/friends/requests", response_model=FriendRequestOut, status_code=201)
 def send_friend_request(
-    body: FriendRequestIn, me: User = Depends(get_current_user), db: Session = Depends(get_db)
+    body: FriendRequestIn, me: User = Depends(get_verified_user), db: Session = Depends(get_db)
 ):
     """Ask @username to be friends. If they already asked you, this accepts it."""
     other = db.scalar(select(User).where(User.username == usernames.normalize(body.username)))
@@ -283,7 +265,7 @@ def my_friend_requests(
 def answer_friend_request(
     request_id: int,
     body: FriendDecisionIn,
-    me: User = Depends(get_current_user),
+    me: User = Depends(get_verified_user),
     db: Session = Depends(get_db),
 ):
     f = db.get(Friendship, request_id)

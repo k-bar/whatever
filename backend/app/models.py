@@ -129,7 +129,18 @@ class User(Base):
     area_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # the demo people from app/mocksocial.py: their profiles and event lists are public
     is_mock: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
+    # Account security (app/auth.py). Null = email not verified yet; social features need it verified.
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Part of every login token: bumping it (password change / reset, "log out everywhere") ends all sessions
+    token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    last_mail_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # throttles resends
+    failed_logins: Mapped[int] = mapped_column(SmallInteger, default=0, server_default="0")
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    @property
+    def email_verified(self) -> bool:
+        return self.email_verified_at is not None
 
 
 class Attendance(Base):
@@ -187,6 +198,52 @@ class Friendship(Base):
 
     requester: Mapped[User] = relationship(foreign_keys=[requester_id])
     addressee: Mapped[User] = relationship(foreign_keys=[addressee_id])
+
+
+class Chat(Base):
+    """An event's chat. Public events (scraped or user-made) use event_id; private user events,
+    which have no row in events, use user_event_id. Created on first use."""
+
+    __tablename__ = "chats"
+    __table_args__ = (
+        CheckConstraint("num_nonnulls(event_id, user_event_id) = 1", name="ck_chats_one_target"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    event_id: Mapped[int | None] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"), unique=True)
+    user_event_id: Mapped[int | None] = mapped_column(
+        ForeignKey("user_events.id", ondelete="CASCADE"), unique=True
+    )
+    last_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ChatMember(Base):
+    """Someone following a chat (posted in it, hosts the event, or joined it): it shows in their
+    Messages list with an unread count."""
+
+    __tablename__ = "chat_members"
+
+    chat_id: Mapped[int] = mapped_column(ForeignKey("chats.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    last_read_id: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    __table_args__ = (Index("ix_chat_messages_chat_id_id", "chat_id", "id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chat_id: Mapped[int] = mapped_column(ForeignKey("chats.id", ondelete="CASCADE"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped[User] = relationship()
 
 
 class GeocodeCache(Base):

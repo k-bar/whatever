@@ -118,7 +118,7 @@ class EnvStack(cdk.Stack):
                 route53.AaaaRecord(self, f"Aaaa{rid}", zone=dns.zone, record_name=host or None, target=target)
 
         # --- box permissions ------------------------------------------------------------------
-        role = iam.Role(
+        self.role = role = iam.Role(
             self,
             "BoxRole",
             assumed_by=iam.ServicePrincipal("ec2.amazonaws.com"),

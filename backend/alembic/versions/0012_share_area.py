@@ -1,7 +1,7 @@
 """users: "share my area" (an approximate location shown to others as a pulsing pin) + demo-account flag
 
-Revision ID: 0010
-Revises: 0009
+Revision ID: 0012
+Revises: 0011
 Create Date: 2026-10-18 18:00:00
 
 """
@@ -11,8 +11,8 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-revision: str = "0010"
-down_revision: Union[str, Sequence[str], None] = "0009"
+revision: str = "0012"
+down_revision: Union[str, Sequence[str], None] = "0011"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -21,6 +21,7 @@ CATEGORIES = {
     "family": "Family & kids",
     "business": "Business",
     "health": "Health",
+    "food": "Food & drink",
     "other": "Other",
     "toilets": "Public toilets",
     "aed": "Defibrillators (AED)",
@@ -69,6 +70,35 @@ LABEL_MAP = {
     "osm:stadium": "sports",
     "osm:museum": "exhibitions",
     "osm:gallery": "exhibitions",
+    # OpenStreetMap food & drink venues (app/ingest/sources/osm_restaurants.py)
+    "osm:restaurant": "food",
+    "osm:cafe": "food",
+    "osm:food_court": "food",
+    "osm:bar": "nightlife",
+    "osm:pub": "nightlife",
+    "osm:biergarten": "nightlife",
+    # Songkick concerts (app/ingest/sources/songkick.py)
+    "songkick:concert": "music",
+    # Waw4Free categories (app/ingest/sources/waw4free.py)
+    "waw4free:koncerty": "music",
+    "waw4free:koncert": "music",
+    "waw4free:imprezy": "nightlife",
+    "waw4free:impreza": "nightlife",
+    "waw4free:stand-up": "culture",
+    "waw4free:teatr": "theatre",
+    "waw4free:film": "film",
+    "waw4free:wystawy": "exhibitions",
+    "waw4free:wystawa": "exhibitions",
+    "waw4free:targi": "markets",
+    "waw4free:warsztaty": "education",
+    "waw4free:wykłady": "education",
+    "waw4free:spotkania": "meetups",
+    "waw4free:sport": "sports",
+    "waw4free:spacer lub rower": "sports",
+    "waw4free:dla dzieci": "family",
+    "waw4free:dla młodzieży": "family",
+    "waw4free:spotkanie": "meetups",
+    "waw4free:wykład": "education",
 }
 
 # Title keywords refine broad labels like "Kultura".

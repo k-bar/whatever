@@ -16,16 +16,46 @@ class ORM(BaseModel):
 # --- auth / users -----------------------------------------------------------------------------
 
 
+Password = Annotated[str, Field(min_length=8, max_length=128)]
+
+
 class RegisterIn(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: Password
     display_name: str = Field(min_length=1, max_length=80)
     username: str | None = Field(None, max_length=31)  # optional; made from display_name when missing
 
 
 class LoginIn(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(max_length=128)
+
+
+class VerifyIn(BaseModel):
+    token: str = Field(max_length=1000)
+
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    token: str = Field(max_length=1000)
+    password: Password
+
+
+class PasswordChangeIn(BaseModel):
+    current_password: str = Field(max_length=128)
+    new_password: Password
+
+
+class EmailChangeIn(BaseModel):
+    email: EmailStr
+    password: str = Field(max_length=128)
+
+
+class AccountDeleteIn(BaseModel):
+    password: str = Field(max_length=128)
 
 
 class TokenOut(BaseModel):
@@ -89,6 +119,7 @@ class ContactUser(PublicUser):
 
 class Me(ContactUser):
     email: str
+    email_verified: bool  # false: friends, creating events, join requests and chats are locked
     first_name: str | None
     last_name: str | None
     age: int | None

@@ -13,6 +13,9 @@ import { DEV_TOOLS } from '../config/env'
 import { PIN_GROUPS } from '../data/pinGroups'
 import { CITY_LAYERS } from './cityLayers'
 import { locale, useLang } from '../i18n'
+import { useMe, VerifyBanner } from './Account'
+import { EventChat } from './EventChat'
+import { assetUrl } from '../data/api'
 
 const AV = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
 
@@ -21,11 +24,11 @@ const TRAY_ITEMS = [
   { id: 'selects', label: 'Syrenka Selects', hint: 'Picked for the next two weeks', tone: 'logo', icon: <Mermaid size={30} /> },
   { id: 'create', label: 'Create event', hint: 'Host something, invite people', tone: 'create', icon: <Plus size={22} stroke={2.6} /> },
   { id: 'profile', label: 'Profile', hint: 'You, your friends and events', tone: 'profile', icon: <Silhouette size={22} /> },
-  { id: 'messages', label: 'Messages', hint: 'People you met at events', tone: 'messages', icon: <Message size={21} stroke={2.2} /> },
+  { id: 'messages', label: 'Messages', hint: 'Event chats you follow', tone: 'messages', icon: <Message size={21} stroke={2.2} /> },
   { id: 'settings', label: 'Settings', hint: 'Data sources and the map key', tone: 'settings', icon: <Cog size={21} stroke={2} /> },
 ]
 
-function TrayMenu({ onSection }) {
+function TrayMenu({ onSection, unread = 0 }) {
   const { t } = useLang()
   return (
     <nav className="tray-menu" aria-label={t('Menu')}>
@@ -33,6 +36,7 @@ function TrayMenu({ onSection }) {
         <button key={it.id} className="tray-item" onClick={() => onSection(it.id)}>
           <span className={`tray-ic ${it.tone}`}>{it.icon}</span>
           <span className="tray-txt"><b>{t(it.label)}</b><small>{t(it.hint)}</small></span>
+          {it.id === 'messages' && unread > 0 && <span className="tray-badge" aria-label={t('{n} unread', { n: unread })}>{unread > 99 ? '99+' : unread}</span>}
           {it.id !== 'create' && <ChevronR size={18} className="tray-go" />}
         </button>
       ))}
@@ -46,7 +50,7 @@ function TrayMenu({ onSection }) {
  * The bar has the logo (back to the start page) and maximise; on a phone or maximised, the search bar is
  * covered, so the (x) moves into the bar's corner.
  */
-export function SlideOver({ section, onSection, onBack, onClose, full, onFull, onHome, mobile, children }) {
+export function SlideOver({ section, onSection, onBack, onClose, full, onFull, onHome, mobile, unread, children }) {
   const { t } = useLang()
   const atHome = section === 'menu'
   return (
@@ -65,7 +69,7 @@ export function SlideOver({ section, onSection, onBack, onClose, full, onFull, o
       </header>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={section} className="so-body" initial={{ opacity: 0, x: atHome ? -16 : 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: atHome ? -16 : 16 }} transition={{ duration: 0.2 }}>
-          {atHome ? <TrayMenu onSection={onSection} /> : (
+          {atHome ? <TrayMenu onSection={onSection} unread={unread} /> : (
             <>
               <button className="so-back" onClick={onBack}><ChevronL size={18} stroke={2.2} />{t('Menu')}</button>
               {children}
@@ -90,11 +94,13 @@ function Shell({ title, sub, children, footer }) {
 
 export function ProfilePanel({ features, onPick, onFavourites, person }) {
   const { t } = useLang()
+  const me = useMe()
   const [other, setOther] = useState(false) // looking at someone else's profile (a friend, a person on the map)
   const [requests, setRequests] = useState([])
   useEffect(() => { fetchJoinRequests().then(setRequests) }, [])
   return (
     <Shell title={t(other ? 'Profile' : 'Your profile')} sub={other ? null : t('What others see when you ask to join')}>
+      {!other && <VerifyBanner me={me} />}
       <ProfilePage features={features} onPick={onPick} person={person} onViewing={setOther} />
       {!other && <>{/* my own things, not under someone else's profile */}
       {onFavourites && (
@@ -120,11 +126,30 @@ export function ProfilePanel({ features, onPick, onFavourites, person }) {
   )
 }
 
-export function MessagesPanel() {
+/**
+ * Messages: the event chats I follow (posted in, host, or followed), newest activity first, with
+ * unread counts; or one chat when `chat` is set. Opening a chat from a map box lands here too.
+ */
+export function MessagesPanel({ chats, chat, onOpenChat, onOpenEvent }) {
   const { t } = useLang()
+  if (chat) return <EventChat key={`${chat.kind}:${chat.id}`} target={chat} onBack={() => onOpenChat(null)} onOpenEvent={onOpenEvent} />
+  const list = chats.chats
   return (
-    <Shell title={t('Messages')} sub={t('Only people you met at an event')}>
-      <div className="res-empty">{t('No messages yet. Once someone accepts your join request, you can talk here.')}</div>
+    <Shell title={t('Messages')} sub={t('Chats of events you follow')}>
+      {list === null && <div className="res-empty">{t('Loading…')}</div>}
+      {list?.map((c) => (
+        <button key={c.key} className={`sp-row chat-row ${c.unread ? 'unread' : ''}`} onClick={() => onOpenChat({ kind: c.kind, id: c.target_id })}>
+          <span className="av" style={c.image_url ? { background: `center / cover url(${assetUrl(c.image_url)})` } : { background: AV[c.target_id % AV.length] }}>{!c.image_url && c.title[0]}</span>
+          <span className="chat-row-txt">
+            <div className="t">{c.title}</div>
+            <div className="s">{c.last_message
+              ? `${c.last_message.user.display_name}: ${c.last_message.deleted ? t('Message deleted') : c.last_message.body}`
+              : c.starts_at ? fmtWhen(c.starts_at) : t('No messages yet')}</div>
+          </span>
+          {c.unread > 0 ? <span className="right tray-badge">{c.unread > 99 ? '99+' : c.unread}</span> : c.last_message_at && <span className="right">{fmtWhen(c.last_message_at)}</span>}
+        </button>
+      ))}
+      {list?.length === 0 && <div className="res-empty">{t('No chats yet. Open an event on the map and tap Chat to talk with people going.')}</div>}
     </Shell>
   )
 }

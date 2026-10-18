@@ -25,6 +25,9 @@ through the relay in Poland (see [operations.md](operations.md#warsaw-api-relay)
 | `warsaw_toilets` | Open Data `get_m_toalety` | place, category `toilets` | every ingest run | hidden from `/places` unless asked for |
 | `warsaw_aed` | Open Data `get_scb_lokalizacja_defibrylatorow` | place, category `aed` | every ingest run | hidden from `/places` unless asked for |
 | `osm_venues` | OpenStreetMap Overpass (theatres, cinemas, clubs, museums, stadiums…) | place | 24 h | ~450, ODbL, ported from Kamil's streets.gl query |
+| `osm_restaurants` | OpenStreetMap Overpass (restaurants, cafes, bars, pubs, biergartens, food courts) | place | 24 h | ODbL (Kamil) |
+| `songkick` | songkick.com Warsaw metro listings (JSON-LD `MusicEvent`, up to 5 pages) | event | 6 h | concerts (Kamil) |
+| `waw4free` | waw4free.pl Warsaw category pages | event | 4 h | free events, parties, concerts (Kamil) |
 
 Non-event feeds (`Feed` in `app/ingest/conditions.py`):
 
@@ -75,6 +78,8 @@ Datasets come from `dane.txt` (Open Data catalogue URLs) plus OpenStreetMap (`st
 | `open_sports_fields` | `open_sports_fields` | upsert by school / address / type / equipment |
 | `city_events` | `city_events` | upsert by `url` |
 | `streets_gl` | `streets_gl_venues` | upsert by OSM id |
+| restaurants | `restaurants` | OSM restaurants, cafes, bars |
+| entertainment | `entertainment_events` | Songkick + Waw4Free events |
 
 The tables are created by Alembic migration `0007` in the environment's schema, not by `create_all`.
 `src/` honours `DB_SCHEMA` (default `public`, which is prod): when running `python -m src.main` by hand
@@ -105,7 +110,7 @@ The database is one RDS instance; each environment has its own schema (`public` 
 
 `tourist_routes`, `tourist_points`, `toilets`, `weather_measurements`, `defibrillators`,
 `sports_activities`, `open_sports_fields`, `city_events`, `air_quality_stations`,
-`air_quality_measurements`, `sync_logs`, `streets_gl_venues`.
+`air_quality_measurements`, `sync_logs`, `streets_gl_venues`, `restaurants`, `entertainment_events`.
 Column lists: `API.md`, section 2.
 
 ### Migrations (`backend/alembic/versions/`)
@@ -120,6 +125,9 @@ Column lists: `API.md`, section 2.
 | `0006` | Profiles: `username`, `gender`, `hangouts`; `friendships` |
 | `0007` | Kamil's raw tables; `tourist_routes` takes his shape |
 | `0008` | kupbilecik removed: drop `kupbilecik_events`, its events marked inactive |
+| `0009` | `users.first_name`, `last_name`, `age` (private, `/me` only) |
+| `0010` | Kamil's `restaurants` and `entertainment_events` |
+| `0011` | Auth (`users.email_verified_at`, `token_version`, login lockout, mail throttle; existing users marked verified) and event chats (`chats`, `chat_members`, `chat_messages`) |
 
 `deploy.sh` runs `alembic upgrade head` in the box's schema on every deploy. CI runs `alembic upgrade
 head && alembic check` on an empty database, so models and migrations must match.
