@@ -218,3 +218,23 @@ def test_more_pages_through_the_list(client, db):
     assert "Koncert 5" in r["answer"] and "Koncert 0" not in r["answer"]
     r = ask(client, "więcej", context=r["context"])
     assert r["answer"].startswith("To już wszystko")
+
+
+@pytest.mark.parametrize(
+    "q, ui, lang",
+    [
+        ("concerts tonight", "pl", "en"),
+        ("nightlife in Śródmieście next Saturday", "pl", "en"),  # Polish place name, English question
+        ("where can I go running tomorrow morning", "pl", "en"),
+        ("koncerty dzisiaj wieczorem", "en", "pl"),
+        ("joga na Mokotowie jutro", "en", "pl"),
+        ("a jutro?", "en", "pl"),
+        ("and in Wola?", "pl", "en"),
+        ("Hala Koszyki", "en", "en"),  # can't tell: the UI language
+        ("Hala Koszyki", "pl", "pl"),
+    ],
+)
+def test_answers_in_the_language_of_the_question(q, ui, lang):
+    from app.assistant.router import question_lang
+
+    assert question_lang(q, ui) == lang
