@@ -11,6 +11,9 @@ export const WARSAW_BBOX = [20.85, 52.1, 21.27, 52.37]
 // Our declared centre point: Rondo Romana Dmowskiego (Marszałkowska × Aleje Jerozolimskie).
 export const WARSAW_CENTER = [21.0114, 52.2306]
 
+/** Events mode shows only these: a real event (not a place or a regular class) with a date. */
+export const isDatedEvent = (p) => p.kind === 'event' && Boolean(p.starts_at)
+
 export const dataStatus = { source: 'loading' } // 'api' | 'offline' | 'loading'
 
 async function get(path, opts = {}) {
@@ -30,9 +33,16 @@ async function get(path, opts = {}) {
   }
 }
 
-/** Image paths the API serves itself (user event photos) come back as "/userevents/…": point them at the API. */
-export const assetUrl = (url) => (url?.startsWith('/') ? `${BASE}${url}` : url)
-const withAssets = (f) => (f.properties.image_url?.startsWith('/') ? { ...f, properties: { ...f.properties, image_url: assetUrl(f.properties.image_url) } } : f)
+/**
+ * Image links. Paths the API serves itself (user event photos) come back as "/userevents/…": point them
+ * at the API. Outside links are asked for over https: the city's posters come as http://um.warszawa.pl/…
+ * and the site is https, so they're "mixed content" — Chrome quietly upgrades those, Safari blocks them
+ * (posters showed in Chrome only). Their server answers on https.
+ */
+export const assetUrl = (url) => (url?.startsWith('/') ? `${BASE}${url}` : url?.replace(/^http:\/\//i, 'https://'))
+const withImage = (o) => (o?.image_url ? { ...o, image_url: assetUrl(o.image_url) } : o)
+// the pin's own picture, and the posters of a place's upcoming events (the box's "Upcoming here" strip)
+const withAssets = (f) => ({ ...f, properties: { ...withImage(f.properties), ...(Array.isArray(f.properties.upcoming) && { upcoming: f.properties.upcoming.map(withImage) }) } })
 
 export async function fetchFeatures() {
   try {
@@ -87,6 +97,7 @@ export async function runSearch(mode, q, features, opts = {}) {
 }
 
 function localSearch(mode, q, features, opts = {}) {
+  if (mode === 'events') features = features.filter((f) => isDatedEvent(f.properties)) // never places, even for a category tag
   if (opts.category) { // category pill: everything tagged with it, dated things first
     const list = features.filter((f) => (f.properties.categories || []).includes(opts.category))
     list.sort((a, b) => (a.properties.kind === 'event' ? 0 : 1) - (b.properties.kind === 'event' ? 0 : 1) || String(a.properties.starts_at || 'z').localeCompare(String(b.properties.starts_at || 'z')))

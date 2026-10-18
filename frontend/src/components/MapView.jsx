@@ -233,6 +233,12 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
       maxBounds: [[20.4, 51.9], [21.8, 52.6]], attributionControl: { compact: true }, antialias: true, fadeDuration: 150,
     })
     map.current = m
+    // map credits: the (i) starts closed on every load (MapLibre opens it on wide screens); tap it to read them
+    const credits = m.getContainer().querySelector('.maplibregl-ctrl-attrib')
+    credits?.querySelector('summary')?.addEventListener('click', () => { credits.dataset.touched = '1' }, { once: true })
+    const closeCredits = () => { if (credits && !credits.dataset.touched) credits.classList.remove('maplibregl-compact-show') }
+    closeCredits()
+    m.on('styledata', closeCredits)
     m.on('load', () => { ensureLayers(m); applyMapDesign(m, vRef.current); openOnHome(m); onReady?.() })
     m.on('resize', () => openOnHome(m))
     // a drag / wheel / touch counts as the user moving the map; a window resize (also an originalEvent) doesn't
