@@ -1198,3 +1198,21 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
   .selects-rail.single .sr-item.wide .sr-text { padding: 10px 12px 12px; }
   .selects-rail.single .sr-item.wide .sr-title { font-size: 16px; min-height: calc(2em * 1.25); }
 }
+
+/* ---------- phone toolbar: two rows so every button fits (time window on top, the seven buttons below) ---------- */
+@media (max-width: 767px) {
+  .toolbar-wrap { left: 12px; right: 12px; }
+  .toolbar { flex: 1; flex-wrap: wrap; justify-content: space-between; row-gap: 4px; column-gap: 2px; padding: 6px; border-radius: 22px; }
+  .toolbar .seg { order: -1; flex: 1 0 100%; margin: 0; height: 36px; grid-template-columns: repeat(4, 1fr); }
+  .toolbar .seg-opt { font-size: 12px; padding: 0; }
+  .toolbar .sep { display: none; }
+  .toolbar > .tb, .toolbar > .pinmenu, .toolbar > .lang { flex: 1 1 0; min-width: 0; display: flex; justify-content: center; }
+  .toolbar .tb, .toolbar .tb.home, .toolbar .pinmenu .tb, .toolbar .tb.lang-btn { width: 100%; min-width: 0; height: 42px; padding: 0; }
+  .toolbar .tb.lang-btn .lang-face b { display: none; } /* flag only */
+  /* pop-ups from the pins / language buttons clear the time row above them */
+  .toolbar .pin-menu { bottom: calc(100% + 52px); }
+  .toolbar .lang-menu { bottom: calc(100% + 52px); }
+  /* things that sat just above the one-row toolbar move up with it */
+  .maplibregl-ctrl-bottom-right { bottom: calc(112px + var(--safe-b)); }
+  .toast { bottom: calc(124px + var(--safe-b)); }
+}
