@@ -65,6 +65,8 @@ export const PL = {
   'Expand': 'Rozwiń',
   '{n} messages': 'Wiadomości: {n}',
   'assistant': 'asystent',
+  'assistant · rules-based search': 'asystent · wyszukiwanie regułowe',
+  'Describe an event or place to search for.': 'Opisz wydarzenie lub miejsce, którego szukasz.',
   'Clear thread': 'Wyczyść rozmowę',
   '{n} result': '{n} wynik',
   '{n} results': 'Wyniki: {n}',

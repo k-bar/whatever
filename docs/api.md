@@ -29,7 +29,7 @@
 | GET | `/conditions` | `{weather, air}`: latest reading per station | |
 | GET | `/routes` | Tourist routes as LineStrings | |
 | GET | `/busyareas` | "Busy areas" polygons (committed GeoJSON) | |
-| POST | `/assistant` | Search bar's Assistant: plain-words question -> `{answer, results, intent, understood, area, context}` (no LLM, `app/assistant`) | body `q`, `lang`, optional `lat`/`lng`, `context` (previous reply's, for follow-ups) |
+| POST | `/assistant` | Search bar's Assistant: plain-words question -> `{answer, results, suggestions, intent, understood, area, context}` (`results` exact only; `suggestions` labelled groups) (no LLM, `app/assistant`) | body `q`, `lang`, optional `lat`/`lng`, `context` (previous reply's, for follow-ups) |
 
 ## Accounts and profiles
 
