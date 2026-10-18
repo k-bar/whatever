@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
 import { useLang } from './i18n'
-import { fetchBusyAreas, fetchCityLayer, fetchFeatures, isDatedEvent, locateByIp, routeTo, runSearch, WARSAW_CENTER } from './data/api'
+import { fetchBusyAreas, fetchCityLayer, fetchFeatures, isDatedEvent, locateByIp, routeTo, runSearch } from './data/api'
 import { alongPaths, CITY_LAYERS, walkBoxFeature, walkPaths } from './components/cityLayers'
 import { useFavourites } from './hooks/useFavourites'
 import { useScrollFade } from './hooks/useScrollFade'
@@ -23,7 +23,6 @@ import { Landing } from './components/Landing'
 import { flySearch } from './landing/searchFlight'
 import { CreateEventPanel } from './components/CreateEventPanel'
 import { AccountButton } from './components/AccountButton'
-import { ConditionsChip } from './components/ConditionsChip'
 import { AUDIENCES } from './data/categories'
 import { landingSearch, windowFor } from './landing/search'
 
@@ -323,8 +322,6 @@ export default function App() {
             whileTap={{ scale: 0.9 }} transition={spring}>
             <Mermaid />
           </motion.button>
-          {/* weather + air quality from the nearest city station (GET /conditions) */}
-          <ConditionsChip at={me || WARSAW_CENTER} />
         </motion.div>
       </div>,
       values.showTitle && <h1 className="app-title" key="title">{values.appTitle}</h1>,

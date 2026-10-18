@@ -3,10 +3,9 @@ import { locale, translate } from '../i18n'
  * Map box curation: decide what the small info box shows for a clicked feature.
  * Returns an ordered list of blocks. Curation is client-side only: the backend has no /mapboxes endpoint.
  *
- * Block types rendered by <MapBox>: posters, hours, week, pitch, live, social, text, facts, tickets
+ * Block types rendered by <MapBox>: posters, hours, pitch, live, social, text, facts, tickets
  */
 import { AUDIENCES, EVENT_TYPES, categoryLabel } from '../data/categories'
-import { weekHours } from '../data/hours'
 
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
@@ -108,7 +107,7 @@ export function curate(feature, ctx = {}) {
   }
 
   // ---- places ---------------------------------------------------------------------------------
-  if (p.venue_type === 'pitch' || p.source === 'warsaw_pitches') {
+  if (p.venue_type === 'pitch') {
     const today = DAYS[new Date().getDay()]
     blocks.push({ type: 'pitch', equipment: p.equipment || [], surface: p.surface, today: p.opening_hours?.[today],
       hours: p.opening_hours || {}, approx: p.approx_location })
@@ -119,9 +118,6 @@ export function curate(feature, ctx = {}) {
   const upcoming = p.upcoming || []
   if (upcoming.length) blocks.push({ type: 'posters', items: upcoming })
   if (p.opening_hours && typeof p.opening_hours === 'string') blocks.push({ type: 'hours', text: p.opening_hours })
-  // per-day hours (restaurants, cafes, bars, venues from OpenStreetMap): open now?, today, the week
-  const week = weekHours(p.opening_hours)
-  if (week) blocks.push({ type: 'week', ...week })
   const facts = [
     p.address && { icon: 'pin', text: p.address },
     p.capacity && { icon: 'users', text: `Capacity ${p.capacity}` },
@@ -129,10 +125,9 @@ export function curate(feature, ctx = {}) {
     p.phone && { icon: 'phone', text: p.phone },
   ].filter(Boolean)
   if (facts.length) blocks.push({ type: 'facts', items: facts })
-  const eatery = p.source === 'osm_restaurants' // Kamil's restaurants, cafes, bars, pubs: no shows to look for
-  if (!upcoming.length && !eatery) blocks.push({ type: 'text', muted: true, text: 'No ticketed shows found for this venue in the next weeks.' })
+  if (!upcoming.length) blocks.push({ type: 'text', muted: true, text: 'No ticketed shows found for this venue in the next weeks.' })
   return {
-    title: p.title, subtitle: eatery ? p.lead : p.venue_type ? p.venue_type.replace('_', ' ') : null,
+    title: p.title, subtitle: p.venue_type ? p.venue_type.replace('_', ' ') : null,
     badges: [p.venue_type?.replace('_', ' '), 'OpenStreetMap'].filter(Boolean), image: p.image_url, blocks, url: p.url,
   }
 }

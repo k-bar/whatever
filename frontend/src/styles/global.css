@@ -1292,3 +1292,19 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .hero-tile.more .tile-chev { transition: transform .3s cubic-bezier(.2, .8, .2, 1); }
 .hero-tile.more .tile-chev.open { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .more-tiles, .more-tiles .hero-tile, .hero-tile.more .tile-chev { transition: none; } }
+
+/* ---------- start page "More": a CSS-only expand (Landing.jsx MoreTiles), no per-frame measuring ---------- */
+.tiles-block { width: min(920px, 100%); display: flex; flex-direction: column; align-items: stretch; }
+.tiles-block > .hero-tiles { width: 100%; }
+.more-tiles { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .42s cubic-bezier(.2, .8, .2, 1); }
+.more-tiles.open { grid-template-rows: 1fr; }
+.more-tiles-inner { min-height: 0; overflow: hidden; }
+.more-tiles .hero-tiles.all { margin-top: 0; padding: 10px 2px 4px; overflow: visible; }
+.more-tiles .hero-tile { opacity: 0; transform: translateY(10px) scale(.96); transition: opacity .22s ease, transform .3s cubic-bezier(.2, .8, .2, 1); }
+.more-tiles.open .hero-tile { opacity: 1; transform: none; transition-delay: calc(80ms + var(--i) * 16ms); }
+.more-tiles.open .hero-tile:hover { transform: translateY(-2px) scale(1.03); transition-delay: 0s; }
+.more-tiles.open .hero-tile:active { transform: scale(.96); transition-delay: 0s; }
+.hero-tile.more .tile-chev { transition: transform .3s cubic-bezier(.2, .8, .2, 1); }
+.hero-tile.more .tile-chev.open { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .more-tiles, .more-tiles .hero-tile, .hero-tile.more .tile-chev { transition: none; } }
+@media (max-width: 767px) { .more-tiles .hero-tiles.all { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } } /* phones: three per row, names readable */

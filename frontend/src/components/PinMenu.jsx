@@ -7,11 +7,9 @@ import { useLang } from '../i18n'
 import { Pin } from './Icons'
 
 // one list: the busy-areas heatmap first (it used to be its own toolbar button), the kinds of pins, then the
-// city's own layers (toilets / AED near your route, walking routes), and "Open now" (places whose opening
-// hours say they're open right now; off by default)
+// city's own layers (toilets / AED near your route, walking routes)
 const BUSY = { id: 'busy', param: 'busyAreas', label: 'Busy areas', emoji: '🔥' }
-const OPEN_NOW = { id: 'open', param: 'openNow', label: 'Open now', emoji: '🕒' }
-const OPTIONS = [BUSY, ...PIN_GROUPS, ...CITY_LAYERS, OPEN_NOW]
+const OPTIONS = [BUSY, ...PIN_GROUPS, ...CITY_LAYERS]
 
 /**
  * First toolbar button: tap -> a compact box slides up (like the language picker) with a toggle per kind

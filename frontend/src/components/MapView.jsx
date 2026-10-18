@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useConfig } from '../config/store'
 import { WARSAW_CENTER } from '../data/api'
 import { categoryMatchExpr } from '../data/categories'
-import { closedNow, enabledPinGroups, PIN_GROUPS, pinGroup, withPinGroups } from '../data/pinGroups'
+import { enabledPinGroups, PIN_GROUPS, pinGroup, withPinGroups } from '../data/pinGroups'
 import { ME_STYLES } from './meMarker'
 import { CITY_CLICK_LAYERS, ensureCityLayers, highlightWalk, setCityData, setCityVisibility } from './cityLayers'
 
@@ -156,7 +156,6 @@ function buildFilter(v, favourites, favOnly) {
   const range = timeRange(v.timeWindow)
   if (range) f.push(['any', ['!', ['has', 'starts_at']], ['all', ['>=', ['get', 'starts_at'], range[0]], ['<=', ['get', 'starts_at'], range[1]]]])
   if (favOnly) f.push(['in', ['get', 'event_id'], ['literal', [...favourites]]])
-  if (v.openNow) f.push(['!', ['to-boolean', ['get', 'closed_now']]]) // pin box "Open now" (pinGroups.closedNow)
   void kinds
   return f
 }
@@ -179,7 +178,6 @@ function visiblePins(features, v, favourites, favOnly, { allGroups = false } = {
       || (v.showPlaces && p.kind === 'place' && p.venue_type !== 'pitch') || (v.showPitches && p.venue_type === 'pitch')
     if (!shown || !groups.has(pinGroup(p))) return false
     if (range && p.starts_at != null && !(p.starts_at >= range[0] && p.starts_at <= range[1])) return false
-    if (v.openNow && closedNow(p)) return false
     return !favOnly || favs.has(p.event_id)
   })
 }
@@ -319,12 +317,6 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
 
   // ---------- data ----------
   useEffect(() => { const m = map.current; if (m?.getSource(SRC) && features) { m.getSource(SRC).setData(withPinGroups(features)); openOnHome(m) } }, [features])
-  // "Open now": re-check opening hours every few minutes while it's on (places open and close as time passes)
-  useEffect(() => {
-    if (!values.openNow) return
-    const id = setInterval(() => { const m = map.current; if (m?.getSource(SRC) && features) m.getSource(SRC).setData(withPinGroups(features)) }, 5 * 60 * 1000)
-    return () => clearInterval(id)
-  }, [values.openNow, features])
   useEffect(() => {
     const m = map.current
     if (!m?.getSource(AREAS) || !busyAreas) return
@@ -393,7 +385,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     m.setFilter('wl-starred', ['all', f, ['in', ['get', 'event_id'], ['literal', [...favourites]]]])
     m.setLayoutProperty('wl-starred', 'visibility', vRef.current.starredDefault || favOnly ? 'visible' : 'none')
   }
-  useEffect(() => { refreshFilters(map.current) }, [...PIN_PARAMS.map((k) => values[k]), values.showEvents, values.showPlaces, values.showPitches, values.showInvites, values.timeWindow, values.starredDefault, values.openNow, favourites, favOnly])
+  useEffect(() => { refreshFilters(map.current) }, [...PIN_PARAMS.map((k) => values[k]), values.showEvents, values.showPlaces, values.showPitches, values.showInvites, values.timeWindow, values.starredDefault, favourites, favOnly])
 
   // ---------- selected pulse ----------
   useEffect(() => {
