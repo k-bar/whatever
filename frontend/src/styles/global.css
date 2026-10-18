@@ -1054,6 +1054,10 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .scroll-fade.scrolling, .scroll-fade:hover { scrollbar-color: color-mix(in srgb, var(--fg) 28%, transparent) transparent; }
 .boxes.scroll-fade { overscroll-behavior: contain; scroll-padding-top: 4px; }
 .boxes > * { flex-shrink: 0; } /* boxes keep their full height; the stack scrolls instead of squeezing them */
+/* An expanded box is position: fixed (full height on the right), so it leaves the stack and the stack shrinks to its
+   padding. A mask hides everything outside the masked element's own box, fixed children included, so with the soft
+   edges on, the expanded box showed as a thin sliver. No soft edges while a box is expanded. */
+.boxes.scroll-fade:has(.mapbox.expanded) { -webkit-mask-image: none; mask-image: none; }
 
 
 /* ---------- slide-over tray: the burger opens it on its menu; items open inside it (SidePanels.jsx) ---------- */
