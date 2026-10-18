@@ -50,14 +50,18 @@ const Person = () => <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12"
 
 /** Spots that land on screen without covering the headline, search, chips or header. */
 function placeSpots(map, layer) {
-  const box = layer.getBoundingClientRect()
+  const box = layer.getBoundingClientRect() // the whole screen: the layer is fixed, like the map
+  const heroBottom = layer.parentElement.offsetHeight // only where the start page's top part is, not under Syrenka Poleca
+  // the headline, search, chips and header where they sit unscrolled (this can run mid-scroll, on a resize)
+  const scrolled = layer.closest('.landing')?.scrollTop || 0
   const keepClear = [...layer.parentElement.querySelectorAll('.landing-head, .hero-center > *, .hero-more')]
     .map((el) => el.getBoundingClientRect()).filter((r) => r.width && r.height)
+    .map((r) => ({ left: r.left, right: r.right, top: r.top + scrolled, bottom: r.bottom + scrolled }))
   const out = []
   const consider = (i, x, y) => {
     const px = x + box.left, py = y + box.top
     const r = { left: px - 24, right: px + 72, top: py - 56, bottom: py + 6 } // pin + tile
-    if (x < 20 || y < 60 || x > box.width - 80 || y > box.height - 10) return
+    if (x < 20 || y < 60 || x > box.width - 80 || y > Math.min(box.height, heroBottom) - 10) return
     if (keepClear.some((k) => r.left < k.right && r.right > k.left && r.top < k.bottom && r.bottom > k.top)) return
     out.push({ i, x, y })
   }
