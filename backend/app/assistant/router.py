@@ -59,11 +59,12 @@ def ask(body: AssistantIn, db: Session = Depends(get_db)):
         parsed.near = False  # no position: "near me" can't narrow anything
     ctx = body.context or {}
     offset = ctx.get("offset", 0) + answers.SHOWN if parsed.more and ctx.get("intent") == parsed.intent else 0
-    text, results = answers.answer(db, parsed, lang, here, offset)
+    text, results, suggestions = answers.answer(db, parsed, lang, here, offset)
     area = parsed.areas[0] if len(parsed.areas) == 1 else None
     return {
         "answer": text,
-        "results": results,
+        "results": results,  # exact matches only
+        "suggestions": suggestions,  # [{kind: broad | elsewhere | later, label, results}], never exact
         "intent": parsed.intent,
         "understood": answers.describe(parsed, lang),
         "lang": lang,

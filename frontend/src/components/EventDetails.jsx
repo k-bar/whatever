@@ -50,7 +50,7 @@ function DateLine({ occ, t }) {
   return <li>{fmtWhen(occ.starts_at)}{sameDay && end - new Date(occ.starts_at) > 0 ? ` – ${time(occ.ends_at)}` : ''}</li>
 }
 
-export function EventDetails({ feature }) {
+export function EventDetails({ feature, onDirections }) {
   const { t } = useLang()
   const p = feature.properties
   const [api, setApi] = useState(null)
@@ -103,8 +103,8 @@ export function EventDetails({ feature }) {
           {e.venue_name && <div className="evd-strong">{e.venue_name}</div>}
           {e.address && <div>{e.address}</div>}
           {e.district && <div className="evd-muted">{e.district}</div>}
-          {Number.isFinite(lat) && Number.isFinite(lng) && (
-            <a className="evd-link" href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`} target="_blank" rel="noreferrer">{t('Directions ↗')}</a>
+          {onDirections && Number.isFinite(lat) && Number.isFinite(lng) && (
+            <button type="button" className="evd-link" onClick={onDirections}>{t('Directions')}</button>
           )}
         </section>
       )}

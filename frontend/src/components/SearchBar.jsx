@@ -157,11 +157,11 @@ export function SearchBar({ onSearch, matchCount = 0, trayOpen = false, unread =
                   {chat?.map((m, i) => (
                     <div key={i} className={`msg ${m.role}`}>
                       <div className="bubble">{m.text}</div>
-                      {m.results?.length > 0 && <div className="msg-results">{m.results.slice(0, 4).map((f) => (
-                        <button key={f.id} className="res-item mini" onClick={() => onPick(f)}>
-                          <span className="thumb" style={f.properties.image_url ? { backgroundImage: `url(${f.properties.image_url})` } : { background: categoryColor(f.properties.categories?.[0]) }}>{!f.properties.image_url && f.properties.title[0]}</span>
-                          <span><div className="t">{f.properties.title}</div><div className="s">{f.properties.kind === 'event' ? fmtWhenFor(f.properties) : f.properties.venue_name}</div></span>
-                        </button>))}</div>}
+                      {m.results?.length > 0 && <MiniResults list={m.results} onPick={onPick} />}
+                      {/* not exact: each group's label (from the backend, in the reply's language) says what was relaxed */}
+                      {m.suggestions?.map((g) => (
+                        <div key={g.kind} className="msg-sugg"><div className="msg-sugg-label">{g.label}</div><MiniResults list={g.results} onPick={onPick} /></div>
+                      ))}
                     </div>
                   ))}
                   {searching && <div className="msg assistant"><div className="bubble typing"><i /><i /><i /></div></div>}
@@ -187,6 +187,17 @@ export function SearchBar({ onSearch, matchCount = 0, trayOpen = false, unread =
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+/** Up to four results under an assistant message, as small tiles. */
+function MiniResults({ list, onPick }) {
+  return (
+    <div className="msg-results">{list.slice(0, 4).map((f) => (
+      <button key={f.id} className="res-item mini" onClick={() => onPick(f)}>
+        <span className="thumb" style={f.properties.image_url ? { backgroundImage: `url(${f.properties.image_url})` } : { background: categoryColor(f.properties.categories?.[0]) }}>{!f.properties.image_url && f.properties.title[0]}</span>
+        <span><div className="t">{f.properties.title}</div><div className="s">{f.properties.kind === 'event' ? fmtWhenFor(f.properties) : f.properties.venue_name}</div></span>
+      </button>))}</div>
   )
 }
 
