@@ -523,7 +523,9 @@ h2 { font-size: var(--titleSize); }
 .selects-head h2 { font-size: clamp(28px, 3.2vw, 40px); letter-spacing: -0.02em; }
 .selects-head p { color: var(--fg-2); margin: 6px 0 0; font-size: 15px; }
 .selects-grid { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.sel-card { display: flex; flex-direction: column; text-align: left; background: var(--surface-solid); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); min-height: 300px; transition: transform .2s, box-shadow .2s; }
+/* align-items: stretch is spelled out: Safari doesn't stretch a <button>'s flex children by default, so the poster (only an
+   absolutely placed <img> inside) collapsed to 0 px wide and never showed */
+.sel-card { display: flex; flex-direction: column; align-items: stretch; text-align: left; background: var(--surface-solid); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); min-height: 300px; transition: transform .2s, box-shadow .2s; }
 .sel-card:hover { translate: 0 -3px; /* framer owns transform on these cards */ box-shadow: var(--shadow-lg); }
 .sel-card.wide { grid-column: 1 / -1; flex-direction: row; min-height: 340px; }
 .sel-img { position: relative; height: 190px; flex: none; background: var(--surface-2) center/cover; }
@@ -1428,4 +1430,18 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 /* ---------- "reduce motion" (system setting): no looping or long animations anywhere ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+/* ---------- review pass: phone layering ---------- */
+@media (max-width: 767px) {
+  /* a full-height panel owns the screen: the toolbar and the editor toggle would sit on top of its buttons */
+  .app:has(.create-panel) .toolbar-wrap, .app:has(.create-panel) .top-right,
+  .app:has(.slideover) .toolbar-wrap, .app:has(.slideover) .top-right { display: none; }
+  /* with the tray open the pill is the only thing left in the top row: give it the whole row */
+  .app:has(.slideover) .top-left { right: 12px; }
+  .app:has(.slideover) .top-left .side-controls { display: none; }
+  /* half-screen sheet: its last lines must clear the toolbar that floats over it */
+  .sheet .sheet-body { padding-bottom: calc(96px + var(--safe-b)); }
+  /* mode picker: icon + chevron only, the word ("Wydarzenia") took a third of the pill */
+  .mode-btn { font-size: 0; gap: 2px; padding: 0 6px 0 8px; }
 }
