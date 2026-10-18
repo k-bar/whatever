@@ -127,6 +127,7 @@ Column lists: `API.md`, section 2.
 | `0008` | kupbilecik removed: drop `kupbilecik_events`, its events marked inactive |
 | `0009` | `users.first_name`, `last_name`, `age` (private, `/me` only) |
 | `0010` | Kamil's `restaurants` and `entertainment_events` |
+| `0011` | Auth (`users.email_verified_at`, `token_version`, login lockout, mail throttle; existing users marked verified) and event chats (`chats`, `chat_members`, `chat_messages`) |
 
 `deploy.sh` runs `alembic upgrade head` in the box's schema on every deploy. CI runs `alembic upgrade
 head && alembic check` on an empty database, so models and migrations must match.

@@ -36,6 +36,11 @@ def migrated():
 
 @pytest.fixture(autouse=True)
 def clean_db(migrated):
+    from app import mail
+    from app.routers import chats
+
+    mail.outbox.clear()
+    chats._recent.clear()  # chat rate limits are per process
     yield
     tables = ", ".join(t.name for t in Base.metadata.sorted_tables)
     with engine.begin() as conn:
@@ -53,9 +58,20 @@ def client():
     return TestClient(app)
 
 
-def register(client, email: str, name: str) -> dict:
+def mailed_token(to: str, param: str = "verify") -> str:
+    """The token in the latest mail sent to `to` (app.mail.outbox; nothing is really sent in tests)."""
+    from app import mail
+
+    sent = [m for m in mail.outbox if m.to == to]
+    assert sent, f"no mail to {to}"
+    return sent[-1].text.split(f"?{param}=")[1].split()[0]
+
+
+def register(client, email: str, name: str, verify: bool = True) -> dict:
     r = client.post("/auth/register", json={"email": email, "password": "password123", "display_name": name})
     assert r.status_code == 201, r.text
+    if verify:
+        assert client.post("/auth/verify", json={"token": mailed_token(email)}).status_code == 200
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 

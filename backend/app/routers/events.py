@@ -8,7 +8,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app import translate, userevents
-from app.auth import get_current_user
+from app.auth import get_verified_user
 from app.categories import AMENITIES, CATEGORIES
 from app.db import get_db
 from app.models import Attendance, Event, Occurrence, Source, User
@@ -282,7 +282,7 @@ def get_event(event_id: int, past: bool = False, db: Session = Depends(get_db)):
 
 
 @router.post("/events", response_model=EventOut, status_code=201)
-def create_invite(body: InviteIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_invite(body: InviteIn, user: User = Depends(get_verified_user), db: Session = Depends(get_db)):
     """Create a public invitation. The host is marked as attending and open to company."""
     if body.ends_at and body.ends_at < body.starts_at:
         raise HTTPException(422, "ends_at is before starts_at")

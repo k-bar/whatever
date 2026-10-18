@@ -8,7 +8,7 @@ and the existing attendance / join-request endpoints work on them.
 Audiences
     public          everyone sees it on the map, anyone can say they're going
     public_confirm  everyone sees it, joining needs the host's OK (join request to the host)
-    friends         only the host's friends (no friends graph yet: host + invited users)
+    friends         the host's friends (and invited users)
     invite          only invited users (and the host)
 
 Endpoints (router.py)
