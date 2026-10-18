@@ -7,7 +7,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.auth import get_current_user
+from app.auth import get_current_user, get_verified_user
 from app.db import get_db
 from app.models import Attendance, Event, JoinRequest, Occurrence, User
 from app.schemas import (
@@ -136,7 +136,7 @@ def load_request(db: Session, request_id: int) -> JoinRequest | None:
 def create_join_request(
     occurrence_id: int,
     body: JoinRequestIn,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: Session = Depends(get_db),
 ):
     """Ask to join someone who is going and wants company (or the host of an invitation)."""
@@ -189,7 +189,7 @@ def my_join_requests(
 def decide_join_request(
     request_id: int,
     body: JoinRequestDecision,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: Session = Depends(get_db),
 ):
     """Swipe: accept or reject. Only the person who received the request can decide."""

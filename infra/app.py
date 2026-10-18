@@ -5,6 +5,7 @@
                     app security group, secrets (DB, JWT, Warsaw API token, GitHub deploy key)
   WarszawaLiveZone  Route53 zone             } only once "domain" is set in cdk.json
   WarszawaLiveDns   CloudFront certificate   }
+  WarszawaLiveMail  SES identity (DKIM, MAIL FROM, DMARC) }
   WarszawaLiveProd  EC2 box + API CloudFront + website, deploys release/prod
   WarszawaLiveDev   EC2 box + API CloudFront + website, deploys release/dev
   WarszawaLiveTeam  IAM users + DB logins for teammates' DB clients (dev schema, via SSM tunnel)
@@ -19,6 +20,7 @@ import aws_cdk as cdk
 from stacks.db_stack import DbStack
 from stacks.dns_stack import DnsStack, ZoneStack
 from stacks.env_stack import EnvConfig, EnvStack
+from stacks.mail_stack import MailStack
 from stacks.team_stack import TeamStack
 
 app = cdk.App()
@@ -36,6 +38,7 @@ db = DbStack(
 )
 zone = ZoneStack(app, "WarszawaLiveZone", env=env, domain=domain) if domain else None
 dns = DnsStack(app, "WarszawaLiveDns", env=env, zone=zone) if zone else None
+mail = MailStack(app, "WarszawaLiveMail", env=env, zone=zone) if zone else None
 
 ENVS = [
     EnvConfig(
@@ -59,6 +62,8 @@ ENVS = [
 ]
 for cfg in ENVS:
     s = EnvStack(app, f"WarszawaLive{cfg.name.capitalize()}", env=env, cfg=cfg, db=db, dns=dns)
+    if mail:
+        mail.grant_send(s.role, f"no-reply@{domain}")  # backend/app/config.py mail_from
     cdk.Tags.of(s).add("env", cfg.name)
 
 TeamStack(app, "WarszawaLiveTeam", env=env, db=db)

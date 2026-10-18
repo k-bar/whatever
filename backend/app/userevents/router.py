@@ -6,11 +6,12 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
-from sqlalchemy import or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.auth import get_current_user
+from app.auth import get_current_user, get_verified_user
 from app.db import get_db
+from app.friends import are_friends, friend_ids
 from app.models import Attendance, Event, Occurrence, Source, User
 from app.routers.events import feature
 from app.schemas import FeatureCollection, GeoJSONFeature
@@ -167,6 +168,18 @@ def publish(db: Session, ue: UserEvent) -> Event:
     return event
 
 
+def can_see(db: Session, user: User | None, ue: UserEvent) -> bool:
+    """Who may see (and chat about) a user event: anyone for public ones; otherwise the host,
+    invited people, and for audience "friends" the host's friends."""
+    if ue.audience in PUBLIC_AUDIENCES:
+        return True
+    if user is None:
+        return False
+    if user.id == ue.host_user_id or user.id in (ue.invited_user_ids or []):
+        return True
+    return ue.audience == "friends" and are_friends(db, user.id, ue.host_user_id)
+
+
 @router.post("/photos", response_model=PhotoOut, status_code=201)
 def upload_photo(body: PhotoIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Upload the event photo first, then pass its id as photo_id when creating the event."""
@@ -199,7 +212,7 @@ def get_photo(photo_id: str, db: Session = Depends(get_db)):
 
 @router.post("", response_model=CreatedOut, status_code=201)
 def create_user_event(
-    body: UserEventIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    body: UserEventIn, user: User = Depends(get_verified_user), db: Session = Depends(get_db)
 ):
     """Create an event. Public audiences also go onto the Syrenka Users API, so everyone's map shows it."""
     if body.ends_at and body.ends_at < body.starts_at:
@@ -236,14 +249,20 @@ def my_user_events(user: User = Depends(get_current_user), db: Session = Depends
 
 @router.get("/private", response_model=FeatureCollection)
 def private_user_events(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Non-public events on my map: ones I host, or am invited to. Public ones come from GET /events."""
+    """Non-public events on my map: ones I host, am invited to, or my friends host for their friends.
+    Public ones come from GET /events."""
+    friends = friend_ids(db, user.id)
     rows = db.scalars(
         select(UserEvent)
         .where(
             UserEvent.status == "active",
             UserEvent.audience.not_in(PUBLIC_AUDIENCES),
             or_(UserEvent.ends_at >= datetime.now(UTC), UserEvent.starts_at >= datetime.now(UTC)),
-            or_(UserEvent.host_user_id == user.id, UserEvent.invited_user_ids.contains([user.id])),
+            or_(
+                UserEvent.host_user_id == user.id,
+                UserEvent.invited_user_ids.contains([user.id]),
+                and_(UserEvent.audience == "friends", UserEvent.host_user_id.in_(friends)),
+            ),
         )
         .options(selectinload(UserEvent.host))
         .order_by(UserEvent.starts_at)
