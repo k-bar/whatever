@@ -1144,6 +1144,11 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
   .landing-head { padding-right: calc(12px + var(--account-w, 0px) + 10px); }
 }
 
+/* search results: exact matches first, then a quiet "Close matches" divider (src/search/engine.js) */
+.res-near { margin: 10px 8px 4px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--fg-3); }
+.res-near.first { margin-top: 2px; border-top: 0; padding-top: 2px; }
+
+
 /* ---------- Syrenka Poleca cards: titles take up to two lines, and every card keeps room for both ---------- */
 .sel-body h3 { -webkit-line-clamp: 2; min-height: calc(2em * 1.25); }
 @media (max-width: 767px) {
@@ -1293,3 +1298,10 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .hero-tile.more .tile-chev.open { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .more-tiles, .more-tiles .hero-tile, .hero-tile.more .tile-chev { transition: none; } }
 @media (max-width: 767px) { .more-tiles .hero-tiles.all { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } } /* phones: three per row, names readable */
+
+/* ---------- bug pass: the pill keeps a usable input on phones and next to the open tray ---------- */
+@media (max-width: 767px) {
+  .top-left .search-wrap { flex: 1 1 auto; min-width: 0; width: auto; }
+  .search input { min-width: 60px; }
+}
+.app.slide-open .search-wrap { width: min(var(--searchWidth), calc(100vw - var(--slideW) - 320px)); }

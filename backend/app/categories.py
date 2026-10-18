@@ -75,14 +75,14 @@ LABEL_MAP = {
 KEYWORDS = [
     (re.compile(r"koncert|muzyk|jazz|recital|orkiestr", re.I), "music"),
     (re.compile(r"spektakl|teatr|premier", re.I), "theatre"),
-    (re.compile(r"\bfilm|kino|seans", re.I), "film"),
+    (re.compile(r"\bfilm|kino|\bseans(?!\w* saun)", re.I), "film"),  # not "Seanse saunowe" (sauna sessions)
     (re.compile(r"wystaw|galeri|muzeum|ekspozycj", re.I), "exhibitions"),
     (re.compile(r"festiwal|festyn|piknik", re.I), "festivals"),
     (re.compile(r"jarmark|targ|kiermasz|bazar", re.I), "markets"),
     (re.compile(r"\bjog[aiy]|yoga", re.I), "yoga"),
     (re.compile(r"\bbieg|run\b|maraton", re.I), "running"),
     (re.compile(r"grzyb", re.I), "grzybki"),
-    (re.compile(r"\bparty|impreza|\bdj\b|clubbing|nocne", re.I), "nightlife"),
+    (re.compile(r"\bpart(y|ies)\b|impreza|\bdj\b|clubbing|nocne", re.I), "nightlife"),  # not "Partyzantów"
 ]
 
 

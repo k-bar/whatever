@@ -12,7 +12,7 @@ const PIN_PARAMS = PIN_GROUPS.map((g) => g.param)
 import { translate, useLang } from '../i18n'
 import { applyMapDesign, firstSymbolLayer, styleFor } from './mapStyle'
 
-const SRC = 'wl-features', BOUNDARY = 'wl-boundary', AREAS = 'wl-busyareas', ROUTE = 'wl-route'
+const SRC = 'wl-features', BOUNDARY = 'wl-boundary', AREAS = 'wl-busyareas', ROUTE = 'wl-route', SEARCH_AREA = 'wl-search-area'
 const AREA_LABEL = 'wl-busyareas-label'
 const AREA_FILL_OPACITY = ['interpolate', ['linear'], ['zoom'], 11, 0.5, 16, 0.36]
 const FADE = { duration: 900, delay: 0 }
@@ -184,7 +184,7 @@ function visiblePins(features, v, favourites, favOnly, { allGroups = false } = {
   })
 }
 
-export const MapView = forwardRef(function MapView({ features, busyAreas, route, me, favourites, favOnly, selectedId, onPick, onReady, onMove, revealed = true, draftPin, onDraftPin, city = {}, onPickWalk }, ref) {
+export const MapView = forwardRef(function MapView({ features, busyAreas, route, searchArea, me, favourites, favOnly, selectedId, onPick, onReady, onMove, revealed = true, draftPin, onDraftPin, city = {}, onPickWalk }, ref) {
   const { values } = useConfig()
   const { lang, t } = useLang()
   const el = useRef(null)
@@ -192,8 +192,8 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   const vRef = useRef(values)
   vRef.current = values
   // latest props for handlers registered once (style.load fires again after every setStyle)
-  const dataRef = useRef({ features, favourites, favOnly, busyAreas, route })
-  dataRef.current = { features, favourites, favOnly, busyAreas, route }
+  const dataRef = useRef({ features, favourites, favOnly, busyAreas, route, searchArea })
+  dataRef.current = { features, favourites, favOnly, busyAreas, route, searchArea }
   const meMarker = useRef(null)
   const draftMarker = useRef(null)
   const draftRef = useRef({ draftPin, onDraftPin })
@@ -276,6 +276,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     if (!m.getSource(BOUNDARY)) m.addSource(BOUNDARY, { type: 'geojson', data: '/warsaw_boundary.geojson' })
     if (!m.getSource(AREAS)) m.addSource(AREAS, { type: 'geojson', data: d.busyAreas || EMPTY })
     if (!m.getSource(ROUTE)) m.addSource(ROUTE, { type: 'geojson', data: d.route || EMPTY })
+    if (!m.getSource(SEARCH_AREA)) m.addSource(SEARCH_AREA, { type: 'geojson', data: d.searchArea || EMPTY })
     const before = firstSymbolLayer(m)
     // busy areas, Google "area busyness" style: pale yellow fill with a dotted golden outline (no labels).
     // Only the outer "busy" outline is drawn; the "very_busy" cores stay in the data.
@@ -291,6 +292,10 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     if (!m.getLayer('wl-boundary-line')) m.addLayer({ id: 'wl-boundary-line', type: 'line', source: BOUNDARY, paint: { 'line-color': '#e7392b', 'line-width': 1.5, 'line-dasharray': [3, 3], 'line-opacity': 0.55 } }, before)
     if (!m.getLayer('wl-route-casing')) m.addLayer({ id: 'wl-route-casing', type: 'line', source: ROUTE, layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 7, 'line-opacity': 0.9 } })
     if (!m.getLayer('wl-route')) m.addLayer({ id: 'wl-route', type: 'line', source: ROUTE, layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': vRef.current.accent, 'line-width': 3.5 } })
+    // the searched district / neighbourhood: a dashed outline and a faint wash, like Google Maps (under the pins)
+    if (!m.getLayer('wl-search-area-fill')) m.addLayer({ id: 'wl-search-area-fill', type: 'fill', source: SEARCH_AREA, paint: { 'fill-color': vRef.current.accent, 'fill-opacity': 0.06 } })
+    if (!m.getLayer('wl-search-area-line')) m.addLayer({ id: 'wl-search-area-line', type: 'line', source: SEARCH_AREA, layout: { 'line-join': 'round' },
+      paint: { 'line-color': vRef.current.accent, 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 2, 16, 3], 'line-dasharray': [2, 1.5], 'line-opacity': 0.9 } })
     if (!m.getLayer('wl-glow')) m.addLayer({ id: 'wl-glow', type: 'circle', source: SRC, paint: { 'circle-blur': 1, 'circle-opacity': 0.55 } })
     if (!m.getLayer('wl-dots')) m.addLayer({ id: 'wl-dots', type: 'circle', source: SRC, paint: {} })
     if (!m.getLayer('wl-starred')) m.addLayer({ id: 'wl-starred', type: 'circle', source: SRC, paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#f2a900', 'circle-stroke-width': 3 } })
@@ -337,6 +342,11 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   useEffect(() => { const m = map.current; if (m) setCityVisibility(m, values) }, [values.showToilets, values.showAed, values.showWalks]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const m = map.current; if (m) highlightWalk(m, selectedId) }, [selectedId])
   useEffect(() => { const m = map.current; if (m?.getSource(ROUTE)) m.getSource(ROUTE).setData(route || EMPTY) }, [route])
+  useEffect(() => { const m = map.current; if (m?.getSource(SEARCH_AREA)) m.getSource(SEARCH_AREA).setData(searchArea || EMPTY) }, [searchArea])
+  useEffect(() => {
+    const m = map.current
+    for (const [id, prop] of [['wl-search-area-fill', 'fill-color'], ['wl-search-area-line', 'line-color']]) if (m?.getLayer(id)) m.setPaintProperty(id, prop, values.accent)
+  }, [values.accent])
   useEffect(() => { const m = map.current; if (!m?.getLayer('wl-busyareas-fill')) return; for (const id of AREA_LAYERS) m.setLayoutProperty(id, 'visibility', values.busyAreas ? 'visible' : 'none') }, [values.busyAreas])
   useEffect(() => { const m = map.current; if (m?.getLayer('wl-route')) styleRoute(m, values) }, [values.routeStyle, values.accent])
 
@@ -451,8 +461,8 @@ function styleMarkers(m, v) {
   const color = v.colorBy === 'category' ? categoryMatchExpr()
     : v.colorBy === 'kind' ? ['case', ['to-boolean', ['get', 'is_public_invite']], '#0fa37f', ['==', ['get', 'kind'], 'event'], v.accent, '#2b6be7']
     : v.accent
-  const base = ['interpolate', ['linear'], ['zoom'], 10, 2.2 * s, 13, 5 * s, 16, 9 * s, 19, 14 * s]
-  const bigger = (k) => ['interpolate', ['linear'], ['zoom'], 10, 2.2 * s * k, 13, 5 * s * k, 16, 9 * s * k, 19, 14 * s * k]
+  const base = ['interpolate', ['linear'], ['zoom'], 9, 3 * s, 11, 3.6 * s, 13, 5 * s, 16, 9 * s, 19, 14 * s] // readable even on a phone's whole-city view
+  const bigger = (k) => ['interpolate', ['linear'], ['zoom'], 9, 3 * s * k, 11, 3.6 * s * k, 13, 5 * s * k, 16, 9 * s * k, 19, 14 * s * k]
   const paint = {
     dot: { 'circle-radius': base, 'circle-color': color, 'circle-stroke-width': 0, 'circle-opacity': 0.95 },
     ring: { 'circle-radius': base, 'circle-color': 'rgba(255,255,255,0.15)', 'circle-stroke-color': color, 'circle-stroke-width': 2.2, 'circle-opacity': 1 },

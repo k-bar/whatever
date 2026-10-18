@@ -3,7 +3,7 @@
  * unreachable the map is empty and the badge says so.
  * API base: VITE_API_URL (default "/api", proxied by vite to http://localhost:8000).
  */
-import { categoryLabel } from './categories'
+import { smartSearch } from '../search/engine'
 import { getLang } from '../i18n'
 
 const BASE = import.meta.env.VITE_API_URL || '/api'
@@ -46,14 +46,18 @@ const withAssets = (f) => ({ ...f, properties: { ...withImage(f.properties), ...
 
 export async function fetchFeatures() {
   try {
-    const [events, places, mine] = await Promise.all([
-      // ?lang: titles and descriptions in the UI language (translated on the server, originals kept)
-      get(`/events?bbox=${WARSAW_BBOX.join(',')}&limit=2000&lang=${getLang()}`, { timeout: 15000 }),
+    // ?lang: titles and descriptions in the UI language (translated on the server, originals kept).
+    // Events and recurring classes are asked for separately: the API caps each list at 2000, and daily
+    // classes alone would otherwise fill it and push real events out of the month.
+    const q = `bbox=${WARSAW_BBOX.join(',')}&limit=2000&lang=${getLang()}`
+    const [events, classes, places, mine] = await Promise.all([
+      get(`/events?${q}&kind=event`, { timeout: 15000 }),
+      get(`/events?${q}&kind=class`, { timeout: 15000 }).catch(() => ({ features: [] })),
       get(`/places?bbox=${WARSAW_BBOX.join(',')}&lang=${getLang()}`, { timeout: 15000 }),
       fetchPrivateUserEvents(),
     ])
     dataStatus.source = 'api'
-    return { type: 'FeatureCollection', features: [...events.features, ...places.features, ...mine].map(withAssets) }
+    return { type: 'FeatureCollection', features: [...events.features, ...classes.features, ...places.features, ...mine].map(withAssets) }
   } catch {
     dataStatus.source = 'offline'
     return { type: 'FeatureCollection', features: [] }
@@ -96,37 +100,16 @@ export async function runSearch(mode, q, features, opts = {}) {
   return localSearch(mode, q, upcoming(features), opts)
 }
 
-function localSearch(mode, q, features, opts = {}) {
-  if (mode === 'events') features = features.filter((f) => isDatedEvent(f.properties)) // never places, even for a category tag
-  if (opts.category) { // category pill: everything tagged with it, dated things first
-    const list = features.filter((f) => (f.properties.categories || []).includes(opts.category))
-    list.sort((a, b) => (a.properties.kind === 'event' ? 0 : 1) - (b.properties.kind === 'event' ? 0 : 1) || String(a.properties.starts_at || 'z').localeCompare(String(b.properties.starts_at || 'z')))
-    return { results: list.slice(0, 80) }
-  }
-  const needle = q.trim().toLowerCase()
-  const words = needle.split(/\s+/).filter(Boolean)
-  const score = (f) => {
-    const p = f.properties
-    const hay = `${p.title} ${p.venue_name || ''} ${p.lead || ''} ${(p.categories || []).join(' ')} ${(p.categories || []).map(categoryLabel).join(' ')} ${p.district || ''} ${p.address || ''}`.toLowerCase()
-    let s = 0
-    for (const w of words) if (hay.includes(w)) s += p.title.toLowerCase().includes(w) ? 3 : 1
-    return s
-  }
-  let pool = features
-  if (mode === 'events') pool = pool.filter((f) => f.properties.kind === 'event')
-  const scored = pool.map((f) => [score(f), f]).filter(([s]) => (words.length ? s > 0 : true))
-  scored.sort((a, b) => b[0] - a[0] || String(a[1].properties.starts_at || 'z').localeCompare(String(b[1].properties.starts_at || 'z')))
-  const results = scored.slice(0, 60).map(([, f]) => f)
-  if (mode === 'assistant') {
-    const n = results.length
-    const cats = [...new Set(results.flatMap((f) => f.properties.categories))].slice(0, 3).join(', ')
-    const top = results.slice(0, 3).map((f) => `• ${f.properties.title}${f.properties.venue_name ? ` @ ${f.properties.venue_name}` : ''}`).join('\n')
-    const answer = n
-      ? `I found ${n} things matching “${q}” across the city, mostly ${cats}. My top picks:\n${top}\n\nTap one to open it on the map. (Assistant is a stub: it searches what's on the map.)`
-      : `Nothing matches “${q}” yet. Try a district (Praga, Mokotów), a mood (jazz, run, picnic) or a venue.`
-    return { answer, results }
-  }
-  return { results }
+/** Search over the loaded pins: src/search/engine.js reads what / when / where and ranks with tolerances. */
+async function localSearch(mode, q, features, opts = {}) {
+  const r = await smartSearch(q, features, { mode, category: opts.category, when: opts.when, where: opts.where })
+  if (mode !== 'assistant') return r
+  const n = r.results.length
+  const top = r.results.slice(0, 3).map((f) => `• ${f.properties.title}${f.properties.venue_name ? ` @ ${f.properties.venue_name}` : ''}`).join('\n')
+  const answer = n
+    ? `${r.exact ? `${r.exact} exact match${r.exact === 1 ? '' : 'es'}` : 'No exact matches, but close ones'} for “${r.summary}”. My top picks:\n${top}\n\nTap one to open it on the map.`
+    : `Nothing matches “${q}” yet. Try a district (Praga, Mokotów), a day (Saturday, weekend), a mood (jazz, run, picnic) or a venue.`
+  return { ...r, answer }
 }
 
 /* ---------- position, routing, busy areas ---------- */
