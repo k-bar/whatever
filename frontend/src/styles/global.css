@@ -1463,3 +1463,10 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .sel-pulse span { position: absolute; inset: 0; border-radius: 50%; border: 2.5px solid var(--c, var(--accent)); animation: sel-pulse 1.2s ease-out infinite; will-change: transform, opacity; }
 .sel-pulse span:nth-child(2) { animation-delay: .6s; }
 @keyframes sel-pulse { from { transform: scale(.9); opacity: 1; } to { transform: scale(3.2); opacity: 0; } }
+
+/* ---------- phones: the weather chip sits under the search bar, top left, so the pill gets the whole row ---------- */
+@media (max-width: 767px) {
+  .app .top-left .cond { position: fixed; top: calc(12px + var(--searchHeight) + 8px); left: 12px; }
+  /* out of the way while the search panel is open under the bar (the slideover hides it with the Syrenka button) */
+  .app .top-left:has(.focus-panel) .cond { display: none; }
+}
