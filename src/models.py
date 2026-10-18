@@ -419,3 +419,86 @@ class StreetsGlVenue(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
+
+
+class Restaurant(Base):
+    """Restaurant, cafe, bar, pub or food court in Warsaw (OSM)."""
+
+    __tablename__ = "restaurants"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(500), nullable=False)
+    amenity: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, index=True
+    )
+    cuisine: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    location: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    street: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    housenumber: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+    postcode: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    lon: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    opening_hours: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    website: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    outdoor_seating: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+    diet_vegan: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+    diet_vegetarian: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+    wheelchair: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+    osm_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tags: Mapped[Optional[dict[str, Any]]] = mapped_column(
+        JSONB, nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class EntertainmentEvent(Base):
+    """Concert or entertainment event in Warsaw (Songkick / Waw4Free)."""
+
+    __tablename__ = "entertainment_events"
+
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    source: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    category: Mapped[Optional[str]] = mapped_column(
+        String(120), nullable=True, index=True
+    )
+    start_date: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+    end_date: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    venue_name: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True
+    )
+    address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    district: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    lon: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    url: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    performers: Mapped[Optional[list[Any]]] = mapped_column(
+        JSONB, nullable=True
+    )
+    is_free: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    raw_data: Mapped[Optional[dict[str, Any]]] = mapped_column(
+        JSONB, nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )

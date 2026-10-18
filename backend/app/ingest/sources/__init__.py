@@ -6,7 +6,14 @@
 """
 
 from app.ingest.base import SourceSpec
-from app.ingest.sources import osm_venues, warsaw_amenities, warsaw_open_data
+from app.ingest.sources import (
+    osm_restaurants,
+    osm_venues,
+    songkick,
+    warsaw_amenities,
+    warsaw_open_data,
+    waw4free,
+)
 
 SOURCES: dict[str, SourceSpec] = {
     spec.slug: spec
@@ -14,5 +21,8 @@ SOURCES: dict[str, SourceSpec] = {
         *warsaw_open_data.SPECS,
         *warsaw_amenities.SPECS,
         *osm_venues.SPECS,
+        *osm_restaurants.SPECS,
+        *songkick.SPECS,
+        *waw4free.SPECS,
     ]
 }
