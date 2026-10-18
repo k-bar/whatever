@@ -1457,3 +1457,9 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .panel-loading span { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: blink 1.2s infinite; }
 .panel-loading span:nth-child(2) { animation-delay: .2s; } .panel-loading span:nth-child(3) { animation-delay: .4s; }
 .lb, .ln-bubble, .me-marker .ring { will-change: transform, opacity; } /* the start-page people and the position pulse animate on the compositor */
+
+/* selected pin: two rings expanding from the pin, on the compositor (replaces the per-frame paint loop) */
+.sel-pulse { position: relative; width: 20px; height: 20px; pointer-events: none; }
+.sel-pulse span { position: absolute; inset: 0; border-radius: 50%; border: 2.5px solid var(--c, var(--accent)); animation: sel-pulse 1.2s ease-out infinite; will-change: transform, opacity; }
+.sel-pulse span:nth-child(2) { animation-delay: .6s; }
+@keyframes sel-pulse { from { transform: scale(.9); opacity: 1; } to { transform: scale(3.2); opacity: 0; } }

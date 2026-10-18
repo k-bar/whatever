@@ -234,7 +234,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   useEffect(() => {
     const m = new maplibregl.Map({
       container: el.current, style: styleKey, center: WARSAW_CENTER, zoom: 12, minZoom: 9.5, maxZoom: 19,
-      maxBounds: [[20.4, 51.9], [21.8, 52.6]], attributionControl: { compact: true }, antialias: true, fadeDuration: 150,
+      maxBounds: [[20.4, 51.9], [21.8, 52.6]], attributionControl: { compact: true }, antialias: !isTouch(), fadeDuration: 150,
     })
     map.current = m
     // map credits: the (i) starts closed on every load (MapLibre opens it on wide screens); tap it to read them
@@ -303,7 +303,9 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     if (!m.getLayer('wl-dots')) m.addLayer({ id: 'wl-dots', type: 'circle', source: SRC, paint: {} })
     // pin icons: a round badge per type (cinema, bank, school …) on top of the dots, which stay as the tap target
     ensurePinIcons(m)
-    if (!m.getLayer('wl-icons')) m.addLayer({ id: 'wl-icons', type: 'symbol', source: SRC,
+    // badges appear from zoom 12 (a district); over the whole city plain coloured dots carry the same information at a
+    // fraction of the cost, since 3,600 overlapping symbols were the heaviest thing on screen while panning
+    if (!m.getLayer('wl-icons')) m.addLayer({ id: 'wl-icons', type: 'symbol', source: SRC, minzoom: ICON_MINZOOM,
       layout: { 'icon-image': ['concat', 'pt-', ['coalesce', ['get', 'pin_type'], 'community']], 'icon-allow-overlap': true, 'icon-ignore-placement': true },
       paint: { 'icon-opacity': 1 } })
     if (!m.getLayer('wl-starred')) m.addLayer({ id: 'wl-starred', type: 'circle', source: SRC, paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#f2a900', 'circle-stroke-width': 3 } })
@@ -414,23 +416,21 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   useEffect(() => { refreshFilters(map.current) }, [...PIN_PARAMS.map((k) => values[k]), values.showEvents, values.showPlaces, values.showPitches, values.showInvites, values.timeWindow, values.starredDefault, values.openNow, favourites, favOnly, searchIds])
 
   // ---------- selected pulse ----------
+  // An HTML marker animated by CSS: the old version changed three paint properties on every animation frame,
+  // which made MapLibre re-evaluate the style and repaint the whole map 60 times a second while a box was open.
+  const pulseMarker = useRef(null)
   useEffect(() => {
     const m = map.current
     if (!m?.getLayer('wl-selected')) return
     selectPin(m, selectedId)
-    if (!selectedId) return
-    let t0 = performance.now(), raf
-    const tick = (t) => {
-      const k = Math.min(1, Math.max(0, ((t - t0) / 1200) % 1)) // rAF timestamps can precede t0 by a frame
-      if (m.getLayer('wl-selected')) {
-        m.setPaintProperty('wl-selected', 'circle-radius', 10 + k * 22)
-        m.setPaintProperty('wl-selected', 'circle-stroke-opacity', 1 - k)
-        m.setPaintProperty('wl-selected', 'circle-stroke-color', values.accent)
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    const f = selectedId != null && (dataRef.current.features?.features || []).find((x) => String(x.properties.event_id) === String(selectedId))
+    const at = f?.geometry?.coordinates
+    if (!at) { pulseMarker.current?.remove(); pulseMarker.current = null; return }
+    if (!pulseMarker.current) {
+      const el = document.createElement('div'); el.className = 'sel-pulse'; el.innerHTML = '<span></span><span></span>'
+      pulseMarker.current = new maplibregl.Marker({ element: el }).setLngLat(at).addTo(m)
+    } else pulseMarker.current.setLngLat(at)
+    pulseMarker.current.getElement().style.setProperty('--c', values.accent)
   }, [selectedId, values.accent])
 
   // start page <-> map: fade the pins, busy areas and route in or out (MapLibre paint transitions)
@@ -486,9 +486,20 @@ function styleMarkers(m, v) {
   }[v.markerStyle]
   const icons = v.pinIcons !== false && m.getLayer('wl-icons')
   if (icons) {
-    // the dots turn into invisible tap targets the size of the badge; the badge does the showing
+    // below ICON_MINZOOM the dots are the pins (coloured, white rim); from there up they turn into invisible tap
+    // targets the size of the badge and the badge does the showing
     const size = iconScale(s)
-    Object.assign(paint, { 'circle-radius': iconScale(s * ICON_R), 'circle-opacity': 0, 'circle-stroke-width': 0 })
+    // one zoom curve (MapLibre allows a single zoom expression per property): dot radii up to the district
+    // level, then a jump to the badge's radius so the tap target matches what is drawn
+    const r = s * ICON_R
+    Object.assign(paint, {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 3.5 * s, 11, 4.3 * s, ICON_MINZOOM - 0.01, 5.6 * s,
+        ICON_MINZOOM, 0.8 * r, 13, 0.92 * r, 14, 1.12 * r, 15, 1.38 * r, 16, 1.65 * r, 17, 1.9 * r, 19, 2.4 * r],
+      'circle-opacity': ['step', ['zoom'], 0.95, ICON_MINZOOM, 0],
+      'circle-stroke-color': '#ffffff',
+      'circle-stroke-width': ['step', ['zoom'], 1.2, ICON_MINZOOM, 0],
+      'circle-stroke-opacity': ['step', ['zoom'], 1, ICON_MINZOOM, 0],
+    })
     m.setLayoutProperty('wl-icons', 'icon-size', size)
   }
   for (const [k, val] of Object.entries(paint)) m.setPaintProperty('wl-dots', k, val)
@@ -501,6 +512,8 @@ function styleMarkers(m, v) {
 
 // ---------- pin icons (data/pinTypes.js) ----------
 const ICON_R = 14 // badge radius in CSS px at icon-size 1 (white rim included)
+const ICON_MINZOOM = 12 // district level: badges from here, dots below
+const isTouch = () => matchMedia('(pointer: coarse)').matches
 /** icon-size by zoom: small over the whole city, full size in a street. `k` scales it (marker size, radius). */
 const iconScale = (k) => ['interpolate', ['linear'], ['zoom'], 9, 0.5 * k, 11, 0.68 * k, 13, 0.92 * k, 14, 1.12 * k, 15, 1.38 * k, 16, 1.65 * k, 17, 1.9 * k, 19, 2.4 * k]
 
