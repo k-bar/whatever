@@ -8,7 +8,7 @@ import { fmtWhenFor } from '../mapboxes/curate'
 import { CloseButton } from './CloseButton'
 import { useLang } from '../i18n'
 import { EventFilterPanel } from './EventFilterPanel'
-import { openSearchCanvas } from '../data/mapFilter'
+import { getMapFilter, openSearchCanvas } from '../data/mapFilter'
 import { FLIGHT_MS } from '../landing/searchFlight'
 
 // Events first, and always the default: its panel is how the map is filtered (EventFilterPanel)
@@ -77,8 +77,9 @@ export function SearchBar({ onSearch, matchCount = 0, trayOpen = false, unread =
   // Events: the panel opens whenever the bar is focused (and blanks the map, see below)
   const panelOpen = values.searchPanel && focused && !modeOpen && (mode === 'events' || mode === 'assistant' || !results || q !== (results?.q || ''))
   const eventsOpen = panelOpen && mode === 'events'
-  // opening the event search hands the map to it, as a blank canvas: every category off
-  useEffect(() => { if (eventsOpen) openSearchCanvas() }, [eventsOpen])
+  // opening the event search hands the map to it, as a blank canvas: every category off. Opening it again
+  // while it's already in charge (to add a When, say) keeps the switches the user set.
+  useEffect(() => { if (eventsOpen && getMapFilter().source !== 'search') openSearchCanvas() }, [eventsOpen])
   const showResults = results && !mobile && !panelOpen && mode !== 'assistant'
   const showAssistant = mode === 'assistant' && (focused || chatFull) && !modeOpen && values.searchPanel
 
@@ -199,7 +200,7 @@ export function ResultsList({ results, onPick, onClear }) {
         {onClear && <CloseButton size={34} onClick={onClear} label={t('Close results')} />}
       </div>
       <div className="results-scroll">
-        {results.answer && <div className="assistant"><b>✦ </b>{results.answer}</div>}
+        {results.answer && <div className="res-answer"><b>✦ </b>{results.answer}</div>}
         {results.exact === 0 && list.length > 0 && <div className="res-near first">{t('No exact matches. Closest:')}</div>}
         {list.map((f, i) => {
           const p = f.properties

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useSpring } from '../config/store'
-import { assetUrl, fetchMe, isLoggedIn, onAuthChange } from '../data/api'
+import { assetUrl, fetchMe, isLoggedIn, onAuthChange, onMeChange } from '../data/api'
 import { useLang } from '../i18n'
 import { usePopover } from './Calendar'
 import { LoginForm } from './LoginForm'
@@ -23,7 +23,9 @@ export function AccountButton({ onProfile, view }) {
   useEffect(() => {
     const load = () => { const on = isLoggedIn(); setLoggedIn(on); if (on) fetchMe().then(setMe); else setMe(null) }
     load()
-    return onAuthChange(load)
+    const offMe = onMeChange(load) // new name / photo from Edit profile
+    const offAuth = onAuthChange(load)
+    return () => { offMe(); offAuth() }
   }, [])
 
   // publish the width so the editor toggle / slide-over actions sit to its left

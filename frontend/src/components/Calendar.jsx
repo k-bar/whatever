@@ -40,7 +40,7 @@ export function usePopover() {
   useEffect(() => {
     if (!open) return
     const onDoc = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); setOpen(false) } } // handled: App's Escape leaves the panel behind alone
     document.addEventListener('pointerdown', onDoc)
     document.addEventListener('keydown', onKey)
     return () => { document.removeEventListener('pointerdown', onDoc); document.removeEventListener('keydown', onKey) }

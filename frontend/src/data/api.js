@@ -253,6 +253,11 @@ function writeToken(token) {
 export const isLoggedIn = () => Boolean(readToken())
 /** Subscribe to log in / log out. Returns the unsubscribe function. */
 export const onAuthChange = (fn) => { window.addEventListener(AUTH_EVENT, fn); return () => window.removeEventListener(AUTH_EVENT, fn) }
+// logging in or out in another tab of this browser counts here too (the storage event only fires in the others)
+window.addEventListener('storage', (e) => { if (e.key === TOKEN_KEY || e.key === null) window.dispatchEvent(new Event(AUTH_EVENT)) })
+/** "My profile changed" (name, photo…): the account pill and others showing me reload it. */
+const ME_EVENT = 'syrenka:me'
+export const onMeChange = (fn) => { window.addEventListener(ME_EVENT, fn); return () => window.removeEventListener(ME_EVENT, fn) }
 export const logout = () => writeToken(null)
 
 /** Thrown when an action needs an account: the UI shows "Log in" and the login form. */
@@ -367,7 +372,11 @@ export const unfriend = (userId) => authed(`/friends/${userId}`, { method: 'DELE
 export const searchPeople = (q) => maybeAuthed(`/people/search?q=${encodeURIComponent(q)}`)
 export const checkUsername = (name) => maybeAuthed(`/usernames/${encodeURIComponent(name)}/available`)
 /** PATCH /me: display_name, username, gender ('f' | 'm' | '' to clear), bio, interests, hangouts. */
-export const updateMe = (patch) => authed('/me', { method: 'PATCH', body: patch })
+export async function updateMe(patch) {
+  const me = await authed('/me', { method: 'PATCH', body: patch })
+  window.dispatchEvent(new Event(ME_EVENT))
+  return me
+}
 /** Upload a profile picture (shrunk in the browser, stored by the API); returns its path for photos[0]. */
 export async function uploadProfilePhoto(file) {
   const r = await authed('/userevents/photos', { method: 'POST', body: { data_url: await shrinkPhoto(file, 800) } })
@@ -417,6 +426,8 @@ async function fetchPrivateUserEvents() {
 export async function setAttendance(occurrenceId, wantsCompany = true) {
   return authed(`/occurrences/${occurrenceId}/attendance`, { method: 'PUT', body: { wants_company: wantsCompany }, timeout: 8000 })
 }
+/** "Not going any more": off the attendee lists, counts and my profile. */
+export const removeAttendance = (occurrenceId) => authed(`/occurrences/${occurrenceId}/attendance`, { method: 'DELETE', timeout: 8000 })
 
 /** GET /occurrences/{id}/attendees — who's going (logged-in users only; [] otherwise). */
 export async function fetchAttendees(occurrenceId) {

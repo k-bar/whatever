@@ -54,7 +54,7 @@ export function ProfilePage({ features, onPick, person, onViewing }) {
     load()
     return onAuthChange(load)
   }, [])
-  useEffect(() => { if (person) { setViewing(person.id); setEditing(false) } }, [person])
+  useEffect(() => { if (person) { setViewing(person.id ?? null); setEditing(false) } }, [person]) // id null: back to mine
   useEffect(() => { onViewing?.(viewing != null && viewing !== meId) }, [viewing, meId, onViewing])
 
   if (meId === undefined) return <div className="res-empty">{t('Loading…')}</div>
@@ -83,7 +83,7 @@ function ProfileView({ userId, rev, onEdit, onOpenUser, onChanged, onPick, featu
   const [tab, setTab] = useState('going')
   // rev: refetch in place after edits / friend changes, so the open tab stays put
   useEffect(() => { fetchProfile(userId).then(setP).catch((e) => setErr(e.message)) }, [userId, rev])
-  if (err) return <div className="res-empty">{err}</div>
+  if (err) return <div className="res-empty">{t(err)}</div>
   if (!p) return <div className="res-empty">{t('Loading…')}</div>
 
   const L = labels(lang, p.gender)
@@ -168,7 +168,7 @@ function PersonalDetails({ gender }) {
 function FriendButton({ profile, onChanged }) {
   const { t } = useLang()
   const [busy, setBusy] = useState(false)
-  const act = async (fn) => { setBusy(true); try { await fn(); onChanged() } catch (e) { window.dispatchEvent(new CustomEvent('syrenka:toast', { detail: e.message })) } finally { setBusy(false) } }
+  const act = async (fn) => { setBusy(true); try { await fn(); onChanged() } catch (e) { window.dispatchEvent(new CustomEvent('syrenka:toast', { detail: t(e.message) })) } finally { setBusy(false) } }
   if (!isLoggedIn()) return null
   const rel = profile.relation
   if (rel === 'friends') return <button className="btn small" disabled={busy} onClick={() => act(() => unfriend(profile.id))} title={t('Remove friend')}><UserCheck size={15} /> {t('Friends')}</button>
@@ -211,7 +211,13 @@ function FriendsTab({ userId, isMe, onOpenUser, onChanged }) {
     if (isMe) { fetchFriendRequests('incoming').then(setIncoming).catch(() => {}); fetchFriendRequests('outgoing').then(setOutgoing).catch(() => {}) }
   }
   useEffect(reload, [userId, isMe]) // eslint-disable-line react-hooks/exhaustive-deps
-  const answer = async (id, status) => { await answerFriendRequest(id, status); reload(); onChanged() }
+  const [busy, setBusy] = useState(null) // the request being answered: no double taps
+  const answer = async (id, status) => {
+    if (busy) return
+    setBusy(id)
+    try { await answerFriendRequest(id, status); onChanged() } catch (e) { window.dispatchEvent(new CustomEvent('syrenka:toast', { detail: t(e.message || 'Something went wrong') })) }
+    finally { setBusy(null); reload() }
+  }
 
   return (
     <div className="pp-friends">
@@ -222,8 +228,8 @@ function FriendsTab({ userId, isMe, onOpenUser, onChanged }) {
           <div className="sp-row" key={r.id}>
             <button className="pp-person" onClick={() => onOpenUser(r.user.id)}><Avatar user={r.user} /><span><div className="t">{r.user.display_name}</div><div className="s">@{r.user.username}</div></span></button>
             <span className="right" style={{ display: 'flex', gap: 6 }}>
-              <button className="btn small primary" onClick={() => answer(r.id, 'accepted')}>{t('Accept')}</button>
-              <button className="btn small" onClick={() => answer(r.id, 'declined')}>{t('Decline')}</button>
+              <button className="btn small primary" disabled={busy === r.id} onClick={() => answer(r.id, 'accepted')}>{t('Accept')}</button>
+              <button className="btn small" disabled={busy === r.id} onClick={() => answer(r.id, 'declined')}>{t('Decline')}</button>
             </span>
           </div>
         ))}
@@ -251,7 +257,7 @@ function AddFriend({ onSent }) {
     return () => clearTimeout(timer)
   }, [q])
   const add = async (u) => {
-    try { const r = await sendFriendRequest(u.username); setSent((s) => ({ ...s, [u.id]: r.status })); onSent() } catch (e) { window.dispatchEvent(new CustomEvent('syrenka:toast', { detail: e.message })) }
+    try { const r = await sendFriendRequest(u.username); setSent((s) => ({ ...s, [u.id]: r.status })); onSent() } catch (e) { window.dispatchEvent(new CustomEvent('syrenka:toast', { detail: t(e.message) })) }
   }
   return (
     <div className="pp-add">
@@ -279,7 +285,7 @@ function EditProfile({ features, onDone }) {
   const [name, setName] = useState({ state: 'same' }) // same | checking | ok | bad
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-  useEffect(() => { fetchMe().then((m) => { setMe(m); setV({ display_name: m.display_name, username: m.username, gender: m.gender || '', first_name: m.first_name || '', last_name: m.last_name || '', age: m.age ?? '', bio: m.bio || '', interests: m.interests || [], hangouts: m.hangouts || [], photos: m.photos || [] }) }) }, [])
+  useEffect(() => { fetchMe().then((m) => { if (!m) { onDone(); return } setMe(m); setV({ display_name: m.display_name, username: m.username, gender: m.gender || '', first_name: m.first_name || '', last_name: m.last_name || '', age: m.age ?? '', bio: m.bio || '', interests: m.interests || [], hangouts: m.hangouts || [], photos: m.photos || [] }) }) }, [])
 
   useEffect(() => {
     if (!v || !me) return

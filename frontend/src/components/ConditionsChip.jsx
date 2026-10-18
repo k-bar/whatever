@@ -51,8 +51,10 @@ export function ConditionsChip({ at }) {
   useEffect(() => {
     if (!open) return
     const onDoc = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); setOpen(false) } }
     document.addEventListener('pointerdown', onDoc)
-    return () => document.removeEventListener('pointerdown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('pointerdown', onDoc); document.removeEventListener('keydown', onKey) }
   }, [open])
 
   if (!data || !at) return null

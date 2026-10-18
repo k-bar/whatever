@@ -112,8 +112,8 @@ export function LandingNetwork({ getMap, mobile }) {
   // the scene: people popping in and out, lines travelling between them
   useEffect(() => {
     if (!ready) return
-    const timers = []
-    const later = (fn, ms) => timers.push(setTimeout(fn, ms))
+    const timers = new Set() // pending ones only: a fired timer leaves, so the set doesn't grow while the page stays open
+    const later = (fn, ms) => { const id = setTimeout(() => { timers.delete(id); fn() }, ms); timers.add(id) }
     const scene = s.current
     const cap = mobile ? 6 : 12
     const max = Math.min(spotsRef.current.length, cap)
