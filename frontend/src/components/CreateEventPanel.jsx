@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import { createUserEvent, isLoggedIn, onAuthChange } from '../data/api'
-import { AUDIENCES, EVENT_TYPES, categoryColor } from '../data/categories'
+import { AUDIENCES } from '../data/categories'
+import { SEARCH_TYPES, TYPES, typeColor, typeLabel } from '../data/types'
 import { CloseButton } from './CloseButton'
 import { Check, Globe, Lock, Photo, Pin, UserCheck, Users } from './Icons'
 import { LoginForm } from './LoginForm'
@@ -125,9 +126,10 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
         <div className="ce-field">
           <span className="ce-label">{t('Event type')}</span>
           <div className="ce-types">
-            {Object.entries(EVENT_TYPES).map(([slug, et]) => (
-              <button key={slug} type="button" className={`pill-cat ${form.type === slug ? 'on' : ''}`} style={{ '--c': categoryColor(et.category) }} onClick={() => set('type')(slug)} aria-pressed={form.type === slug}>
-                <i />{t(et.label)}
+            {/* any type at all (data/types.js): the invite's pin gets exactly this type */}
+            {SEARCH_TYPES.map((id) => (
+              <button key={id} type="button" className={`pill-cat ${form.type === id ? 'on' : ''}`} style={{ '--c': typeColor(id) }} onClick={() => set('type')(id)} aria-pressed={form.type === id}>
+                <span aria-hidden="true">{TYPES[id].emoji}</span>{typeLabel(id)}
               </button>
             ))}
           </div>
