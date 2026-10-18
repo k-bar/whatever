@@ -576,4 +576,6 @@ export const PL = {
   'Station': 'Stacja',
   'Pick a type': 'Wybierz rodzaj',
   'Browse by type': 'Przeglądaj według rodzaju',
+  'Metro & bus stations': 'Stacje metra i autobusów',
+  'Map: metro & bus stations': 'Mapa: stacje metra i autobusów',
 }

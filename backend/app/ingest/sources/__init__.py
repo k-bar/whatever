@@ -8,6 +8,7 @@
 from app.ingest.base import SourceSpec
 from app.ingest.sources import (
     osm_restaurants,
+    osm_transit,
     osm_venues,
     songkick,
     warsaw_amenities,
@@ -22,6 +23,7 @@ SOURCES: dict[str, SourceSpec] = {
         *warsaw_amenities.SPECS,
         *osm_venues.SPECS,
         *osm_restaurants.SPECS,
+        *osm_transit.SPECS,
         *songkick.SPECS,
         *waw4free.SPECS,
     ]

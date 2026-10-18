@@ -59,6 +59,10 @@ export function curate(feature, ctx = {}) {
     blocks.push({ type: 'text', text: translate('In a cardiac arrest: call 112, start CPR and send someone for the AED. It talks you through every step.') })
     return { title: translate('Defibrillator (AED)'), subtitle: p.venue_name, badges: ['AED', translate('City data')], blocks }
   }
+  if (cats.includes('transit')) { // metro and bus stations (OpenStreetMap)
+    blocks.push({ type: 'facts', items: [p.lead && { icon: 'map', text: p.lead }, p.district && { icon: 'pin', text: p.district }].filter(Boolean) })
+    return { title: p.title, subtitle: null, badges: ['OpenStreetMap'], blocks, url: p.url }
+  }
   if (p.kind === 'walk') {
     const stops = (p.points || []).map((s) => s.name)
     const hours = (p.length_km || 0) / 4

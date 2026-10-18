@@ -25,11 +25,12 @@ CATEGORIES = {
     "other": "Other",
     "toilets": "Public toilets",
     "aed": "Defibrillators (AED)",
+    "transit": "Metro & bus stations",
 }
 
 # Practical map layers, not social categories: kept apart from the keyword guessing below,
 # and hidden from /places unless asked for by category.
-AMENITIES = {"toilets", "aed"}
+AMENITIES = {"toilets", "aed", "transit"}
 
 # Source label (lowercased) -> our slug. Labels seen in dane.um.warszawa.pl data.
 LABEL_MAP = {
@@ -57,6 +58,9 @@ LABEL_MAP = {
     "boisko": "sports",
     "toaleta": "toilets",
     "defibrylator": "aed",
+    # OpenStreetMap stations (app/ingest/sources/osm_transit.py)
+    "osm:subway_station": "transit",
+    "osm:bus_station": "transit",
     # OpenStreetMap venue types (app/ingest/sources/osm_venues.py)
     "osm:theatre": "theatre",
     "osm:cinema": "film",

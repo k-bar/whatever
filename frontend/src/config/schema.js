@@ -106,6 +106,7 @@ export const SECTIONS = [
       { id: 'showToilets', label: 'Map: toilets near your route', type: 'toggle', default: true },
       { id: 'showAed', label: 'Map: defibrillators (AED) near your route', type: 'toggle', default: true },
       { id: 'showWalks', label: 'Map: walking routes', type: 'toggle', default: true },
+      { id: 'showStations', label: 'Map: metro & bus stations', type: 'toggle', default: true },
       // toolbar "People": everyone sharing their area, as pulsing photos (components/PeopleLayer.jsx)
       { id: 'showPeople', label: 'Map: people sharing their area', type: 'toggle', default: true },
       { id: 'showEvents', label: 'Show events', type: 'toggle', default: true },
