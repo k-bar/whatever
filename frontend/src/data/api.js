@@ -117,7 +117,8 @@ async function askAssistant(q, me) {
   const near = Number.isFinite(lat) && Math.abs(lat - 52.25) < 0.25 && Math.abs(lng - 21.05) < 0.35
   const r = await post('/assistant', { q, lang: getLang(), context: assistantContext, ...(near ? { lat, lng } : {}) })
   assistantContext = r.context
-  return { answer: r.answer, results: r.results, area: r.area, summary: r.understood }
+  // results: exact matches only; suggestions: labelled groups that relax the question ([{ kind, label, results }])
+  return { answer: r.answer, results: r.results, suggestions: r.suggestions || [], area: r.area, summary: r.understood }
 }
 
 /** Search over the loaded pins: src/search/engine.js reads what / when / where and ranks with tolerances. */

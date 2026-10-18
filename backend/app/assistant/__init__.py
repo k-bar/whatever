@@ -4,6 +4,7 @@
                       "context": <the previous reply's context, for follow-ups>}
     -> {"answer": "Znalazłem 4 wyniki dla: muzyka · „jazz” · weekend · Praga-Północ ...",
         "results": [GeoJSON Feature, ...], "intent": "find", "understood": "muzyka · ...",
+        "suggestions": [{"kind": "broad" | "elsewhere" | "later", "label": "...", "results": [Feature, ...]}],
         "area": GeoJSON Feature | null, "context": {...}}
 
 nlu.py reads the question: an intent (find, info, open, company, toilets, AED, weather, air, small talk)

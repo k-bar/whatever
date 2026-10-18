@@ -189,7 +189,12 @@ export default function App() {
     if (mode === 'assistant') setChat((c) => [...c, { role: 'user', text: q }])
     const r = await runSearch(mode, q, featureList, { ...opts, me })
     setSearching(false)
-    if (mode === 'assistant') { setChat((c) => [...c, { role: 'assistant', text: r.answer, results: r.results }]); if (r.results?.length && r.results.length <= 40) fitResults(r.results); return }
+    if (mode === 'assistant') {
+      setChat((c) => [...c, { role: 'assistant', text: r.answer, results: r.results, suggestions: r.suggestions }])
+      const shown = r.results?.length ? r.results : (r.suggestions || []).flatMap((g) => g.results) // nothing exact: the suggestions in view
+      if (shown.length && shown.length <= 40) fitResults(shown)
+      return
+    }
     if (r.understood?.when) set('timeWindow', windowFor(r.understood.when))
     showSearch(r, mode)
   }
