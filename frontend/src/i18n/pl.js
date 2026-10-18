@@ -64,7 +64,7 @@ export const PL = {
   'Shrink': 'Zmniejsz',
   'Expand': 'Rozwiń',
   '{n} messages': 'Wiadomości: {n}',
-  'assistant · stub': 'asystent · wersja testowa',
+  'assistant': 'asystent',
   'Clear thread': 'Wyczyść rozmowę',
   '{n} result': '{n} wynik',
   '{n} results': 'Wyniki: {n}',

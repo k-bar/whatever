@@ -181,7 +181,7 @@ export default function App() {
     if (!q.trim() && mode !== 'assistant') { setResults(null); return }
     setSearching(true)
     if (mode === 'assistant') setChat((c) => [...c, { role: 'user', text: q }])
-    const r = await runSearch(mode, q, featureList, opts)
+    const r = await runSearch(mode, q, featureList, { ...opts, me })
     setSearching(false)
     if (mode === 'assistant') { setChat((c) => [...c, { role: 'assistant', text: r.answer, results: r.results }]); if (r.results?.length && r.results.length <= 40) fitResults(r.results); return }
     if (r.understood?.when) set('timeWindow', windowFor(r.understood.when))
