@@ -58,6 +58,18 @@ def end_sessions(user: User) -> None:
     user.token_version += 1
 
 
+USER_FIELDS = (
+    "email",
+    "password_hash",
+    "display_name",
+    "photos",
+    "interests",
+    "links",
+    "hangouts",
+    "last_mail_at",
+)
+
+
 @router.post("/auth/register", response_model=TokenOut, status_code=201)
 def register(body: RegisterIn, tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Create an account and mail a confirmation link. The new account can log in straight away;
@@ -81,14 +93,24 @@ def register(body: RegisterIn, tasks: BackgroundTasks, db: Session = Depends(get
         hangouts=[],
         last_mail_at=datetime.now(UTC),
     )
-    db.add(user)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        if usernames.is_taken(db, username):
-            raise HTTPException(409, "Username taken")
-        raise HTTPException(409, "Email already registered")
+    for attempt in range(3):
+        db.add(user)
+        try:
+            db.commit()
+            break
+        except IntegrityError:
+            db.rollback()
+            if by_email(db, user.email) is not None:
+                raise HTTPException(409, "Email already registered")
+            if body.username:  # the name they chose was taken a moment ago
+                raise HTTPException(409, "Username taken")
+            # two people called the same got the same suggestion at once: suggest again
+            if attempt == 2:
+                raise HTTPException(409, "Username taken")
+            user = User(
+                **{c: getattr(user, c) for c in USER_FIELDS},
+                username=usernames.suggest(db, body.display_name),
+            )
     queue_verification(tasks, user)
     return TokenOut(access_token=create_token(user))
 

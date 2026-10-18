@@ -145,6 +145,9 @@ class User(Base):
 
 class Attendance(Base):
     __tablename__ = "attendance"
+    # the primary key starts with user_id; "who goes to this date" (counts, attendee lists, the ingest's
+    # "does anyone attend it" check) needs its own index
+    __table_args__ = (Index("ix_attendance_occurrence_id", "occurrence_id"),)
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     occurrence_id: Mapped[int] = mapped_column(

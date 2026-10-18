@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, defer, selectinload
 
 from app import translate, userevents
 from app.auth import get_verified_user
@@ -52,6 +52,10 @@ def attendance_counts():
 
 
 LANG = Query(None, pattern="^(pl|en)$", description="title and lead in this language when translated")
+
+# map lists never send the full text or the source's raw record: don't load them for thousands of rows
+# (raw is still read, lazily, for the few Syrenka-users pins that carry their extras in it)
+LIGHT = (selectinload(Event.source), defer(Event.raw), defer(Event.text_html), defer(Event.text_plain))
 
 
 def localize(props: dict, event: Event, lang: str | None) -> None:
@@ -152,7 +156,7 @@ def list_events(
         .join(Occurrence, Occurrence.event_id == Event.id)
         .outerjoin(counts, counts.c.occurrence_id == Occurrence.id)
         .where(Occurrence.starts_at <= end, func.coalesce(Occurrence.ends_at, Occurrence.starts_at) >= start)
-        .options(selectinload(Event.source))
+        .options(*LIGHT)
         .order_by(Occurrence.starts_at)
         .limit(limit)
     )
@@ -190,7 +194,7 @@ def events_now(
             Occurrence.starts_at.between(now, now + timedelta(hours=hours)),
             func.ST_DWithin(Event.location, here, radius_m),
         )
-        .options(selectinload(Event.source))
+        .options(*LIGHT)
         .order_by(distance)
         .limit(200)
     )
@@ -226,7 +230,7 @@ def list_places(
     stmt = event_filters(select(Event), parse_bbox(bbox), category, "place", q, include_unlocated)
     if not category:
         stmt = stmt.where(~Event.categories.overlap(sorted(AMENITIES)))
-    stmt = stmt.options(selectinload(Event.source)).order_by(Event.district, Event.title)
+    stmt = stmt.options(*LIGHT).order_by(Event.district, Event.title)
     if district:
         stmt = stmt.where(Event.district.ilike(district))
     places = db.scalars(stmt).all()
