@@ -1333,3 +1333,7 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .people-hint.err { color: #c62828; }
 .people-login { padding: 2px 6px 6px; }
 @media (max-width: 767px) { .people-menu { width: min(272px, calc(100vw - 24px)); } .person-marker { width: 30px; height: 30px; } .pr-av { border-width: 2px; } }
+
+/* every pin's type, right at the top of its map box (data/types.js) */
+.mb-type { display: inline-flex; align-items: center; gap: 5px; margin-bottom: 4px; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--c); }
+.pill-cat > span[aria-hidden] { font-size: 14px; line-height: 1; }

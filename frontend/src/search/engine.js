@@ -10,6 +10,7 @@
  * asked about is shown. Past events are never searched (they stay stored).
  */
 import { categoryLabel } from '../data/categories'
+import { typeLabel, typeOf } from '../data/types'
 import { locale, translate } from '../i18n'
 import { contains, fold, kmOutside, loadAreas } from './areas'
 import { understand } from './understand'
@@ -130,8 +131,9 @@ export function whenLabel(when) {
 }
 
 /**
- * query: typed text. opts: { mode: 'search' | 'events' | 'assistant', category, when, where (start page:
- * { kind: 'district' | 'type' | 'venue' | 'place' | 'text', label, category?, lngLat? }), now }.
+ * query: typed text. opts: { mode: 'search' | 'events' | 'assistant', category, type (data/types.js: only pins
+ * of that type), when, where (start page: { kind: 'district' | 'type' | 'venue' | 'place' | 'text', label,
+ * category?, type?, lngLat? }), now }.
  * Returns { results, exact, understood, summary, area } — area is the outline feature to draw, if any.
  */
 export async function smartSearch(query, features, opts = {}) {
@@ -142,6 +144,7 @@ export async function smartSearch(query, features, opts = {}) {
   if (opts.when) u.when = opts.when
   let where = u.area ? { area: u.area.ref } : null
   const w = opts.where
+  const type = opts.type || (w?.kind === 'type' && w.type) || null
   if (w) {
     if (w.kind === 'type' && w.category) { if (!u.categories.includes(w.category)) u.categories.push(w.category) }
     else if (w.kind === 'district' || w.kind === 'area') {
@@ -156,12 +159,13 @@ export async function smartSearch(query, features, opts = {}) {
       if (parsed.area) { where = { area: parsed.area.ref }; u.area = parsed.area } else where = { text: w.label }
     }
   }
-  const structured = u.categories.length || u.when || u.evening || where
+  const structured = u.categories.length || u.when || u.evening || where || type
   const scored = []
   for (const f of features || []) {
     const p = f.properties
     if (opts.mode === 'events' && !(p.kind === 'event' && p.starts_at)) continue // Events: only real events with a date, never places or classes
-    const title = fold(p.title), rest = fold(`${p.venue_name || ''} ${p.lead || ''} ${p.address || ''} ${p.district || ''} ${(p.categories || []).map(categoryLabel).join(' ')}`)
+    if (type && typeOf(p) !== type) continue // a type picked: only pins of that type
+    const title = fold(p.title), rest = fold(`${p.venue_name || ''} ${p.lead || ''} ${p.address || ''} ${p.district || ''} ${(p.categories || []).map(categoryLabel).join(' ')} ${typeLabel(typeOf(p))}`)
     const a = whatScore(p, u.categories, title); if (!a) continue
     const b = whenScore(p, u.when, u.evening, u.categories, now); if (!b) continue
     const c = whereScore(f, where); if (!c) continue
@@ -174,7 +178,7 @@ export async function smartSearch(query, features, opts = {}) {
   scored.sort((x, y) => Number(y.exact) - Number(x.exact) || y.score - x.score || x.start - y.start)
   const results = scored.slice(0, MAX_RESULTS)
   const summary = [
-    ...u.categories.map(categoryLabel), whenLabel(u.when), u.area?.name, ...u.terms,
+    type && typeLabel(type), ...u.categories.map(categoryLabel), whenLabel(u.when), u.area?.name, ...u.terms,
   ].filter(Boolean).join(' · ')
   return {
     results: results.map((r) => r.f),

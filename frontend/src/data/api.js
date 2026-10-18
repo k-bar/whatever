@@ -102,7 +102,7 @@ export async function runSearch(mode, q, features, opts = {}) {
 
 /** Search over the loaded pins: src/search/engine.js reads what / when / where and ranks with tolerances. */
 async function localSearch(mode, q, features, opts = {}) {
-  const r = await smartSearch(q, features, { mode, category: opts.category, when: opts.when, where: opts.where })
+  const r = await smartSearch(q, features, { mode, category: opts.category, type: opts.type, when: opts.when, where: opts.where })
   if (mode !== 'assistant') return r
   const n = r.results.length
   const top = r.results.slice(0, 3).map((f) => `• ${f.properties.title}${f.properties.venue_name ? ` @ ${f.properties.venue_name}` : ''}`).join('\n')

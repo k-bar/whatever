@@ -302,7 +302,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     // pin icons: a round badge per type (cinema, bank, school …) on top of the dots, which stay as the tap target
     ensurePinIcons(m)
     if (!m.getLayer('wl-icons')) m.addLayer({ id: 'wl-icons', type: 'symbol', source: SRC,
-      layout: { 'icon-image': ['concat', 'pt-', ['coalesce', ['get', 'pin_type'], 'other']], 'icon-allow-overlap': true, 'icon-ignore-placement': true },
+      layout: { 'icon-image': ['concat', 'pt-', ['coalesce', ['get', 'pin_type'], 'community']], 'icon-allow-overlap': true, 'icon-ignore-placement': true },
       paint: { 'icon-opacity': 1 } })
     if (!m.getLayer('wl-starred')) m.addLayer({ id: 'wl-starred', type: 'circle', source: SRC, paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#f2a900', 'circle-stroke-width': 3 } })
     if (!m.getLayer('wl-selected')) m.addLayer({ id: 'wl-selected', type: 'circle', source: SRC, filter: ['==', ['get', 'event_id'], '__none__'], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3, 'circle-radius': 16 } })

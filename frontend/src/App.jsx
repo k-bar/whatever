@@ -172,7 +172,7 @@ export default function App() {
   const onSearch = async (mode, q, opts) => {
     if (mode === 'events' && (opts?.when || opts?.where)) { // Events dropdown: tag · when · where
       if (opts.when) set('timeWindow', windowFor(opts.when))
-      showSearch(await smartSearch(opts.category ? '' : q.split(' · ')[0], upcoming(featureList), { mode: 'events', category: opts.category, when: opts.when, where: opts.where }), mode, opts.where)
+      showSearch(await smartSearch(opts.category || opts.type ? '' : q.split(' · ')[0], upcoming(featureList), { mode: 'events', category: opts.category, type: opts.type, when: opts.when, where: opts.where }), mode, opts.where)
       return
     }
     if (!q.trim() && mode !== 'assistant') { setResults(null); return }
