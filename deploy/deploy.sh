@@ -18,8 +18,6 @@ chmod -R a+rX /opt/uv/python
 
 log "backend: migrations (schema ${DB_SCHEMA:-public})"
 (cd backend && .venv/bin/alembic upgrade head)
-# the 30 demo people (app/mocksocial.py); never on prod, and never a reason to roll back
-[ "$APP_ENV" = prod ] || (cd backend && .venv/bin/python -m app.mocksocial) || log "backend: demo people not refreshed"
 
 # --- offline translation model (app/translate.py): PL -> EN, Argos Translate / OPUS-MT, ~70 MB -----
 MODEL_DIR=/opt/warszawa/models

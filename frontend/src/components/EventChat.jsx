@@ -3,7 +3,7 @@ import { useChat } from '../data/chat'
 import { assetUrl } from '../data/api'
 import { fmtWhen } from '../mapboxes/curate'
 import { locale, useLang } from '../i18n'
-import { useMe, VerifyBanner } from './Account'
+import { needsVerify, useMe, VerifyBanner } from './Account'
 import { ChevronL, X } from './Icons'
 import { LoginForm } from './LoginForm'
 import { Avatar } from './ProfilePage'
@@ -58,7 +58,7 @@ export function EventChat({ target, onBack, onOpenEvent, onOpenUser }) {
   }
 
   const info = chat.info
-  const canWrite = me?.email_verified
+  const canWrite = !!me && !needsVerify(me)
   const isHost = info && me && info.host_user_id === me.id
   return (
     <div className="chat">

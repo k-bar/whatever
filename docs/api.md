@@ -30,6 +30,7 @@
 | GET | `/conditions` | `{weather, air}`: latest reading per station | |
 | GET | `/routes` | Tourist routes as LineStrings | |
 | GET | `/busyareas` | "Busy areas" polygons (committed GeoJSON) | |
+| POST | `/assistant` | Search bar's Assistant: plain-words question -> `{answer, results, intent, understood, area, context}` (no LLM, `app/assistant`) | body `q`, `lang`, optional `lat`/`lng`, `context` (previous reply's, for follow-ups) |
 
 ## Accounts and profiles
 
@@ -84,6 +85,7 @@
 
 `frontend/src/data/api.js` is the only API client in the UI. It calls:
 - **Map:** `/events`, `/places`, `/places?category=toilets|aed`, `/routes`, `/busyareas`, `/sources`
+- **Assistant:** `POST /assistant` (falls back to local search when the API is down)
 - **Accounts:** `/auth/*`, `/me`, `/me/favourites`
 - **Social:** `/occurrences/*/attendance`, `/occurrences/*/join-requests`, `/me/join-requests`
 - **Profiles and friends:** the profile, friend and people endpoints

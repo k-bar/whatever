@@ -202,26 +202,9 @@ def main(argv: list[str] | None = None) -> int:
         from app.ingest.routes import ROUTES
 
         failed += run_feeds([ROUTES])
-        failed += refresh_demo_people()
     # Translations run on their own timer (deploy/systemd/warszawa-translate.timer, app/translate.py),
     # so new events get English titles within minutes instead of after the next multi-hour ingest.
     return 1 if failed else 0
-
-
-def refresh_demo_people() -> int:
-    """Keep the demo people's been to / going to / hosting true as dates pass (app/mocksocial.py)."""
-    from app import mocksocial
-    from app.config import settings
-
-    if settings.app_env == "prod":
-        return 0
-    try:
-        with SessionLocal() as db:
-            print("mocksocial:", mocksocial.run(db))
-        return 0
-    except Exception:
-        print(f"mocksocial: FAILED\n{traceback.format_exc()}", file=sys.stderr)
-        return 1
 
 
 if __name__ == "__main__":

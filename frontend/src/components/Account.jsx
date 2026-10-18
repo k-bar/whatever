@@ -18,6 +18,9 @@ export function useMe() {
   return me
 }
 
+/** Social features are locked until the email is confirmed (only while the server requires it). */
+export const needsVerify = (me) => !!me && me.verify_required !== false && !me.email_verified
+
 /**
  * "Confirm your email" with a resend button. Shown wherever a locked feature lives (profile, chats,
  * create event) while the account isn't confirmed; renders nothing otherwise.
@@ -25,7 +28,7 @@ export function useMe() {
 export function VerifyBanner({ me, compact = false }) {
   const { t } = useLang()
   const [state, setState] = useState(null) // null | sending | sent | error message
-  if (!me || me.email_verified) return null
+  if (!needsVerify(me)) return null
   const resend = async () => {
     setState('sending')
     try { await resendVerification(); setState('sent') } catch (e) { setState(t(e.message)) }
