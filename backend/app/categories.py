@@ -21,14 +21,16 @@ CATEGORIES = {
     "family": "Family & kids",
     "business": "Business",
     "health": "Health",
+    "food": "Food & drink",
     "other": "Other",
     "toilets": "Public toilets",
     "aed": "Defibrillators (AED)",
+    "transit": "Metro & bus stations",
 }
 
 # Practical map layers, not social categories: kept apart from the keyword guessing below,
 # and hidden from /places unless asked for by category.
-AMENITIES = {"toilets", "aed"}
+AMENITIES = {"toilets", "aed", "transit"}
 
 # Source label (lowercased) -> our slug. Labels seen in dane.um.warszawa.pl data.
 LABEL_MAP = {
@@ -56,6 +58,9 @@ LABEL_MAP = {
     "boisko": "sports",
     "toaleta": "toilets",
     "defibrylator": "aed",
+    # OpenStreetMap stations (app/ingest/sources/osm_transit.py)
+    "osm:subway_station": "transit",
+    "osm:bus_station": "transit",
     # OpenStreetMap venue types (app/ingest/sources/osm_venues.py)
     "osm:theatre": "theatre",
     "osm:cinema": "film",
@@ -69,20 +74,49 @@ LABEL_MAP = {
     "osm:stadium": "sports",
     "osm:museum": "exhibitions",
     "osm:gallery": "exhibitions",
+    # OpenStreetMap food & drink venues (app/ingest/sources/osm_restaurants.py)
+    "osm:restaurant": "food",
+    "osm:cafe": "food",
+    "osm:food_court": "food",
+    "osm:bar": "nightlife",
+    "osm:pub": "nightlife",
+    "osm:biergarten": "nightlife",
+    # Songkick concerts (app/ingest/sources/songkick.py)
+    "songkick:concert": "music",
+    # Waw4Free categories (app/ingest/sources/waw4free.py)
+    "waw4free:koncerty": "music",
+    "waw4free:koncert": "music",
+    "waw4free:imprezy": "nightlife",
+    "waw4free:impreza": "nightlife",
+    "waw4free:stand-up": "culture",
+    "waw4free:teatr": "theatre",
+    "waw4free:film": "film",
+    "waw4free:wystawy": "exhibitions",
+    "waw4free:wystawa": "exhibitions",
+    "waw4free:targi": "markets",
+    "waw4free:warsztaty": "education",
+    "waw4free:wykłady": "education",
+    "waw4free:spotkania": "meetups",
+    "waw4free:sport": "sports",
+    "waw4free:spacer lub rower": "sports",
+    "waw4free:dla dzieci": "family",
+    "waw4free:dla młodzieży": "family",
+    "waw4free:spotkanie": "meetups",
+    "waw4free:wykład": "education",
 }
 
 # Title keywords refine broad labels like "Kultura".
 KEYWORDS = [
     (re.compile(r"koncert|muzyk|jazz|recital|orkiestr", re.I), "music"),
     (re.compile(r"spektakl|teatr|premier", re.I), "theatre"),
-    (re.compile(r"\bfilm|kino|seans", re.I), "film"),
+    (re.compile(r"\bfilm|kino|\bseans(?!\w* saun)", re.I), "film"),  # not "Seanse saunowe" (sauna sessions)
     (re.compile(r"wystaw|galeri|muzeum|ekspozycj", re.I), "exhibitions"),
     (re.compile(r"festiwal|festyn|piknik", re.I), "festivals"),
     (re.compile(r"jarmark|targ|kiermasz|bazar", re.I), "markets"),
     (re.compile(r"\bjog[aiy]|yoga", re.I), "yoga"),
     (re.compile(r"\bbieg|run\b|maraton", re.I), "running"),
     (re.compile(r"grzyb", re.I), "grzybki"),
-    (re.compile(r"\bparty|impreza|\bdj\b|clubbing|nocne", re.I), "nightlife"),
+    (re.compile(r"\bpart(y|ies)\b|impreza|\bdj\b|clubbing|nocne", re.I), "nightlife"),  # not "Partyzantów"
 ]
 
 

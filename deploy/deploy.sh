@@ -15,9 +15,10 @@ printf 'GIT_SHA=%s\nAPP_ENV=%s\n' "$GIT_SHA" "$APP_ENV" > /etc/warszawa/release.
 log "backend: uv sync"
 (cd backend && uv sync --frozen --no-dev -q)
 chmod -R a+rX /opt/uv/python
-
 log "backend: migrations (schema ${DB_SCHEMA:-public})"
 (cd backend && .venv/bin/alembic upgrade head)
+# after the migrations (users.is_mock is 0013): the 30 demo people (app/mocksocial.py), dev and prod unless DEMO_PEOPLE=false; never a reason to roll back
+(cd backend && .venv/bin/python -m app.mocksocial) || log "backend: demo people not refreshed"
 
 # --- offline translation model (app/translate.py): PL -> EN, Argos Translate / OPUS-MT, ~70 MB -----
 MODEL_DIR=/opt/warszawa/models

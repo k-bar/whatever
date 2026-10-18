@@ -4,7 +4,9 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useConfig } from '../config/store'
 import { WARSAW_CENTER } from '../data/api'
 import { categoryMatchExpr } from '../data/categories'
-import { enabledPinGroups, PIN_GROUPS, pinGroup, withPinGroups } from '../data/pinGroups'
+import { closedNow, enabledPinGroups, PIN_GROUPS, pinGroup, withPinGroups } from '../data/pinGroups'
+import { PIN_TYPES } from '../data/pinTypes'
+import { inWindow, windowRange } from '../data/features'
 import { ME_STYLES } from './meMarker'
 import { CITY_CLICK_LAYERS, ensureCityLayers, highlightWalk, setCityData, setCityVisibility } from './cityLayers'
 
@@ -12,13 +14,13 @@ const PIN_PARAMS = PIN_GROUPS.map((g) => g.param)
 import { translate, useLang } from '../i18n'
 import { applyMapDesign, firstSymbolLayer, styleFor } from './mapStyle'
 
-const SRC = 'wl-features', BOUNDARY = 'wl-boundary', AREAS = 'wl-busyareas', ROUTE = 'wl-route'
+const SRC = 'wl-features', BOUNDARY = 'wl-boundary', AREAS = 'wl-busyareas', ROUTE = 'wl-route', SEARCH_AREA = 'wl-search-area'
 const AREA_LABEL = 'wl-busyareas-label'
 const AREA_FILL_OPACITY = ['interpolate', ['linear'], ['zoom'], 11, 0.5, 16, 0.36]
 const FADE = { duration: 900, delay: 0 }
 // what fades out on the start page and back in when the map is entered: [layer, paint property, shown value]
 const REVEAL = [
-  ['wl-dots', 'circle-stroke-opacity', 1], ['wl-glow', 'circle-opacity', 0.55], ['wl-starred', 'circle-stroke-opacity', 1],
+  ['wl-dots', 'circle-stroke-opacity', 1], ['wl-glow', 'circle-opacity', 0.55], ['wl-starred', 'circle-stroke-opacity', 1], ['wl-icons', 'icon-opacity', 1],
   ['wl-busyareas-fill', 'fill-opacity', AREA_FILL_OPACITY], ['wl-busyareas-line', 'line-opacity', 1], ['wl-busyareas-label', 'text-opacity', 1],
   ['wl-route', 'line-opacity', 1], ['wl-route-casing', 'line-opacity', 0.9],
 ]
@@ -121,30 +123,21 @@ function homeView(m, features) {
 }
 
 const EMPTY = { type: 'FeatureCollection', features: [] }
-const LAYERS = ['wl-glow', 'wl-dots', 'wl-starred', 'wl-selected']
-
-function timeRange(window) {
-  const now = new Date()
-  const iso = (d) => d.toISOString().slice(0, 16)
-  const end = new Date(now)
-  const start = new Date(now); start.setHours(now.getHours() - 2)
-  if (window === 'today') end.setHours(23, 59)
-  else if (window === 'weekend') {
-    const day = now.getDay() // 0 Sun .. 6 Sat
-    const toSat = day === 0 ? -1 : (6 - day)
-    start.setDate(now.getDate() + Math.max(0, toSat)); if (toSat > 0) start.setHours(0, 0)
-    end.setDate(now.getDate() + (day === 0 ? 0 : toSat + 1)); end.setHours(23, 59)
-  }
-  else if (window === 'week') end.setDate(now.getDate() + 7)
-  else if (window === 'month') end.setDate(now.getDate() + 30)
-  else return null
-  return [iso(start), iso(end)]
-}
+const LAYERS = ['wl-glow', 'wl-dots', 'wl-icons', 'wl-starred', 'wl-selected']
 
 // Public invitations and everything users create themselves ("+ Create event" pins carry an `audience`)
 const IS_INVITE = ['any', ['to-boolean', ['get', 'is_public_invite']], ['has', 'audience']]
 
-function buildFilter(v, favourites, favOnly) {
+// "is this pin one of these ids?" as a lookup (match), not a scan of the list ('in'): a few thousand ids per click.
+// Ids are compared as text: private user events have "ue-12", the rest numbers, and match wants one type.
+function idMatch(ids) {
+  const labels = [...new Set(ids.map(String))]
+  return labels.length ? ['match', ['to-string', ['get', 'event_id']], labels, true, false] : false
+}
+
+function buildFilter(v, favourites, favOnly, searchIds) {
+  // the event search is in charge of the map (data/mapFilter.js): exactly its pins, already filtered in App
+  if (searchIds) return ['all', idMatch(searchIds), ...(favOnly ? [['in', ['get', 'event_id'], ['literal', [...favourites]]]] : [])]
   const kinds = []
   const parts = ['any']
   if (v.showEvents) parts.push(['all', ['in', ['get', 'kind'], ['literal', ['event', 'class']]], ['!', IS_INVITE]]) // classes are dated too
@@ -153,9 +146,11 @@ function buildFilter(v, favourites, favOnly) {
   if (v.showPitches) parts.push(['==', ['get', 'venue_type'], 'pitch'])
   if (parts.length === 1) parts.push(false)
   const f = ['all', parts, ['in', ['get', 'pin_group'], ['literal', enabledPinGroups(v)]]] // toolbar pin options
-  const range = timeRange(v.timeWindow)
-  if (range) f.push(['any', ['!', ['has', 'starts_at']], ['all', ['>=', ['get', 'starts_at'], range[0]], ['<=', ['get', 'starts_at'], range[1]]]])
+  const range = windowRange(v.timeWindow)
+  // overlap, in ms (data/features.js): what has started but not ended (an exhibition, a festival) is on now too
+  if (range) f.push(['any', ['!', ['has', 't_start']], ['all', ['<=', ['get', 't_start'], range[1]], ['>=', ['get', 't_end'], range[0]]]])
   if (favOnly) f.push(['in', ['get', 'event_id'], ['literal', [...favourites]]])
+  if (v.openNow) f.push(['!', ['to-boolean', ['get', 'closed_now']]]) // pin box "Open now" (pinGroups.closedNow)
   void kinds
   return f
 }
@@ -170,19 +165,20 @@ export function countPinGroups(features, v, favourites, favOnly) {
 /** JS twin of buildFilter(): the pins actually drawn with the current settings (keep the two in sync). */
 function visiblePins(features, v, favourites, favOnly, { allGroups = false } = {}) {
   const groups = new Set(allGroups ? PIN_GROUPS.map((g) => g.id) : enabledPinGroups(v))
-  const range = timeRange(v.timeWindow)
+  const range = windowRange(v.timeWindow)
   const favs = new Set(favourites)
   return (features || []).filter(({ properties: p }) => {
     const invite = Boolean(p.is_public_invite || p.audience)
     const shown = (v.showEvents && (p.kind === 'event' || p.kind === 'class') && !invite) || (v.showInvites && invite)
       || (v.showPlaces && p.kind === 'place' && p.venue_type !== 'pitch') || (v.showPitches && p.venue_type === 'pitch')
     if (!shown || !groups.has(pinGroup(p))) return false
-    if (range && p.starts_at != null && !(p.starts_at >= range[0] && p.starts_at <= range[1])) return false
+    if (!inWindow(p, range)) return false
+    if (v.openNow && closedNow(p)) return false
     return !favOnly || favs.has(p.event_id)
   })
 }
 
-export const MapView = forwardRef(function MapView({ features, busyAreas, route, me, favourites, favOnly, selectedId, onPick, onReady, onMove, revealed = true, draftPin, onDraftPin, city = {}, onPickWalk }, ref) {
+export const MapView = forwardRef(function MapView({ features, busyAreas, route, searchArea, searchIds, me, favourites, favOnly, selectedId, onPick, onReady, onMove, revealed = true, draftPin, onDraftPin, city = {}, onPickWalk }, ref) {
   const { values } = useConfig()
   const { lang, t } = useLang()
   const el = useRef(null)
@@ -190,14 +186,19 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   const vRef = useRef(values)
   vRef.current = values
   // latest props for handlers registered once (style.load fires again after every setStyle)
-  const dataRef = useRef({ features, favourites, favOnly, busyAreas, route })
-  dataRef.current = { features, favourites, favOnly, busyAreas, route }
+  const dataRef = useRef({ features, favourites, favOnly, busyAreas, route, searchArea, searchIds })
+  dataRef.current = { features, favourites, favOnly, busyAreas, route, searchArea, searchIds }
   const meMarker = useRef(null)
   const draftMarker = useRef(null)
   const draftRef = useRef({ draftPin, onDraftPin })
   draftRef.current = { draftPin, onDraftPin }
   const cityRef = useRef({ city, onPickWalk }) // toilets / AED / walking routes (cityLayers.js)
   cityRef.current = { city, onPickWalk }
+  // the latest click handler and selection: the map's handlers are registered once, at init
+  const pickRef = useRef(onPick)
+  pickRef.current = onPick
+  const selectedRef = useRef(selectedId)
+  selectedRef.current = selectedId
   const userMoved = useRef(false), homed = useRef(false)
   const revealedRef = useRef(revealed)
 
@@ -215,6 +216,9 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     m.jumpTo(revealedRef.current ? view : { ...view, zoom: view.zoom - 0.35 })
   }
   const styleKey = styleFor(values)
+  // colour / grey / pastel / paper share one base style: a palette switch must still reload it, or the
+  // previous palette's recolouring stays on the map
+  const styleId = `${styleKey}#${values.darkMode ? 'dark' : values.mapPalette}`
 
   useImperativeHandle(ref, () => ({
     zoomBy: (d) => map.current?.zoomTo(map.current.getZoom() + d, { duration: 350 }),
@@ -230,22 +234,29 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   useEffect(() => {
     const m = new maplibregl.Map({
       container: el.current, style: styleKey, center: WARSAW_CENTER, zoom: 12, minZoom: 9.5, maxZoom: 19,
-      maxBounds: [[20.4, 51.9], [21.8, 52.6]], attributionControl: { compact: true }, antialias: true, fadeDuration: 150,
+      maxBounds: [[20.4, 51.9], [21.8, 52.6]], attributionControl: { compact: true }, antialias: !isTouch(), fadeDuration: 150,
     })
     map.current = m
+    // map credits: the (i) starts closed on every load (MapLibre opens it on wide screens); tap it to read them
+    const credits = m.getContainer().querySelector('.maplibregl-ctrl-attrib')
+    credits?.querySelector('summary')?.addEventListener('click', () => { credits.dataset.touched = '1' }, { once: true })
+    const closeCredits = () => { if (credits && !credits.dataset.touched) credits.classList.remove('maplibregl-compact-show') }
+    closeCredits()
+    m.on('styledata', closeCredits)
     m.on('load', () => { ensureLayers(m); applyMapDesign(m, vRef.current); openOnHome(m); onReady?.() })
     m.on('resize', () => openOnHome(m))
     // a drag / wheel / touch counts as the user moving the map; a window resize (also an originalEvent) doesn't
     m.on('movestart', (e) => { const t = e.originalEvent?.type; if (t && t !== 'resize') userMoved.current = true })
-    m.on('style.load', () => { if (!m.getSource(SRC)) { ensureLayers(m); applyMapDesign(m, vRef.current) } })
+    // after a style switch (dark mode, palette) our layers are gone: add them back, with the design and selection
+    m.on('style.load', () => { if (!m.getSource(SRC)) { ensureLayers(m); applyMapDesign(m, vRef.current); selectPin(m, selectedRef.current); highlightWalk(m, selectedRef.current) } })
     m.on('move', () => onMove?.(m.getZoom()))
     // while "+ Create event" is open a tap anywhere moves its pin instead of opening boxes
     m.on('click', (e) => { const d = draftRef.current; if (d.draftPin) d.onDraftPin?.(e.lngLat.toArray()) })
-    m.on('click', 'wl-dots', (e) => { const f = e.features?.[0]; if (f && !draftRef.current.draftPin) onPick({ type: 'Feature', id: f.id, geometry: f.geometry, properties: parseProps(f.properties) }) })
+    m.on('click', 'wl-dots', (e) => { const f = e.features?.[0]; if (f && !draftRef.current.draftPin) pickRef.current({ type: 'Feature', id: f.id, geometry: f.geometry, properties: parseProps(f.properties) }) })
     m.on('mouseenter', 'wl-dots', () => { m.getCanvas().style.cursor = 'pointer' })
     m.on('mouseleave', 'wl-dots', () => { m.getCanvas().style.cursor = '' })
     // toilets / AEDs open a box like any place; a walking route opens its own box (full line from the data)
-    m.on('click', CITY_CLICK_LAYERS.amenity, (e) => { const f = e.features?.[0]; if (f && !draftRef.current.draftPin) onPick({ type: 'Feature', id: f.id, geometry: f.geometry, properties: parseProps(f.properties) }) })
+    m.on('click', CITY_CLICK_LAYERS.amenity, (e) => { const f = e.features?.[0]; if (f && !draftRef.current.draftPin) pickRef.current({ type: 'Feature', id: f.id, geometry: f.geometry, properties: parseProps(f.properties) }) })
     m.on('click', CITY_CLICK_LAYERS.walk, (e) => {
       const key = e.features?.[0]?.properties.walk_key
       if (!key || draftRef.current.draftPin || m.queryRenderedFeatures(e.point, { layers: ['wl-dots', CITY_CLICK_LAYERS.amenity].filter((l) => m.getLayer(l)) }).length) return
@@ -268,6 +279,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     if (!m.getSource(BOUNDARY)) m.addSource(BOUNDARY, { type: 'geojson', data: '/warsaw_boundary.geojson' })
     if (!m.getSource(AREAS)) m.addSource(AREAS, { type: 'geojson', data: d.busyAreas || EMPTY })
     if (!m.getSource(ROUTE)) m.addSource(ROUTE, { type: 'geojson', data: d.route || EMPTY })
+    if (!m.getSource(SEARCH_AREA)) m.addSource(SEARCH_AREA, { type: 'geojson', data: d.searchArea || EMPTY })
     const before = firstSymbolLayer(m)
     // busy areas, Google "area busyness" style: pale yellow fill with a dotted golden outline (no labels).
     // Only the outer "busy" outline is drawn; the "very_busy" cores stay in the data.
@@ -283,8 +295,19 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     if (!m.getLayer('wl-boundary-line')) m.addLayer({ id: 'wl-boundary-line', type: 'line', source: BOUNDARY, paint: { 'line-color': '#e7392b', 'line-width': 1.5, 'line-dasharray': [3, 3], 'line-opacity': 0.55 } }, before)
     if (!m.getLayer('wl-route-casing')) m.addLayer({ id: 'wl-route-casing', type: 'line', source: ROUTE, layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 7, 'line-opacity': 0.9 } })
     if (!m.getLayer('wl-route')) m.addLayer({ id: 'wl-route', type: 'line', source: ROUTE, layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': vRef.current.accent, 'line-width': 3.5 } })
+    // the searched district / neighbourhood: a dashed outline and a faint wash, like Google Maps (under the pins)
+    if (!m.getLayer('wl-search-area-fill')) m.addLayer({ id: 'wl-search-area-fill', type: 'fill', source: SEARCH_AREA, paint: { 'fill-color': vRef.current.accent, 'fill-opacity': 0.06 } })
+    if (!m.getLayer('wl-search-area-line')) m.addLayer({ id: 'wl-search-area-line', type: 'line', source: SEARCH_AREA, layout: { 'line-join': 'round' },
+      paint: { 'line-color': vRef.current.accent, 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 2, 16, 3], 'line-dasharray': [2, 1.5], 'line-opacity': 0.9 } })
     if (!m.getLayer('wl-glow')) m.addLayer({ id: 'wl-glow', type: 'circle', source: SRC, paint: { 'circle-blur': 1, 'circle-opacity': 0.55 } })
     if (!m.getLayer('wl-dots')) m.addLayer({ id: 'wl-dots', type: 'circle', source: SRC, paint: {} })
+    // pin icons: a round badge per type (cinema, bank, school …) on top of the dots, which stay as the tap target
+    ensurePinIcons(m)
+    // badges appear from zoom 12 (a district); over the whole city plain coloured dots carry the same information at a
+    // fraction of the cost, since 3,600 overlapping symbols were the heaviest thing on screen while panning
+    if (!m.getLayer('wl-icons')) m.addLayer({ id: 'wl-icons', type: 'symbol', source: SRC, minzoom: ICON_MINZOOM,
+      layout: { 'icon-image': ['concat', 'pt-', ['coalesce', ['get', 'pin_type'], 'community']], 'icon-allow-overlap': true, 'icon-ignore-placement': true },
+      paint: { 'icon-opacity': 1 } })
     if (!m.getLayer('wl-starred')) m.addLayer({ id: 'wl-starred', type: 'circle', source: SRC, paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#f2a900', 'circle-stroke-width': 3 } })
     if (!m.getLayer('wl-selected')) m.addLayer({ id: 'wl-selected', type: 'circle', source: SRC, filter: ['==', ['get', 'event_id'], '__none__'], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3, 'circle-radius': 16 } })
     ensureCityLayers(m, cityRef.current.city, before, 'wl-glow')
@@ -307,10 +330,16 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     if (!m) return
     m.setStyle(styleKey, { diff: false }) // the init-time 'style.load' handler re-adds our sources/layers
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [styleKey])
+  }, [styleId])
 
   // ---------- data ----------
   useEffect(() => { const m = map.current; if (m?.getSource(SRC) && features) { m.getSource(SRC).setData(withPinGroups(features)); openOnHome(m) } }, [features])
+  // "Open now": re-check opening hours every few minutes while it's on (places open and close as time passes)
+  useEffect(() => {
+    if (!values.openNow) return
+    const id = setInterval(() => { const m = map.current; if (m?.getSource(SRC) && features) m.getSource(SRC).setData(withPinGroups(features)) }, 5 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [values.openNow, features])
   useEffect(() => {
     const m = map.current
     if (!m?.getSource(AREAS) || !busyAreas) return
@@ -320,9 +349,14 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   useEffect(() => { const m = map.current; if (m?.getLayer(AREA_LABEL)) m.setLayoutProperty(AREA_LABEL, 'text-field', t('Busy Area')) }, [lang, t])
   // toilets / AED / walking routes: new data, toggles, and the route whose box is open
   useEffect(() => { const m = map.current; if (m?.getSource('wl-amenities')) setCityData(m, city) }, [city])
-  useEffect(() => { const m = map.current; if (m) setCityVisibility(m, values) }, [values.showToilets, values.showAed, values.showWalks]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const m = map.current; if (m) setCityVisibility(m, values) }, [values.showToilets, values.showAed, values.showWalks, values.showStations]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const m = map.current; if (m) highlightWalk(m, selectedId) }, [selectedId])
   useEffect(() => { const m = map.current; if (m?.getSource(ROUTE)) m.getSource(ROUTE).setData(route || EMPTY) }, [route])
+  useEffect(() => { const m = map.current; if (m?.getSource(SEARCH_AREA)) m.getSource(SEARCH_AREA).setData(searchArea || EMPTY) }, [searchArea])
+  useEffect(() => {
+    const m = map.current
+    for (const [id, prop] of [['wl-search-area-fill', 'fill-color'], ['wl-search-area-line', 'line-color']]) if (m?.getLayer(id)) m.setPaintProperty(id, prop, values.accent)
+  }, [values.accent])
   useEffect(() => { const m = map.current; if (!m?.getLayer('wl-busyareas-fill')) return; for (const id of AREA_LAYERS) m.setLayoutProperty(id, 'visibility', values.busyAreas ? 'visible' : 'none') }, [values.busyAreas])
   useEffect(() => { const m = map.current; if (m?.getLayer('wl-route')) styleRoute(m, values) }, [values.routeStyle, values.accent])
 
@@ -357,8 +391,7 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   // ---------- design params ----------
   useEffect(() => {
     const m = map.current
-    if (!m?.isStyleLoaded()) return
-    applyMapDesign(m, values)
+    if (m) applyMapDesign(m, values) // mid style switch it does nothing; style.load then applies the latest
   }, [values.streetLabels, values.poiLabels, values.borders, values.buildings, values.waterTint, values.mapPalette, values.cityBoundary, values.landuse])
 
   useEffect(() => {
@@ -368,37 +401,36 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
     m.setPaintProperty('wl-boundary-line', 'line-color', values.accent)
   }, [values.cityBoundary, values.accent])
 
-  useEffect(() => { const m = map.current; if (m?.getLayer('wl-dots')) { styleMarkers(m, values); if (!revealedRef.current) applyReveal(m, values, false) } }, [values.markerStyle, values.markerSize, values.colorBy, values.accent])
+  useEffect(() => { const m = map.current; if (m?.getLayer('wl-dots')) { styleMarkers(m, values); if (!revealedRef.current) applyReveal(m, values, false) } }, [values.markerStyle, values.markerSize, values.colorBy, values.accent, values.pinIcons])
 
   function refreshFilters(m) {
     if (!m?.getLayer('wl-dots')) return
-    const { favourites, favOnly } = dataRef.current
-    const f = buildFilter(vRef.current, favourites, favOnly)
+    const { favourites, favOnly, searchIds } = dataRef.current
+    const f = buildFilter(vRef.current, favourites, favOnly, searchIds)
     m.setFilter('wl-dots', f)
     m.setFilter('wl-glow', f)
+    if (m.getLayer('wl-icons')) m.setFilter('wl-icons', f)
     m.setFilter('wl-starred', ['all', f, ['in', ['get', 'event_id'], ['literal', [...favourites]]]])
     m.setLayoutProperty('wl-starred', 'visibility', vRef.current.starredDefault || favOnly ? 'visible' : 'none')
   }
-  useEffect(() => { refreshFilters(map.current) }, [...PIN_PARAMS.map((k) => values[k]), values.showEvents, values.showPlaces, values.showPitches, values.showInvites, values.timeWindow, values.starredDefault, favourites, favOnly])
+  useEffect(() => { refreshFilters(map.current) }, [...PIN_PARAMS.map((k) => values[k]), values.showEvents, values.showPlaces, values.showPitches, values.showInvites, values.timeWindow, values.starredDefault, values.openNow, favourites, favOnly, searchIds])
 
   // ---------- selected pulse ----------
+  // An HTML marker animated by CSS: the old version changed three paint properties on every animation frame,
+  // which made MapLibre re-evaluate the style and repaint the whole map 60 times a second while a box was open.
+  const pulseMarker = useRef(null)
   useEffect(() => {
     const m = map.current
     if (!m?.getLayer('wl-selected')) return
-    m.setFilter('wl-selected', ['==', ['get', 'event_id'], selectedId ?? '__none__'])
-    if (!selectedId) return
-    let t0 = performance.now(), raf
-    const tick = (t) => {
-      const k = Math.min(1, Math.max(0, ((t - t0) / 1200) % 1)) // rAF timestamps can precede t0 by a frame
-      if (m.getLayer('wl-selected')) {
-        m.setPaintProperty('wl-selected', 'circle-radius', 10 + k * 22)
-        m.setPaintProperty('wl-selected', 'circle-stroke-opacity', 1 - k)
-        m.setPaintProperty('wl-selected', 'circle-stroke-color', values.accent)
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    selectPin(m, selectedId)
+    const f = selectedId != null && (dataRef.current.features?.features || []).find((x) => String(x.properties.event_id) === String(selectedId))
+    const at = f?.geometry?.coordinates
+    if (!at) { pulseMarker.current?.remove(); pulseMarker.current = null; return }
+    if (!pulseMarker.current) {
+      const el = document.createElement('div'); el.className = 'sel-pulse'; el.innerHTML = '<span></span><span></span>'
+      pulseMarker.current = new maplibregl.Marker({ element: el }).setLngLat(at).addTo(m)
+    } else pulseMarker.current.setLngLat(at)
+    pulseMarker.current.getElement().style.setProperty('--c', values.accent)
   }, [selectedId, values.accent])
 
   // start page <-> map: fade the pins, busy areas and route in or out (MapLibre paint transitions)
@@ -424,9 +456,15 @@ function applyReveal(m, v, on) {
   else m.setPaintProperty('wl-dots', 'circle-opacity', 0)
 }
 
+/** The pulsing halo on the open box's pin. Ids compared as text: box keys are strings, most event_ids numbers. */
+function selectPin(m, id) {
+  if (m.getLayer('wl-selected')) m.setFilter('wl-selected', ['==', ['to-string', ['get', 'event_id']], id == null ? '__none__' : String(id)])
+}
+
+// MapLibre hands back nested properties as JSON text: parse them back into objects
 function parseProps(p) {
   const out = { ...p }
-  for (const k of ['categories', 'upcoming', 'opening_hours', 'equipment', 'host']) {
+  for (const k of ['categories', 'upcoming', 'opening_hours', 'equipment', 'host', 'original', 'points', 'contact', 'audience']) {
     if (typeof out[k] === 'string' && /^[[{]/.test(out[k])) { try { out[k] = JSON.parse(out[k]) } catch { /* keep */ } }
   }
   return out
@@ -437,19 +475,67 @@ function styleMarkers(m, v) {
   const color = v.colorBy === 'category' ? categoryMatchExpr()
     : v.colorBy === 'kind' ? ['case', ['to-boolean', ['get', 'is_public_invite']], '#0fa37f', ['==', ['get', 'kind'], 'event'], v.accent, '#2b6be7']
     : v.accent
-  const base = ['interpolate', ['linear'], ['zoom'], 10, 2.2 * s, 13, 5 * s, 16, 9 * s, 19, 14 * s]
-  const bigger = (k) => ['interpolate', ['linear'], ['zoom'], 10, 2.2 * s * k, 13, 5 * s * k, 16, 9 * s * k, 19, 14 * s * k]
+  // readable even on a phone's whole-city view, and much bigger once you're down in a street
+  const bigger = (k) => ['interpolate', ['linear'], ['zoom'], 9, 3.5 * s * k, 11, 4.3 * s * k, 13, 6.2 * s * k, 15, 10 * s * k, 17, 15 * s * k, 19, 21 * s * k]
+  const base = bigger(1)
   const paint = {
     dot: { 'circle-radius': base, 'circle-color': color, 'circle-stroke-width': 0, 'circle-opacity': 0.95 },
     ring: { 'circle-radius': base, 'circle-color': 'rgba(255,255,255,0.15)', 'circle-stroke-color': color, 'circle-stroke-width': 2.2, 'circle-opacity': 1 },
     glow: { 'circle-radius': base, 'circle-color': color, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.2, 'circle-opacity': 1 },
     pin: { 'circle-radius': bigger(1.5), 'circle-color': color, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5, 'circle-opacity': 1 },
   }[v.markerStyle]
+  const icons = v.pinIcons !== false && m.getLayer('wl-icons')
+  if (icons) {
+    // below ICON_MINZOOM the dots are the pins (coloured, white rim); from there up they turn into invisible tap
+    // targets the size of the badge and the badge does the showing
+    const size = iconScale(s)
+    // one zoom curve (MapLibre allows a single zoom expression per property): dot radii up to the district
+    // level, then a jump to the badge's radius so the tap target matches what is drawn
+    const r = s * ICON_R
+    Object.assign(paint, {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 3.5 * s, 11, 4.3 * s, ICON_MINZOOM - 0.01, 5.6 * s,
+        ICON_MINZOOM, 0.8 * r, 13, 0.92 * r, 14, 1.12 * r, 15, 1.38 * r, 16, 1.65 * r, 17, 1.9 * r, 19, 2.4 * r],
+      'circle-opacity': ['step', ['zoom'], 0.95, ICON_MINZOOM, 0],
+      'circle-stroke-color': '#ffffff',
+      'circle-stroke-width': ['step', ['zoom'], 1.2, ICON_MINZOOM, 0],
+      'circle-stroke-opacity': ['step', ['zoom'], 1, ICON_MINZOOM, 0],
+    })
+    m.setLayoutProperty('wl-icons', 'icon-size', size)
+  }
   for (const [k, val] of Object.entries(paint)) m.setPaintProperty('wl-dots', k, val)
+  if (m.getLayer('wl-icons')) m.setLayoutProperty('wl-icons', 'visibility', icons ? 'visible' : 'none')
   m.setPaintProperty('wl-glow', 'circle-color', color)
   m.setPaintProperty('wl-glow', 'circle-radius', bigger(2.6))
-  m.setLayoutProperty('wl-glow', 'visibility', v.markerStyle === 'glow' ? 'visible' : 'none')
-  m.setPaintProperty('wl-starred', 'circle-radius', bigger(1.7))
+  m.setLayoutProperty('wl-glow', 'visibility', v.markerStyle === 'glow' && !icons ? 'visible' : 'none')
+  m.setPaintProperty('wl-starred', 'circle-radius', icons ? iconScale(s * (ICON_R + 2.5)) : bigger(1.7))
+}
+
+// ---------- pin icons (data/pinTypes.js) ----------
+const ICON_R = 14 // badge radius in CSS px at icon-size 1 (white rim included)
+const ICON_MINZOOM = 12 // district level: badges from here, dots below
+const isTouch = () => matchMedia('(pointer: coarse)').matches
+/** icon-size by zoom: small over the whole city, full size in a street. `k` scales it (marker size, radius). */
+const iconScale = (k) => ['interpolate', ['linear'], ['zoom'], 9, 0.5 * k, 11, 0.68 * k, 13, 0.92 * k, 14, 1.12 * k, 15, 1.38 * k, 16, 1.65 * k, 17, 1.9 * k, 19, 2.4 * k]
+
+/** One image per type: a round badge in the type's colour, white rim, soft shadow, the emoji in the middle. */
+function ensurePinIcons(m) {
+  const ratio = 4, pad = 3, r = ICON_R, size = (r + pad) * 2 // drawn at 4x: still sharp when zoomed right in on a retina screen
+  for (const [id, t] of Object.entries(PIN_TYPES)) {
+    if (m.hasImage(`pt-${id}`)) continue
+    const c = document.createElement('canvas')
+    c.width = c.height = size * ratio
+    const g = c.getContext('2d')
+    g.scale(ratio, ratio)
+    const mid = size / 2
+    g.shadowColor = 'rgba(0,0,0,.3)'; g.shadowBlur = 3; g.shadowOffsetY = 1
+    g.beginPath(); g.arc(mid, mid, r, 0, Math.PI * 2); g.fillStyle = '#ffffff'; g.fill()
+    g.shadowColor = 'transparent'
+    g.beginPath(); g.arc(mid, mid, r - 2.2, 0, Math.PI * 2); g.fillStyle = t.color; g.fill()
+    g.font = '14px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'
+    g.textAlign = 'center'; g.textBaseline = 'middle'
+    g.fillText(t.emoji, mid, mid + 1)
+    m.addImage(`pt-${id}`, g.getImageData(0, 0, c.width, c.height), { pixelRatio: ratio })
+  }
 }
 
 function styleRoute(m, v) {

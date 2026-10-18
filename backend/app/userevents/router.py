@@ -6,16 +6,18 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
-from sqlalchemy import or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.auth import get_current_user
+from app.auth import get_current_user, get_verified_user
 from app.db import get_db
-from app.models import Attendance, Event, Occurrence, Source, User
+from app.friends import friend_ids
+from app.models import Event, Occurrence, Source, User
 from app.routers.events import feature
 from app.schemas import FeatureCollection, GeoJSONFeature
-from app.userevents import AUDIENCES, EVENT_TYPES, PUBLIC_AUDIENCES, SOURCE_NAME, SOURCE_SLUG
+from app.userevents import AUDIENCES, EVENT_TYPES, PUBLIC_AUDIENCES, SOURCE_SLUG
 from app.userevents.models import UserEvent, UserEventPhoto
+from app.userevents.service import extra_props, photo_url, publish
 
 router = APIRouter(prefix="/userevents", tags=["userevents"])
 
@@ -74,26 +76,11 @@ class CreatedOut(BaseModel):
     feature: GeoJSONFeature  # ready to drop onto the map
 
 
-def photo_url(photo_id: str | None) -> str | None:
-    return f"/userevents/photos/{photo_id}" if photo_id else None
-
-
 def event_out(ue: UserEvent) -> UserEventOut:
     return UserEventOut(
         **{f: getattr(ue, f) for f in UserEventOut.model_fields if f != "image_url"},
         image_url=photo_url(ue.photo_id),
     )
-
-
-def extra_props(ue: UserEvent) -> dict:
-    """What a user-event pin carries on top of a normal /events feature (also stored in Event.raw)."""
-    return {
-        "user_event_id": ue.id,
-        "subtitle": ue.subtitle,
-        "audience": ue.audience,
-        "event_type": ue.event_type,
-        "host": {"id": ue.host.id, "display_name": ue.host.display_name},
-    }
 
 
 def private_feature(ue: UserEvent) -> GeoJSONFeature:
@@ -121,50 +108,6 @@ def private_feature(ue: UserEvent) -> GeoJSONFeature:
     return GeoJSONFeature(
         id=-ue.id, geometry={"type": "Point", "coordinates": [ue.lng, ue.lat]}, properties=props
     )
-
-
-def syrenka_source(db: Session) -> Source:
-    source = db.scalar(select(Source).where(Source.slug == SOURCE_SLUG))
-    if source is None:
-        source = Source(slug=SOURCE_SLUG, name=SOURCE_NAME, url=None, is_reliable=False, item_count=0)
-        db.add(source)
-        db.flush()
-    return source
-
-
-def publish(db: Session, ue: UserEvent) -> Event:
-    """Put a public user event onto the Syrenka Users API (= the events table, source syrenka-users)."""
-    source = syrenka_source(db)
-    event = Event(
-        source=source,
-        external_key=f"user-event-{ue.id}",
-        kind="event",
-        title=ue.title,
-        categories=[ue.category],
-        categories_raw=[ue.event_type],
-        lead=(ue.description or "")[:300] or None,
-        text_plain=ue.description,
-        image_url=photo_url(ue.photo_id),
-        venue_name=ue.venue_name,
-        address=ue.address,
-        lat=ue.lat,
-        lng=ue.lng,
-        location=f"SRID=4326;POINT({ue.lng} {ue.lat})",
-        audience=[],
-        contact={},
-        raw=extra_props(ue),
-        host_user_id=ue.host_user_id,
-        is_public_invite=True,
-        occurrences=[Occurrence(starts_at=ue.starts_at, ends_at=ue.ends_at)],
-    )
-    db.add(event)
-    db.flush()
-    db.add(Attendance(user_id=ue.host_user_id, occurrence_id=event.occurrences[0].id, wants_company=True))
-    source.item_count = (source.item_count or 0) + 1
-    source.last_run_at = datetime.now(UTC)
-    source.last_status = "ok"
-    ue.event_id = event.id
-    return event
 
 
 @router.post("/photos", response_model=PhotoOut, status_code=201)
@@ -199,7 +142,7 @@ def get_photo(photo_id: str, db: Session = Depends(get_db)):
 
 @router.post("", response_model=CreatedOut, status_code=201)
 def create_user_event(
-    body: UserEventIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    body: UserEventIn, user: User = Depends(get_verified_user), db: Session = Depends(get_db)
 ):
     """Create an event. Public audiences also go onto the Syrenka Users API, so everyone's map shows it."""
     if body.ends_at and body.ends_at < body.starts_at:
@@ -236,14 +179,20 @@ def my_user_events(user: User = Depends(get_current_user), db: Session = Depends
 
 @router.get("/private", response_model=FeatureCollection)
 def private_user_events(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Non-public events on my map: ones I host, or am invited to. Public ones come from GET /events."""
+    """Non-public events on my map: ones I host, am invited to, or my friends host for their friends.
+    Public ones come from GET /events."""
+    friends = friend_ids(db, user.id)
     rows = db.scalars(
         select(UserEvent)
         .where(
             UserEvent.status == "active",
             UserEvent.audience.not_in(PUBLIC_AUDIENCES),
             or_(UserEvent.ends_at >= datetime.now(UTC), UserEvent.starts_at >= datetime.now(UTC)),
-            or_(UserEvent.host_user_id == user.id, UserEvent.invited_user_ids.contains([user.id])),
+            or_(
+                UserEvent.host_user_id == user.id,
+                UserEvent.invited_user_ids.contains([user.id]),
+                and_(UserEvent.audience == "friends", UserEvent.host_user_id.in_(friends)),
+            ),
         )
         .options(selectinload(UserEvent.host))
         .order_by(UserEvent.starts_at)

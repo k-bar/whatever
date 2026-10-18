@@ -1,6 +1,8 @@
 from app.ingest.run import load
 from app.ingest.sources import SOURCES
+from app.models import Event
 from tests.conftest import fixture_records, register, soon
+from tests.test_userevents import new_event
 
 WARSAW_BBOX = "20.85,52.09,21.28,52.37"
 
@@ -12,16 +14,19 @@ def seed(db):
 
 
 def invite(client, headers, **kw):
-    body = {
-        "title": "Picnic in Pole Mokotowskie",
-        "categories": ["meetups"],
-        "starts_at": soon(1),
-        "lat": 52.2128,
-        "lng": 21.0019,
-    } | kw
-    r = client.post("/events", json=body, headers=headers)
+    """A public invitation (a user event, POST /userevents), as GET /events/{id} shows it."""
+    body = new_event(
+        title="Picnic in Pole Mokotowskie",
+        event_type="picnic",
+        starts_at=soon(1),
+        ends_at=None,
+        lat=52.2128,
+        lng=21.0019,
+        venue_name=None,
+    )
+    r = client.post("/userevents", json=body | kw, headers=headers)
     assert r.status_code == 201, r.text
-    return r.json()
+    return client.get(f"/events/{r.json()['event']['event_id']}").json()
 
 
 def test_health_and_meta(client):
@@ -40,7 +45,7 @@ def test_anonymous_browse(client, db):
     assert r.status_code == 200
     fc = r.json()
     assert fc["type"] == "FeatureCollection" and fc["features"]
-    f = fc["features"][0]
+    f = next(x for x in fc["features"] if x["properties"]["source"] == "warsaw_events")
     assert f["geometry"]["type"] == "Point" and "starts_at" in f["properties"]
 
     event = client.get(f"/events/{f['properties']['event_id']}", params={"past": True}).json()
@@ -56,8 +61,8 @@ def test_anonymous_browse(client, db):
 
 
 def test_filters(client, alice):
-    invite(client, alice, title="Jazz koncert", categories=["music"])
-    invite(client, alice, title="Morning yoga", categories=["yoga"])
+    invite(client, alice, title="Jazz koncert", event_type="concert")
+    invite(client, alice, title="Morning yoga", event_type="yoga")
     assert [
         f["properties"]["title"]
         for f in client.get("/events", params={"category": "yoga"}).json()["features"]
@@ -102,10 +107,12 @@ def test_auth_and_profile(client, alice):
     assert r.json()["bio"] is None and r.json()["display_name"] == "Alice"  # bio cleared, name kept
 
 
-def test_come_with_me_flow(client, alice, bob):
+def test_come_with_me_flow(client, db, alice, bob):
     carol = register(client, "carol@example.com", "Carol")
     client.patch("/me", headers=alice, json={"links": {"instagram": "https://instagram.com/alice"}})
-    ev = invite(client, alice, capacity=1)
+    ev = invite(client, alice)
+    db.execute(Event.__table__.update().where(Event.id == ev["id"]).values(capacity=1, seats_left=1))
+    db.commit()
     occ_id = ev["occurrences"][0]["id"]
     alice_id = ev["host"]["id"]
     assert ev["occurrences"][0]["wanting_company"] == 1  # host auto-attends

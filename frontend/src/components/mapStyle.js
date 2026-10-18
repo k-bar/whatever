@@ -92,9 +92,13 @@ function applyLanduse(map, v, layers) {
 }
 
 export function applyMapDesign(map, v) {
-  if (!map.isStyleLoaded()) return
-  const layers = map.getStyle().layers || []
-  const pal = PALETTES[v.mapPalette]
+  // not isStyleLoaded(): that stays false while tiles or our own new sources load, which is always the case
+  // right after a style switch, and the design (labels, palette, buildings…) was silently skipped
+  let layers
+  try { layers = map.getStyle()?.layers } catch { return } // mid style switch: style.load applies it
+  if (!layers) return
+  // dark mode swaps in the dark base style: the light palettes' recolouring must not be painted onto it
+  const pal = v.darkMode && !DARK_PALETTES.has(v.mapPalette) ? null : PALETTES[v.mapPalette]
   const labelFactor = { none: 0, small: 0.8, normal: 1, large: 1.45 }[v.streetLabels] ?? 1
   const set = (fn) => { try { fn() } catch { /* layer without that property */ } }
 

@@ -167,6 +167,14 @@ def test_osm_venues_parse():
     assert all(v.kind == "place" and v.external_key.startswith(("node/", "way/")) for v in venues)
     assert all(52 < v.lat < 53 and 20 < v.lng < 22 for v in venues)  # ways use their center
     assert map_categories(["osm:nightclub"], "Gatsby Warsaw") == ["nightlife"]
+    assert "film" not in map_categories(
+        ["Zdrowie"], "Seanse saunowe – Orląt Lwowskich 1"
+    )  # sauna, not cinema
+    assert "film" in map_categories(["Kultura"], "Seans filmowy w bibliotece")
+    assert "nightlife" not in map_categories(
+        ["Sport"], "Boiska – Szkoła Podstawowa im. Partyzantów Ziemi Kieleckiej"
+    )
+    assert "nightlife" in map_categories(["Kultura"], "Halloween party w klubie")
 
     assert osm_hours("24/7")["sunday"] == "00:00-24:00"
     assert osm_hours("Su-Fr 09:00-16:00") == {
@@ -176,6 +184,27 @@ def test_osm_venues_parse():
     assert osm_hours("Fr-Sa 19:00+") is None
     late = osm_hours("We-Th 19:00-01:00; Fr-Sa 19:00-04:00")["friday"]
     assert is_open(late, datetime(2026, 10, 17, 2, 30)) and not is_open(late, datetime(2026, 10, 17, 12))
+
+
+def test_osm_transit_parse_and_hidden_unless_asked(db, client):
+    from app.categories import map_categories
+    from app.ingest.run import load
+
+    records = fixture_records("osm_transit")
+    stations = SOURCES["osm_transit"].parse(records)
+    assert len(stations) == 4  # the unnamed bus station is dropped
+    by_name = {s.venue_name: s for s in stations}
+    assert by_name["Marymont"].title == "Metro Marymont" and by_name["Marymont"].lead == "Metro · M1"
+    assert by_name["Metro Młociny"].title == "Metro Młociny"  # not "Metro Metro Młociny"
+    assert by_name["Dworzec Autobusowy Zachodni"].lead == "Bus station"
+    assert all(map_categories(s.categories_raw, s.title) == ["transit"] for s in stations)
+
+    load(db, SOURCES["osm_transit"], stations, None)
+    db.commit()
+    shown = {f["properties"]["title"] for f in client.get("/places").json()["features"]}
+    assert "Metro Marymont" not in shown  # a map layer, not a social place: only when asked for
+    asked = client.get("/places", params={"category": "transit"}).json()["features"]
+    assert {f["properties"]["title"] for f in asked} >= {"Metro Marymont", "Dworzec Autobusowy Zachodni"}
 
 
 def test_slow_sources_are_skipped_within_their_window(db):

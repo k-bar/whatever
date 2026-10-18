@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from urllib.parse import quote_plus
 
 from pydantic import field_validator, model_validator
@@ -31,7 +32,25 @@ class Settings(BaseSettings):
     # PostGIS types stay in public, so the search_path is "<schema>, public".
     db_schema: str | None = None
     app_env: str = "local"  # local / dev / prod
+    # the 30 demo people (app/mocksocial.py) on the map, dev and prod (pitch, 2026-10-18); DEMO_PEOPLE=false stops refreshing them
+    demo_people: bool = True
     git_sha: str = "unknown"  # set by deploy/deploy.sh
+
+    # Mail (app/mail.py): Amazon SES on the boxes (their instance role may send as syrenka.me);
+    # locally, and whenever mail_backend is "log", mails are logged and kept in app.mail.outbox.
+    mail_backend: str | None = None  # "ses" / "log"; unset = ses on dev/prod, log elsewhere
+    mail_from: str = "Syrenka <no-reply@syrenka.me>"
+    ses_region: str = "eu-north-1"
+    # Site that links in mails open (?verify=… / ?reset=…); unset = deploy/environments.json for app_env
+    web_url: str | None = None
+    verify_token_hours: int = 48
+    reset_token_minutes: int = 60
+    mail_resend_seconds: int = 60  # one verification / reset mail per account per minute
+    # True: friends, creating events, join requests and chat need a confirmed email (get_verified_user).
+    # Off while SES is in sandbox (mail only reaches verified addresses): links are still mailed.
+    require_verified_email: bool = False
+    login_max_failures: int = 10  # wrong passwords in a row before the account is locked for a while
+    login_lock_minutes: int = 15
 
     # On AWS the values above come from Secrets Manager (set by infra/).
     db_secret_arn: str | None = None  # RDS-generated JSON: username, password, host, port, dbname
@@ -57,6 +76,16 @@ class Settings(BaseSettings):
     @property
     def connect_args(self) -> dict:
         return {"options": f"-csearch_path={self.db_schema},public"} if self.db_schema else {}
+
+    @model_validator(mode="after")
+    def defaults_for_env(self) -> "Settings":
+        if self.web_url is None:
+            envs = Path(__file__).resolve().parents[2] / "deploy" / "environments.json"
+            known = json.loads(envs.read_text()) if envs.exists() else {}
+            self.web_url = known.get(self.app_env, {}).get("web", "http://localhost:5173")
+        if self.mail_backend is None:
+            self.mail_backend = "ses" if self.app_env in ("dev", "prod") else "log"
+        return self
 
     @model_validator(mode="after")
     def load_aws_secrets(self) -> "Settings":

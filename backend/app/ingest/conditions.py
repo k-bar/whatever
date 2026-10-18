@@ -12,7 +12,6 @@ import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
@@ -22,8 +21,7 @@ from app.db import SessionLocal
 from app.ingest.run import get_or_create_source, record_error
 from app.ingest.sources.warsaw_open_data import fetch
 from app.models import AirStation, WeatherStation
-
-WARSAW = ZoneInfo("Europe/Warsaw")
+from app.timeutil import WARSAW
 
 
 @dataclass(frozen=True)

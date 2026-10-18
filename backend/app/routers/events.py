@@ -1,14 +1,11 @@
 import re
-import uuid
 from datetime import UTC, datetime, timedelta
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, defer, selectinload
 
 from app import translate, userevents
-from app.auth import get_current_user
 from app.categories import AMENITIES, CATEGORIES
 from app.db import get_db
 from app.models import Attendance, Event, Occurrence, Source, User
@@ -17,15 +14,13 @@ from app.schemas import (
     EventOut,
     FeatureCollection,
     GeoJSONFeature,
-    InviteIn,
     OccurrenceOut,
     PublicUser,
     SourceOut,
 )
+from app.timeutil import WARSAW
 
 router = APIRouter(tags=["events"])
-WARSAW = ZoneInfo("Europe/Warsaw")
-USER_SOURCE = "user"
 MAX_FEATURES = 2000
 
 
@@ -52,6 +47,10 @@ def attendance_counts():
 
 
 LANG = Query(None, pattern="^(pl|en)$", description="title and lead in this language when translated")
+
+# map lists never send the full text or the source's raw record: don't load them for thousands of rows
+# (raw is still read, lazily, for the few Syrenka-users pins that carry their extras in it)
+LIGHT = (selectinload(Event.source), defer(Event.raw), defer(Event.text_html), defer(Event.text_plain))
 
 
 def localize(props: dict, event: Event, lang: str | None) -> None:
@@ -152,7 +151,7 @@ def list_events(
         .join(Occurrence, Occurrence.event_id == Event.id)
         .outerjoin(counts, counts.c.occurrence_id == Occurrence.id)
         .where(Occurrence.starts_at <= end, func.coalesce(Occurrence.ends_at, Occurrence.starts_at) >= start)
-        .options(selectinload(Event.source))
+        .options(*LIGHT)
         .order_by(Occurrence.starts_at)
         .limit(limit)
     )
@@ -190,7 +189,7 @@ def events_now(
             Occurrence.starts_at.between(now, now + timedelta(hours=hours)),
             func.ST_DWithin(Event.location, here, radius_m),
         )
-        .options(selectinload(Event.source))
+        .options(*LIGHT)
         .order_by(distance)
         .limit(200)
     )
@@ -214,7 +213,7 @@ def list_places(
     bbox: str | None = None,
     district: str | None = None,
     category: list[str] | None = Query(
-        None, description="repeatable; amenities only when asked: toilets, aed"
+        None, description="repeatable; amenities only when asked: toilets, aed, transit"
     ),
     q: str | None = Query(None, max_length=100),
     open_now: bool = False,
@@ -226,7 +225,7 @@ def list_places(
     stmt = event_filters(select(Event), parse_bbox(bbox), category, "place", q, include_unlocated)
     if not category:
         stmt = stmt.where(~Event.categories.overlap(sorted(AMENITIES)))
-    stmt = stmt.options(selectinload(Event.source)).order_by(Event.district, Event.title)
+    stmt = stmt.options(*LIGHT).order_by(Event.district, Event.title)
     if district:
         stmt = stmt.where(Event.district.ilike(district))
     places = db.scalars(stmt).all()
@@ -279,48 +278,6 @@ def get_event(event_id: int, past: bool = False, db: Session = Depends(get_db)):
     if event is None:
         raise HTTPException(404, "Event not found")
     return event_out(db, event, upcoming_only=not past)
-
-
-@router.post("/events", response_model=EventOut, status_code=201)
-def create_invite(body: InviteIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Create a public invitation. The host is marked as attending and open to company."""
-    if body.ends_at and body.ends_at < body.starts_at:
-        raise HTTPException(422, "ends_at is before starts_at")
-    source = db.scalar(select(Source).where(Source.slug == USER_SOURCE))
-    if source is None:
-        source = Source(slug=USER_SOURCE, name="Warszawa Live users", url=None, is_reliable=False)
-        db.add(source)
-        db.flush()
-    event = Event(
-        source=source,
-        external_key=str(uuid.uuid4()),
-        kind="event",
-        title=body.title,
-        categories=list(body.categories),
-        categories_raw=[],
-        lead=body.description[:300] if body.description else None,
-        text_plain=body.description,
-        image_url=str(body.image_url) if body.image_url else None,
-        venue_name=body.venue_name,
-        address=body.address,
-        lat=body.lat,
-        lng=body.lng,
-        location=f"SRID=4326;POINT({body.lng} {body.lat})",
-        audience=[],
-        contact={},
-        host_user_id=user.id,
-        is_public_invite=True,
-        capacity=body.capacity,
-        seats_left=body.capacity,
-        occurrences=[Occurrence(starts_at=body.starts_at, ends_at=body.ends_at)],
-    )
-    db.add(event)
-    db.flush()
-    db.add(Attendance(user_id=user.id, occurrence_id=event.occurrences[0].id, wants_company=True))
-    source.item_count = (source.item_count or 0) + 1
-    db.commit()
-    db.refresh(event)
-    return event_out(db, event)
 
 
 @router.get("/categories", response_model=list[Category])

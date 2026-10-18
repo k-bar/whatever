@@ -1,0 +1,21 @@
+/* Demo mode (demo/engine.js): the drawn cursor, above everything; the real one is hidden while it runs. */
+html.demo-running, html.demo-running * { cursor: none !important; }
+
+.demo-cursor { position: fixed; left: 0; top: 0; z-index: 2147483000; pointer-events: none; width: 0; height: 0;
+  opacity: 0; transition: opacity .35s ease; will-change: transform; }
+.demo-cursor.on { opacity: 1; }
+.demo-cursor.off { opacity: 0; }
+.demo-arrow { position: absolute; left: -3px; top: -2px; display: block; transform-origin: 3px 2px;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, .35)); transition: transform .12s ease-out; }
+.demo-cursor.press .demo-arrow { animation: demo-press .32s ease-out; }
+.demo-cursor.grab .demo-arrow { transform: scale(.9); }
+@keyframes demo-press { 0% { transform: scale(1); } 30% { transform: scale(.84); } 100% { transform: scale(1); } }
+
+/* the ring that spreads from the tip on a click */
+.demo-ripple { position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid var(--accent, #e7392b); opacity: 0; transform: scale(.3); }
+.demo-cursor.press .demo-ripple { animation: demo-ripple .42s ease-out; }
+@keyframes demo-ripple { 0% { opacity: .55; transform: scale(.3); } 100% { opacity: 0; transform: scale(1.25); } }
+
+/* a button the demo only pretends to press (it would write to the server) */
+.demo-pressed { transform: scale(.96) !important; filter: brightness(.94); transition: transform .12s ease-out, filter .12s ease-out !important; }

@@ -1,7 +1,8 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
+import { typeColor, typeLabel, typeOf } from '../data/types'
 import { useLang } from '../i18n'
 import { pickSelects, secureImage } from '../landing/selects'
 import { fmtWhen } from '../mapboxes/curate'
@@ -24,19 +25,44 @@ const TILES = [
   { label: 'More', more: true, Icon: Chevron },
 ]
 
-function Tile({ tile, onClick, small, delay = 0, open }) {
+/** One of the six big tiles: pops in once when the page opens; hover / press are transform-only. */
+function Tile({ tile, onClick, delay = 0, open }) {
   const { t } = useLang()
   const c = tile.more ? 'var(--fg)' : categoryColor(tile.category)
   const I = tile.Icon
   return (
-    <motion.button className={`hero-tile ${tile.people ? 'people' : ''} ${tile.more ? 'more' : ''} ${small ? 'small' : ''}`} style={{ '--c': c }} onClick={onClick}
-      layout initial={{ opacity: 0, y: 14, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+    <motion.button className={`hero-tile ${tile.people ? 'people' : ''} ${tile.more ? 'more' : ''}`} style={{ '--c': c }} onClick={onClick}
+      aria-expanded={tile.more ? open : undefined}
+      initial={{ opacity: 0, y: 14, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: 'spring', stiffness: 420, damping: 28, delay }} whileHover={{ y: -3, scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-      <span className="tile-ic">{I && <I size={small ? 16 : 20} />}</span>
+      <span className="tile-ic">{I && <I size={20} />}</span>
       {tile.people && <span className="tile-people" title={t('Made by people like you')}><Users size={14} /></span>}
       <span className="tile-label">{t(tile.label)}</span>
-      {tile.more && <motion.span className="tile-chev" animate={{ rotate: open ? 180 : 0 }}><Chevron size={16} /></motion.span>}
+      {tile.more && <span className={`tile-chev ${open ? 'open' : ''}`}><Chevron size={16} /></span>}
     </motion.button>
+  )
+}
+
+/**
+ * "More": every category as small tiles under the big ones. Always in the page; opening it is pure CSS (the row
+ * grows with a grid-template-rows transition, the tiles fade in with a short stagger), so nothing is measured or
+ * re-laid-out frame by frame. Closed, it takes no space and can't be tabbed into.
+ */
+function MoreTiles({ open, onPick }) {
+  const allCats = Object.keys(CATEGORIES).filter((slug) => slug !== 'other')
+  return (
+    <div className={`more-tiles ${open ? 'open' : ''}`} aria-hidden={!open} {...(!open && { inert: '' })}>
+      <div className="more-tiles-inner">
+        <div className="hero-tiles all">
+          {allCats.map((slug, i) => (
+            <button key={slug} className="hero-tile small" style={{ '--c': categoryColor(slug), '--i': i }} onClick={() => onPick(slug)}>
+              <span className="tile-ic" />
+              <span className="tile-label">{categoryLabel(slug)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -55,7 +81,6 @@ export function Landing({ features, onEnter, getMap }) {
   const social = useSocial()
   const selects = useMemo(() => pickSelects(features, { social }).filter(({ feature: f }) => !broken.has(f.properties.event_id)), [features, broken, social])
   const loading = !features
-  const allCats = Object.keys(CATEGORIES).filter((slug) => slug !== 'other')
 
   // Keep the search pill in the middle of the screen: the space above the headline is whatever puts the
   // pill's centre at half the viewport. Syrenka Selects follows the tiles directly, so its first cards
@@ -107,22 +132,16 @@ export function Landing({ features, onEnter, getMap }) {
             {t("What's the plan in Warsaw today?")}
           </motion.h1>
           <LandingSearch features={features} onSearch={onEnter} />
-          <motion.div className="hero-tiles" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ ...spring, delay: 0.12 }}>
-            {TILES.map((tile, i) => (
-              <Tile key={tile.label} tile={tile} delay={0.15 + i * 0.04} open={more}
-                onClick={() => (tile.more ? setMore((m) => !m) : onEnter({ category: tile.category, label: t(tile.label), people: tile.people }))} />
-            ))}
-          </motion.div>
-          <AnimatePresence>
-            {more && (
-              <motion.div className="hero-tiles all" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}>
-                {allCats.map((slug, i) => (
-                  <Tile key={slug} small delay={i * 0.025} tile={{ label: CATEGORIES[slug].label, category: slug }}
-                    onClick={() => onEnter({ category: slug, label: categoryLabel(slug) })} />
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className="tiles-block">{/* the big tiles + the More row, one item in the hero column */}
+            <motion.div className="hero-tiles" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ ...spring, delay: 0.12 }}>
+              {/* phones: just the first two + More, so three fit in one row */}
+              {TILES.filter((tile, i) => !mobile || i < 2 || tile.more).map((tile, i) => (
+                <Tile key={tile.label} tile={tile} delay={0.15 + i * 0.04} open={more}
+                  onClick={() => (tile.more ? setMore((m) => !m) : onEnter({ category: tile.category, label: t(tile.label), people: tile.people }))} />
+              ))}
+            </motion.div>
+            <MoreTiles open={more} onPick={(slug) => onEnter({ category: slug, label: categoryLabel(slug) })} />
+          </div>
         </div>
         <motion.button className="hero-more" onClick={() => document.getElementById('syrenka-selects')?.scrollIntoView({ behavior: 'smooth' })}
           initial={{ opacity: 0 }} animate={{ opacity: 1, y: [0, 6, 0] }} transition={{ delay: 0.6, y: { repeat: Infinity, duration: 2.2 } }}>
@@ -145,8 +164,8 @@ export function Landing({ features, onEnter, getMap }) {
               <motion.button key={p.event_id} className={`sel-card ${wide ? 'wide' : ''}`} onClick={() => onEnter({ feature: f })}
                 initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ ...spring, delay: (i % 4) * 0.05 }}>
                 <div className="sel-img" style={p.image_url ? {} : { background: `linear-gradient(135deg, ${categoryColor(cat)}, color-mix(in srgb, ${categoryColor(cat)} 40%, #fff))` }}>
-                  {p.image_url && <img className="sel-photo" src={secureImage(p.image_url)} alt="" loading="lazy" onError={() => setBroken((b) => new Set(b).add(p.event_id))} />}
-                  <span className="sel-cat" style={{ color: categoryColor(cat) }}>{categoryLabel(cat)}</span>
+                  {p.image_url && <img className="sel-photo fade-img" src={secureImage(p.image_url)} alt="" decoding="async" onLoad={(e) => e.currentTarget.classList.add('in')} loading={i < 2 ? "eager" : "lazy"} fetchpriority={i < 2 ? "high" : "low"} onError={() => setBroken((b) => new Set(b).add(p.event_id))} />}
+                  <span className="sel-cat" style={{ color: typeColor(typeOf(p)) }}>{typeLabel(typeOf(p))}</span>
                   {userMade && <span className="sel-people"><Users size={13} /> {t('Made by people')}</span>}
                   {(going || asked) && <span className="sel-you">{t(going ? "You're going" : 'Asked to join')}</span>}
                 </div>

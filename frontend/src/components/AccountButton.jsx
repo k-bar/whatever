@@ -1,10 +1,12 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useSpring } from '../config/store'
-import { assetUrl, fetchMe, isLoggedIn, onAuthChange } from '../data/api'
+import { assetUrl } from '../data/api'
+import { useLoggedIn, useMe } from '../data/me'
 import { useLang } from '../i18n'
-import { usePopover } from './Calendar'
+import { usePopover } from '../hooks/usePopover'
 import { LoginForm } from './LoginForm'
+import { Silhouette } from './Icons'
 
 /**
  * Far top right, on every screen (start page, map, full-screen slide-over). Logged out: "Log in", which
@@ -15,14 +17,9 @@ export function AccountButton({ onProfile, view }) {
   const { t } = useLang()
   const spring = useSpring()
   const { open, setOpen, ref } = usePopover()
-  const [me, setMe] = useState(null)
-  const [loggedIn, setLoggedIn] = useState(isLoggedIn)
-
-  useEffect(() => {
-    const load = () => { const on = isLoggedIn(); setLoggedIn(on); if (on) fetchMe().then(setMe); else setMe(null) }
-    load()
-    return onAuthChange(load)
-  }, [])
+  const me = useMe() // follows log in / out and Edit profile (new name / photo)
+  const loggedIn = useLoggedIn()
+  const [justJoined, setJustJoined] = useState(false) // keep the card for the "check your inbox" note
 
   // publish the width so the editor toggle / slide-over actions sit to its left
   useLayoutEffect(() => {
@@ -45,12 +42,14 @@ export function AccountButton({ onProfile, view }) {
           <span className="account-name">{name}</span>
         </motion.button>
       ) : (
-        <button className={`account-login ${open ? 'open' : ''}`} onClick={() => setOpen(!open)} aria-expanded={open}>{t('Log in')}</button>
+        <button className={`account-login ${open ? 'open' : ''}`} onClick={() => setOpen(!open)} aria-expanded={open} aria-label={t('Log in')}>
+          <Silhouette size={20} className="account-login-ic" /><span className="account-login-txt">{t('Log in')}</span>{/* phones: just the icon */}
+        </button>
       )}
       <AnimatePresence>
-        {open && !loggedIn && (
+        {open && (!loggedIn || justJoined) && (
           <motion.div className="account-card surface" initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} transition={spring}>
-            <LoginForm compact onDone={() => setOpen(false)} />
+            <LoginForm compact onRegistered={() => setJustJoined(true)} onDone={() => { setOpen(false); setJustJoined(false) }} />
           </motion.div>
         )}
       </AnimatePresence>

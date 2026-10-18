@@ -13,6 +13,7 @@ export const CITY_LAYERS = [
   { id: 'toilets', param: 'showToilets', label: 'Toilets', emoji: '🚻' },
   { id: 'aed', param: 'showAed', label: 'Defibrillators (AED)', emoji: '❤️' },
   { id: 'walks', param: 'showWalks', label: 'Walking routes', emoji: '🚶' },
+  { id: 'transit', param: 'showStations', label: 'Metro & bus stations', emoji: '🚇' }, // GET /places?category=transit
 ]
 
 export const AMENITY_RADIUS_M = 600
@@ -61,10 +62,11 @@ const EMPTY = { type: 'FeatureCollection', features: [] }
 // one colour per route, from the app's category palette
 const WALK_COLORS = ['#e7392b', '#2b6be7', '#0fa37f', '#7c4dff', '#f97316', '#ec4899', '#0ea5e9', '#d97706', '#14b8a6']
 
-/** Toilets + AEDs in one source, tagged with `amenity`. */
+/** Toilets, AEDs and stations in one source, tagged with `amenity` (stations: metro or bus, for the badge). */
 export function amenitiesData(city) {
   const tag = (fc, amenity) => (fc?.features || []).map((f) => ({ ...f, properties: { ...f.properties, amenity } }))
-  return { type: 'FeatureCollection', features: [...tag(city.toilets, 'toilets'), ...tag(city.aed, 'aed')] }
+  const stations = (city.transit?.features || []).map((f) => ({ ...f, properties: { ...f.properties, amenity: 'transit', metro: /^metro/i.test(f.properties.lead || '') } }))
+  return { type: 'FeatureCollection', features: [...tag(city.toilets, 'toilets'), ...tag(city.aed, 'aed'), ...stations] }
 }
 
 /** Routes with a stable key and colour; their stops as points. */
@@ -79,7 +81,7 @@ export function walksData(city) {
   return { routes: { type: 'FeatureCollection', features: routes }, stops: { type: 'FeatureCollection', features: stops } }
 }
 
-/** Small rounded-square badges drawn on a canvas (2× for sharp edges): "WC" and the AED heart. */
+/** Small rounded-square badges drawn on a canvas (2× for sharp edges): "WC", the AED heart, metro "M", bus. */
 function badge(draw) {
   const s = 40, r = 2, c = document.createElement('canvas')
   c.width = c.height = s * r
@@ -105,6 +107,17 @@ const ICONS = {
     g.fillStyle = '#ffffff'; g.fill()
     g.beginPath(); g.moveTo(cx + 1.5, cy - 6); g.lineTo(cx - 3, cy + 1); g.lineTo(cx, cy + 1); g.lineTo(cx - 1.5, cy + 7); g.lineTo(cx + 3.5, cy - 1); g.lineTo(cx + 0.5, cy - 1); g.closePath()
     g.fillStyle = '#0fa37f'; g.fill() // lightning bolt through it
+  }),
+  // Warsaw metro: a white M on red; bus stations: a white "BUS" on the city's transport blue
+  'syr-metro': () => badge((g, s) => {
+    g.fillStyle = '#e2231a'; g.fill()
+    g.fillStyle = '#ffffff'; g.font = '900 19px Inter, system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'
+    g.fillText('M', s / 2, s / 2 + 1)
+  }),
+  'syr-bus': () => badge((g, s) => {
+    g.fillStyle = '#1d4ed8'; g.fill()
+    g.fillStyle = '#ffffff'; g.font = '800 10.5px Inter, system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'
+    g.fillText('BUS', s / 2, s / 2 + 1)
   }),
 }
 
@@ -133,7 +146,7 @@ export function ensureCityLayers(m, city, beforeLabels, beforePins) {
 
   // toilets + AEDs: badges, decluttered by MapLibre's collision detection when zoomed out
   if (!m.getLayer(AMENITIES)) m.addLayer({ id: AMENITIES, type: 'symbol', source: AMENITIES, minzoom: 11,
-    layout: { 'icon-image': ['match', ['get', 'amenity'], 'aed', 'syr-aed', 'syr-wc'], 'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.45, 13, 0.6, 15, 0.8, 17, 0.95], 'icon-padding': 1 } }, beforePins)
+    layout: { 'icon-image': ['match', ['get', 'amenity'], 'aed', 'syr-aed', 'transit', ['case', ['to-boolean', ['get', 'metro']], 'syr-metro', 'syr-bus'], 'syr-wc'], 'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.45, 13, 0.6, 15, 0.8, 17, 0.95], 'icon-padding': 1 } }, beforePins)
 }
 
 export function setCityData(m, city) {

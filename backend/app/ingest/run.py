@@ -119,8 +119,19 @@ def upsert_event(db: Session, source: Source, raw: RawEvent, geocoder: Geocoder 
     return event_id
 
 
+# A source that suddenly returns (almost) nothing is broken (blocked IP, timeout, changed page), not
+# empty: refuse, or every one of its pins would be switched off and the run recorded as "ok".
+MIN_KEEP = 0.2  # of last run's count, once a source had at least MIN_KEEP_FROM items
+MIN_KEEP_FROM = 20
+
+
 def load(db: Session, spec: SourceSpec, raws: list[RawEvent], geocoder: Geocoder | None) -> int:
     source = get_or_create_source(db, spec)
+    before = source.item_count or 0
+    if before >= MIN_KEEP_FROM and len(raws) < before * MIN_KEEP:
+        raise RuntimeError(
+            f"{spec.slug} returned {len(raws)} records (last run: {before}); keeping the old ones"
+        )
     seen = []
     for raw in raws:
         event_id = upsert_event(db, source, raw, geocoder)
@@ -159,6 +170,22 @@ def recently_ok(db: Session, spec: SourceSpec) -> bool:
     )
 
 
+def refresh_demo_people() -> int:
+    """Keep the demo people's been to / going to / hosting true as dates pass (app/mocksocial.py)."""
+    from app import mocksocial
+    from app.config import settings
+
+    if not settings.demo_people:
+        return 0
+    try:
+        with SessionLocal() as db:
+            print("mocksocial:", mocksocial.run(db))
+        return 0
+    except Exception:
+        print(f"mocksocial: FAILED\n{traceback.format_exc()}", file=sys.stderr)
+        return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--source", choices=sorted(SOURCES), help="run only this source")
@@ -191,6 +218,7 @@ def main(argv: list[str] | None = None) -> int:
         from app.ingest.routes import ROUTES
 
         failed += run_feeds([ROUTES])
+        failed += refresh_demo_people()
     # Translations run on their own timer (deploy/systemd/warszawa-translate.timer, app/translate.py),
     # so new events get English titles within minutes instead of after the next multi-hour ingest.
     return 1 if failed else 0

@@ -3,13 +3,17 @@
  * unreachable the map is empty and the badge says so.
  * API base: VITE_API_URL (default "/api", proxied by vite to http://localhost:8000).
  */
-import { categoryLabel } from './categories'
+import { smartSearch } from '../search/engine'
 import { getLang } from '../i18n'
+import { cached, invalidate, MIN } from './cache'
 
 const BASE = import.meta.env.VITE_API_URL || '/api'
 export const WARSAW_BBOX = [20.85, 52.1, 21.27, 52.37]
 // Our declared centre point: Rondo Romana Dmowskiego (Marszałkowska × Aleje Jerozolimskie).
 export const WARSAW_CENTER = [21.0114, 52.2306]
+
+/** Events mode shows only these: a real event (not a place or a regular class) with a date. */
+export const isDatedEvent = (p) => p.kind === 'event' && Boolean(p.starts_at)
 
 export const dataStatus = { source: 'loading' } // 'api' | 'offline' | 'loading'
 
@@ -30,20 +34,36 @@ async function get(path, opts = {}) {
   }
 }
 
-/** Image paths the API serves itself (user event photos) come back as "/userevents/…": point them at the API. */
-export const assetUrl = (url) => (url?.startsWith('/') ? `${BASE}${url}` : url)
-const withAssets = (f) => (f.properties.image_url?.startsWith('/') ? { ...f, properties: { ...f.properties, image_url: assetUrl(f.properties.image_url) } } : f)
+/**
+ * Image links. Paths the API serves itself (user event photos) come back as "/userevents/…": point them
+ * at the API. Outside links are asked for over https: the city's posters come as http://um.warszawa.pl/…
+ * and the site is https, so they're "mixed content" — Chrome quietly upgrades those, Safari blocks them
+ * (posters showed in Chrome only). Their server answers on https.
+ */
+export const assetUrl = (url) => (url?.startsWith('/') ? `${BASE}${url}` : url?.replace(/^http:\/\//i, 'https://'))
+const withImage = (o) => (o?.image_url ? { ...o, image_url: assetUrl(o.image_url) } : o)
+// the pin's own picture, and the posters of a place's upcoming events (the box's "Upcoming here" strip)
+const withAssets = (f) => ({ ...f, properties: { ...withImage(f.properties), ...(Array.isArray(f.properties.upcoming) && { upcoming: f.properties.upcoming.map(withImage) }) } })
 
-export async function fetchFeatures() {
+export function fetchFeatures({ force = false } = {}) {
+  if (force) invalidate('features:')
+  return cached(`features:${getLang()}:${isLoggedIn()}`, 2 * MIN, fetchFeaturesNow)
+}
+
+async function fetchFeaturesNow() {
   try {
-    const [events, places, mine] = await Promise.all([
-      // ?lang: titles and descriptions in the UI language (translated on the server, originals kept)
-      get(`/events?bbox=${WARSAW_BBOX.join(',')}&limit=2000&lang=${getLang()}`, { timeout: 15000 }),
+    // ?lang: titles and descriptions in the UI language (translated on the server, originals kept).
+    // Events and recurring classes are asked for separately: the API caps each list at 2000, and daily
+    // classes alone would otherwise fill it and push real events out of the month.
+    const q = `bbox=${WARSAW_BBOX.join(',')}&limit=2000&lang=${getLang()}`
+    const [events, classes, places, mine] = await Promise.all([
+      get(`/events?${q}&kind=event`, { timeout: 15000 }),
+      get(`/events?${q}&kind=class`, { timeout: 15000 }).catch(() => ({ features: [] })),
       get(`/places?bbox=${WARSAW_BBOX.join(',')}&lang=${getLang()}`, { timeout: 15000 }),
       fetchPrivateUserEvents(),
     ])
     dataStatus.source = 'api'
-    return { type: 'FeatureCollection', features: [...events.features, ...places.features, ...mine].map(withAssets) }
+    return { type: 'FeatureCollection', features: [...events.features, ...classes.features, ...places.features, ...mine].map(withAssets) }
   } catch {
     dataStatus.source = 'offline'
     return { type: 'FeatureCollection', features: [] }
@@ -54,21 +74,21 @@ export async function fetchFeatures() {
  * "In the city" layers (Warsaw open data, see components/cityLayers.js): 'toilets' and 'aed' come from
  * GET /places?category=…, 'walks' (tourist walking routes) from GET /routes. Empty when the API lacks them.
  */
-export async function fetchCityLayer(id) {
+export const fetchCityLayer = (id) => cached(`city:${id}`, 30 * MIN, async () => {
   try {
     return await get(id === 'walks' ? '/routes' : `/places?category=${id}`, { timeout: 15000 })
   } catch {
     return { type: 'FeatureCollection', features: [] }
   }
-}
+})
 
-export async function fetchSources() {
+export const fetchSources = () => cached('sources', 10 * MIN, async () => {
   try {
     return await get('/sources')
   } catch {
     return []
   }
-}
+})
 
 /* ---------- past events: stored, never searched ---------- */
 
@@ -79,43 +99,37 @@ export const isPast = (p, now = Date.now()) => !!p?.starts_at && toDate(p.ends_a
 export const upcoming = (features) => (features || []).filter((f) => !isPast(f.properties))
 
 /**
- * Search. mode ∈ search | events | assistant. The backend has no search endpoint, so this
- * filters the already-loaded features client-side.
+ * Search. mode ∈ search | events | assistant. Search and Events filter the already-loaded features
+ * client-side. The assistant asks the backend (POST /assistant, backend/app/assistant), which also
+ * knows weather, toilets, opening hours and follow-ups; if the API is down it falls back to local search.
+ * opts.me: the viewer's [lng, lat], for "near me".
  */
 export async function runSearch(mode, q, features, opts = {}) {
+  if (mode === 'assistant') {
+    try { return await askAssistant(q, opts.me) } catch { /* offline: local search below */ }
+  }
   return localSearch(mode, q, upcoming(features), opts)
 }
 
-function localSearch(mode, q, features, opts = {}) {
-  if (opts.category) { // category pill: everything tagged with it, dated things first
-    const list = features.filter((f) => (f.properties.categories || []).includes(opts.category))
-    list.sort((a, b) => (a.properties.kind === 'event' ? 0 : 1) - (b.properties.kind === 'event' ? 0 : 1) || String(a.properties.starts_at || 'z').localeCompare(String(b.properties.starts_at || 'z')))
-    return { results: list.slice(0, 80) }
-  }
-  const needle = q.trim().toLowerCase()
-  const words = needle.split(/\s+/).filter(Boolean)
-  const score = (f) => {
-    const p = f.properties
-    const hay = `${p.title} ${p.venue_name || ''} ${p.lead || ''} ${(p.categories || []).join(' ')} ${(p.categories || []).map(categoryLabel).join(' ')} ${p.district || ''} ${p.address || ''}`.toLowerCase()
-    let s = 0
-    for (const w of words) if (hay.includes(w)) s += p.title.toLowerCase().includes(w) ? 3 : 1
-    return s
-  }
-  let pool = features
-  if (mode === 'events') pool = pool.filter((f) => f.properties.kind === 'event')
-  const scored = pool.map((f) => [score(f), f]).filter(([s]) => (words.length ? s > 0 : true))
-  scored.sort((a, b) => b[0] - a[0] || String(a[1].properties.starts_at || 'z').localeCompare(String(b[1].properties.starts_at || 'z')))
-  const results = scored.slice(0, 60).map(([, f]) => f)
-  if (mode === 'assistant') {
-    const n = results.length
-    const cats = [...new Set(results.flatMap((f) => f.properties.categories))].slice(0, 3).join(', ')
-    const top = results.slice(0, 3).map((f) => `• ${f.properties.title}${f.properties.venue_name ? ` @ ${f.properties.venue_name}` : ''}`).join('\n')
-    const answer = n
-      ? `I found ${n} things matching “${q}” across the city, mostly ${cats}. My top picks:\n${top}\n\nTap one to open it on the map. (Assistant is a stub: it searches what's on the map.)`
-      : `Nothing matches “${q}” yet. Try a district (Praga, Mokotów), a mood (jazz, run, picnic) or a venue.`
-    return { answer, results }
-  }
-  return { results }
+let assistantContext = null // the last reply's context: "a jutro?" / "and in Wola?" / "more" build on it
+async function askAssistant(q, me) {
+  const [lng, lat] = me || []
+  const near = Number.isFinite(lat) && Math.abs(lat - 52.25) < 0.25 && Math.abs(lng - 21.05) < 0.35
+  const r = await post('/assistant', { q, lang: getLang(), context: assistantContext, ...(near ? { lat, lng } : {}) })
+  assistantContext = r.context
+  return { answer: r.answer, results: r.results, area: r.area, summary: r.understood }
+}
+
+/** Search over the loaded pins: src/search/engine.js reads what / when / where and ranks with tolerances. */
+async function localSearch(mode, q, features, opts = {}) {
+  const r = await smartSearch(q, features, { mode, category: opts.category, type: opts.type, when: opts.when, where: opts.where })
+  if (mode !== 'assistant') return r
+  const n = r.results.length
+  const top = r.results.slice(0, 3).map((f) => `• ${f.properties.title}${f.properties.venue_name ? ` @ ${f.properties.venue_name}` : ''}`).join('\n')
+  const answer = n
+    ? `${r.exact ? `${r.exact} exact match${r.exact === 1 ? '' : 'es'}` : 'No exact matches, but close ones'} for “${r.summary}”. My top picks:\n${top}\n\nTap one to open it on the map.`
+    : `Nothing matches “${q}” yet. Try a district (Praga, Mokotów), a day (Saturday, weekend), a mood (jazz, run, picnic) or a venue.`
+  return { ...r, answer }
 }
 
 /* ---------- position, routing, busy areas ---------- */
@@ -132,7 +146,9 @@ const inWarsawArea = ({ lat, lng }) => Math.abs(lat - 52.23) < 0.6 && Math.abs(l
  * Where am I? IP geolocation (no permission prompt, ~1–5 km accurate). Tries each provider until
  * one answers. Outside the Warsaw area (or all lookups failing) the user is placed at Centrum.
  */
-export async function locateByIp() {
+export const locateByIp = () => cached('ip', 10 * MIN, locateByIpNow)
+
+async function locateByIpNow() {
   for (const [url, parse] of IP_PROVIDERS) {
     try {
       const r = await fetch(url, { signal: AbortSignal.timeout(3000) })
@@ -168,7 +184,9 @@ const photonPoint = (f) => {
 }
 
 /** Address / postcode search for the starting point: Photon (OSM geocoder, keyless, CORS), Warsaw area only. */
-export async function searchAddress(q, { signal } = {}) {
+export const searchAddress = (q, opts = {}) => cached(`addr:${q.trim().toLowerCase()}`, 30 * MIN, () => searchAddressNow(q, opts))
+
+async function searchAddressNow(q, { signal } = {}) {
   const [w, s, e, n] = WARSAW_BBOX
   // lang=default: local (Polish) names; extra results leave room after dropping transit stops
   const r = await fetch(`${PHOTON}/api/?q=${encodeURIComponent(q)}&bbox=${w},${s - 0.01},${e + 0.01},${n}&limit=12&lang=default`, { signal })
@@ -200,7 +218,9 @@ export async function locateByDevice() {
 const WALK_KMH = 4.8, BIKE_KMH = 15
 
 /** Street route from → to. Public OSRM demo; walking/cycling times derived from the distance. */
-export async function routeTo(from, to) {
+export const routeTo = (from, to) => cached(`route:${from.map((v) => v.toFixed(4))}:${to.map((v) => v.toFixed(4))}`, 30 * MIN, () => routeToNow(from, to))
+
+async function routeToNow(from, to) {
   const url = `https://router.project-osrm.org/route/v1/foot/${from[0]},${from[1]};${to[0]},${to[1]}?overview=full&geometries=geojson`
   try {
     const r = await fetch(url, { signal: AbortSignal.timeout(6000) })
@@ -226,13 +246,25 @@ export function haversineKm([lng1, lat1], [lng2, lat2]) {
  * Busy areas: detailed golden outlines of where people bump into each other (level "busy" and its
  * "very_busy" core). Built from OpenStreetMap by backend/scripts/build_busy_areas.py; served by GET /busyareas.
  */
-export async function fetchBusyAreas() {
+export const fetchBusyAreas = () => cached('busyareas', 30 * MIN, async () => {
   try {
     return await get('/busyareas', { timeout: 8000 })
   } catch {
     return { type: 'FeatureCollection', features: [] }
   }
-}
+})
+
+/**
+ * Weather (16 city stations) and air quality (141 sensors), refreshed by the backend every 10 minutes:
+ * GET /conditions -> { weather: FeatureCollection, air: FeatureCollection }. Null when the API is down.
+ */
+export const fetchConditions = () => cached('conditions', 5 * MIN, async () => {
+  try {
+    return await get('/conditions', { timeout: 8000 })
+  } catch {
+    return null
+  }
+})
 
 /* ---------- login + user events (backend/app/userevents) ---------- */
 
@@ -241,12 +273,19 @@ const AUTH_EVENT = 'syrenka:auth' // fired on window whenever someone logs in or
 const readToken = () => { try { return localStorage.getItem(TOKEN_KEY) } catch { return null } }
 function writeToken(token) {
   try { if (token) localStorage.setItem(TOKEN_KEY, token); else localStorage.removeItem(TOKEN_KEY) } catch { /* private mode */ }
+  invalidate() // everything personal (me, favourites, requests, private events) belongs to the old session
   window.dispatchEvent(new Event(AUTH_EVENT))
 }
+window.addEventListener(AUTH_EVENT, () => invalidate('me'))
 
 export const isLoggedIn = () => Boolean(readToken())
 /** Subscribe to log in / log out. Returns the unsubscribe function. */
 export const onAuthChange = (fn) => { window.addEventListener(AUTH_EVENT, fn); return () => window.removeEventListener(AUTH_EVENT, fn) }
+// logging in or out in another tab of this browser counts here too (the storage event only fires in the others)
+window.addEventListener('storage', (e) => { if (e.key === TOKEN_KEY || e.key === null) window.dispatchEvent(new Event(AUTH_EVENT)) })
+/** "My profile changed" (name, photo…): the account pill and others showing me reload it. */
+const ME_EVENT = 'syrenka:me'
+export const onMeChange = (fn) => { window.addEventListener(ME_EVENT, fn); return () => window.removeEventListener(ME_EVENT, fn) }
 export const logout = () => writeToken(null)
 
 /** Thrown when an action needs an account: the UI shows "Log in" and the login form. */
@@ -260,10 +299,43 @@ export async function login(email, password) {
   writeToken(r.access_token)
 }
 
-/** POST /auth/register: a new account, logged in straight away. */
+/** POST /auth/register: a new account, logged in straight away. A confirmation link is mailed to `email`. */
 export async function register(display_name, email, password) {
   const r = await get('/auth/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ display_name, email, password }), timeout: 10000 })
   writeToken(r.access_token)
+}
+
+const post = (path, body) => get(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), timeout: 10000 })
+
+/** The link in the confirmation mail (?verify=…). Works logged out too. */
+export async function verifyEmail(token) {
+  const me = await post('/auth/verify', { token })
+  window.dispatchEvent(new Event(AUTH_EVENT)) // email_verified changed for everyone showing "confirm your email"
+  return me
+}
+export const resendVerification = () => authed('/auth/verify/resend', { method: 'POST' })
+/** Mails a reset link; answers the same whether or not the address has an account. */
+export const forgotPassword = (email) => post('/auth/password/forgot', { email })
+/** From the reset mail (?reset=…): new password, every other session ends, this browser is logged in. */
+export async function resetPassword(token, password) {
+  writeToken((await post('/auth/password/reset', { token, password })).access_token)
+}
+/** Needs the current password; other devices are logged out, this one gets a fresh token. */
+export async function changePassword(current_password, new_password) {
+  writeToken((await authed('/me/password', { method: 'POST', body: { current_password, new_password } })).access_token)
+}
+export async function changeEmail(email, password) {
+  const me = await authed('/me/email', { method: 'POST', body: { email, password } })
+  window.dispatchEvent(new Event(AUTH_EVENT))
+  return me
+}
+export async function logoutEverywhere() {
+  writeToken((await authed('/auth/logout-all', { method: 'POST' })).access_token)
+}
+/** Delete the account for good (DELETE /me, needs the password); logs out here too. */
+export async function deleteAccount(password) {
+  await authed('/me', { method: 'DELETE', body: { password } })
+  writeToken(null)
 }
 
 /** A call made as the logged-in user. No token, or an expired one, throws LoginRequired. */
@@ -278,20 +350,26 @@ async function authed(path, { body, ...opts } = {}) {
     })
   } catch (e) {
     if (e.status === 401) { writeToken(null); throw new LoginRequired() }
+    if (e.status === 403 && e.message === 'Confirm your email first') e.verifyRequired = true
     throw e
   }
 }
 
+/** The current login token, for the chat socket (data/chat.js). */
+export const sessionToken = readToken
+export const authedCall = (path, opts) => authed(path, opts)
+export const apiBase = BASE
+
 /** My profile (GET /me) from PostgreSQL. Only when this browser already has a session: looking never creates an account. */
-export async function fetchMe() {
-  if (!readToken()) return null
-  try { return await authed('/me', { timeout: 6000 }) } catch { return null }
+export function fetchMe() {
+  if (!readToken()) return Promise.resolve(null)
+  return cached('me', 1 * MIN, async () => { try { return await authed('/me', { timeout: 6000 }) } catch { return null } })
 }
 
 /** Join requests to me that are still waiting for an answer (GET /me/join-requests). */
-export async function fetchJoinRequests() {
-  if (!readToken()) return []
-  try { return await authed('/me/join-requests?direction=incoming&status=pending', { timeout: 6000 }) } catch { return [] }
+export function fetchJoinRequests() {
+  if (!readToken()) return Promise.resolve([])
+  return cached('me:join-requests', 30 * 1000, async () => { try { return await authed('/me/join-requests?direction=incoming&status=pending', { timeout: 6000 }) } catch { return [] } })
 }
 
 /** My favourited events/venues saved with the account (GET /me/favourites); null when this browser has no session. */
@@ -311,18 +389,23 @@ export async function saveFavourites(ids) {
 const maybeAuthed = (path, opts = {}) => (readToken() ? authed(path, opts) : get(path, { timeout: 8000, ...opts }))
 
 /** A profile page: by id, or by @username. Includes stats and how the viewer relates to them. */
-export const fetchProfile = (who) => maybeAuthed(typeof who === 'number' ? `/users/${who}/profile` : `/profiles/${encodeURIComponent(who)}`)
+export const fetchProfile = (who) => cached(`profile:${who}`, 1 * MIN, () => maybeAuthed(typeof who === 'number' ? `/users/${who}/profile` : `/profiles/${encodeURIComponent(who)}`))
 /** scope: going | been | hosting. Yourself and friends only (403 otherwise). */
-export const fetchProfileEvents = (userId, scope) => maybeAuthed(`/users/${userId}/events?scope=${scope}`)
-export const fetchFriends = (userId) => maybeAuthed(`/users/${userId}/friends`)
+export const fetchProfileEvents = (userId, scope) => cached(`profile:${userId}:events:${scope}`, 1 * MIN, () => maybeAuthed(`/users/${userId}/events?scope=${scope}`))
+export const fetchFriends = (userId) => cached(`profile:${userId}:friends`, 1 * MIN, () => maybeAuthed(`/users/${userId}/friends`))
 export const fetchFriendRequests = (direction = 'incoming') => authed(`/me/friend-requests?direction=${direction}`)
-export const sendFriendRequest = (username) => authed('/friends/requests', { method: 'POST', body: { username } })
-export const answerFriendRequest = (id, status) => authed(`/friend-requests/${id}`, { method: 'PATCH', body: { status } })
-export const unfriend = (userId) => authed(`/friends/${userId}`, { method: 'DELETE' })
+export const sendFriendRequest = (username) => authed('/friends/requests', { method: 'POST', body: { username } }).then((r) => { invalidate('profile:'); return r })
+export const answerFriendRequest = (id, status) => authed(`/friend-requests/${id}`, { method: 'PATCH', body: { status } }).then((r) => { invalidate('profile:'); return r })
+export const unfriend = (userId) => authed(`/friends/${userId}`, { method: 'DELETE' }).then((r) => { invalidate('profile:'); return r })
 export const searchPeople = (q) => maybeAuthed(`/people/search?q=${encodeURIComponent(q)}`)
 export const checkUsername = (name) => maybeAuthed(`/usernames/${encodeURIComponent(name)}/available`)
 /** PATCH /me: display_name, username, gender ('f' | 'm' | '' to clear), bio, interests, hangouts. */
-export const updateMe = (patch) => authed('/me', { method: 'PATCH', body: patch })
+export async function updateMe(patch) {
+  const me = await authed('/me', { method: 'PATCH', body: patch })
+  invalidate('me'); invalidate('profile:')
+  window.dispatchEvent(new Event(ME_EVENT))
+  return me
+}
 /** Upload a profile picture (shrunk in the browser, stored by the API); returns its path for photos[0]. */
 export async function uploadProfilePhoto(file) {
   const r = await authed('/userevents/photos', { method: 'POST', body: { data_url: await shrinkPhoto(file, 800) } })
@@ -348,6 +431,7 @@ export async function createUserEvent(values, photoFile) {
     let photo_id = null
     if (photoFile) photo_id = (await authed('/userevents/photos', { method: 'POST', body: { data_url: await shrinkPhoto(photoFile) } })).id
     const r = await authed('/userevents', { method: 'POST', body: { ...values, photo_id } })
+    invalidate('features:')
     return { event: r.event, feature: withAssets(r.feature) }
   } catch (e) {
     // a 404 here means the API we talk to is older than backend/app/userevents
@@ -370,10 +454,27 @@ async function fetchPrivateUserEvents() {
 
 /** PUT /occurrences/{id}/attendance — "I'm going"; wants_company puts you on the "come with me" list. */
 export async function setAttendance(occurrenceId, wantsCompany = true) {
+  invalidate(`attendees:${occurrenceId}`); invalidate('profile:')
   return authed(`/occurrences/${occurrenceId}/attendance`, { method: 'PUT', body: { wants_company: wantsCompany }, timeout: 8000 })
+}
+/** "Not going any more": off the attendee lists, counts and my profile. */
+export const removeAttendance = (occurrenceId) => { invalidate(`attendees:${occurrenceId}`); invalidate('profile:'); return authed(`/occurrences/${occurrenceId}/attendance`, { method: 'DELETE', timeout: 8000 }) }
+
+/** GET /occurrences/{id}/attendees — who's going (logged-in users only; [] otherwise). */
+export function fetchAttendees(occurrenceId) {
+  if (!occurrenceId || !isLoggedIn()) return Promise.resolve([])
+  return cached(`attendees:${occurrenceId}`, 1 * MIN, async () => { try { return await authed(`/occurrences/${occurrenceId}/attendees`, { timeout: 8000 }) } catch { return [] } })
 }
 
 /** POST /occurrences/{id}/join-requests — ask the host (or someone who wants company) to join them. */
 export async function requestJoin(occurrenceId, targetUserId, message = null) {
   return authed(`/occurrences/${occurrenceId}/join-requests`, { method: 'POST', body: { target_user_id: targetUserId, message }, timeout: 8000 })
 }
+
+/* ---------- people on the map: "share my area" (backend/app/routers/people.py) ---------- */
+
+/** Everyone sharing their area right now (rounded to ~100 m), with the open invitation they host next. */
+export const fetchSharingPeople = () => cached('people:sharing', 20 * 1000, () => maybeAuthed('/people/sharing'))
+export const fetchMyArea = () => authed('/me/area')
+/** share: true needs where I am ([lng, lat]); false hides my pin at once. */
+export const setMyArea = (share, lngLat) => { invalidate('people:'); return authed('/me/area', { method: 'PUT', body: { share, ...(lngLat && { lng: lngLat[0], lat: lngLat[1] }) } }) }

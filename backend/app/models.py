@@ -100,6 +100,7 @@ class Occurrence(Base):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (Index("ix_users_share_area", "share_area", postgresql_where=text("share_area")),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(320), unique=True)
@@ -120,11 +121,33 @@ class User(Base):
     links: Mapped[dict] = mapped_column(JSONB, default=dict)
     # IDs of favourited events/venues (events.id), saved with the account so stars follow you between devices
     favourite_ids: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=list, server_default="{}")
+    # Account security (app/auth.py). Null = email not verified yet; social features need it verified.
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Part of every login token: bumping it (password change / reset, "log out everywhere") ends all sessions
+    token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    last_mail_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # throttles resends
+    failed_logins: Mapped[int] = mapped_column(SmallInteger, default=0, server_default="0")
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # "Share my area": others see a pulsing pin roughly where you are (rounded to ~100 m), to say
+    # "I'm around, come and hang out". Set from the app (PUT /me/area), see app/routers/people.py.
+    share_area: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
+    area_lat: Mapped[float | None] = mapped_column(Float)
+    area_lng: Mapped[float | None] = mapped_column(Float)
+    area_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # the demo people from app/mocksocial.py (dev and prod, settings.demo_people): their profiles and event lists are public
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    @property
+    def email_verified(self) -> bool:
+        return self.email_verified_at is not None
 
 
 class Attendance(Base):
     __tablename__ = "attendance"
+    # the primary key starts with user_id; "who goes to this date" (counts, attendee lists, the ingest's
+    # "does anyone attend it" check) needs its own index
+    __table_args__ = (Index("ix_attendance_occurrence_id", "occurrence_id"),)
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     occurrence_id: Mapped[int] = mapped_column(
@@ -178,6 +201,52 @@ class Friendship(Base):
 
     requester: Mapped[User] = relationship(foreign_keys=[requester_id])
     addressee: Mapped[User] = relationship(foreign_keys=[addressee_id])
+
+
+class Chat(Base):
+    """An event's chat. Public events (scraped or user-made) use event_id; private user events,
+    which have no row in events, use user_event_id. Created on first use."""
+
+    __tablename__ = "chats"
+    __table_args__ = (
+        CheckConstraint("num_nonnulls(event_id, user_event_id) = 1", name="ck_chats_one_target"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    event_id: Mapped[int | None] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"), unique=True)
+    user_event_id: Mapped[int | None] = mapped_column(
+        ForeignKey("user_events.id", ondelete="CASCADE"), unique=True
+    )
+    last_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ChatMember(Base):
+    """Someone following a chat (posted in it, hosts the event, or joined it): it shows in their
+    Messages list with an unread count."""
+
+    __tablename__ = "chat_members"
+
+    chat_id: Mapped[int] = mapped_column(ForeignKey("chats.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    last_read_id: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    __table_args__ = (Index("ix_chat_messages_chat_id_id", "chat_id", "id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chat_id: Mapped[int] = mapped_column(ForeignKey("chats.id", ondelete="CASCADE"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped[User] = relationship()
 
 
 class GeocodeCache(Base):

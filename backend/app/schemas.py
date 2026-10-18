@@ -5,6 +5,7 @@ from typing import Annotated, Any, Literal
 from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, HttpUrl, TypeAdapter
 
 from app.categories import CATEGORIES
+from app.config import settings
 
 CategorySlug = Literal[tuple(CATEGORIES)]  # type: ignore[valid-type]
 
@@ -16,16 +17,46 @@ class ORM(BaseModel):
 # --- auth / users -----------------------------------------------------------------------------
 
 
+Password = Annotated[str, Field(min_length=8, max_length=128)]
+
+
 class RegisterIn(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: Password
     display_name: str = Field(min_length=1, max_length=80)
     username: str | None = Field(None, max_length=31)  # optional; made from display_name when missing
 
 
 class LoginIn(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(max_length=128)
+
+
+class VerifyIn(BaseModel):
+    token: str = Field(max_length=1000)
+
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    token: str = Field(max_length=1000)
+    password: Password
+
+
+class PasswordChangeIn(BaseModel):
+    current_password: str = Field(max_length=128)
+    new_password: Password
+
+
+class EmailChangeIn(BaseModel):
+    email: EmailStr
+    password: str = Field(max_length=128)
+
+
+class AccountDeleteIn(BaseModel):
+    password: str = Field(max_length=128)
 
 
 class TokenOut(BaseModel):
@@ -89,6 +120,10 @@ class ContactUser(PublicUser):
 
 class Me(ContactUser):
     email: str
+    email_verified: (
+        bool  # false + verify_required: friends, creating events, join requests and chats are locked
+    )
+    verify_required: bool = Field(default_factory=lambda: settings.require_verified_email)
     first_name: str | None
     last_name: str | None
     age: int | None
@@ -208,22 +243,6 @@ class EventOut(ORM):
     source: str
     host: PublicUser | None = None
     occurrences: list[OccurrenceOut] = []
-
-
-class InviteIn(BaseModel):
-    """A public invitation: picnic, concert, 'come to my place'..."""
-
-    title: str = Field(min_length=3, max_length=200)
-    description: str | None = Field(None, max_length=5000)
-    categories: list[CategorySlug] = Field(min_length=1)
-    starts_at: datetime
-    ends_at: datetime | None = None
-    lat: float = Field(ge=52.09, le=52.37)
-    lng: float = Field(ge=20.85, le=21.28)
-    venue_name: str | None = Field(None, max_length=200)
-    address: str | None = Field(None, max_length=300)
-    image_url: HttpUrl | None = None
-    capacity: int | None = Field(None, ge=1, le=1000)
 
 
 class GeoJSONFeature(BaseModel):

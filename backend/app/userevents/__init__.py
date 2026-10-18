@@ -8,10 +8,10 @@ and the existing attendance / join-request endpoints work on them.
 Audiences
     public          everyone sees it on the map, anyone can say they're going
     public_confirm  everyone sees it, joining needs the host's OK (join request to the host)
-    friends         only the host's friends (no friends graph yet: host + invited users)
+    friends         the host's friends (and invited users)
     invite          only invited users (and the host)
 
-Endpoints (router.py)
+Endpoints (router.py; the parts other modules use, like can_see and publish, are in service.py)
     POST   /userevents/photos     {"data_url": "data:image/jpeg;base64,..."} -> {"id", "url"}
     GET    /userevents/photos/{id}  the image
     POST   /userevents            create -> {"event": UserEventOut, "feature": GeoJSON Feature}
@@ -43,4 +43,36 @@ EVENT_TYPES = {
     "meetup": "meetups",
     "games": "meetups",
     "other": "other",
+    # Every pin type in the app (frontend/src/data/types.js), so an invite can be any type at all
+    "museum": "exhibitions",
+    "gallery": "exhibitions",
+    "cinema": "film",
+    "culture_centre": "culture",
+    "library": "education",
+    "venue": "culture",
+    "festival": "festivals",
+    "nightlife": "nightlife",
+    "performance": "theatre",
+    "screening": "film",
+    "education": "education",
+    "kids": "family",
+    "market": "markets",
+    "business": "business",
+    "community": "meetups",
+    "charity": "meetups",
+    "tour": "culture",
+    "celebration": "festivals",
+    "sports_class": "sports",
+    "fitness": "sports",
+    "dance": "sports",
+    "mind_body": "yoga",
+    "running": "running",
+    "pitch": "sports",
+    "sports_venue": "sports",
+    "competition": "sports",
+    "hobby_club": "meetups",
+    "social_club": "meetups",
+    "restaurant": "food",
+    "cafe": "food",
+    "alcohol": "nightlife",
 }

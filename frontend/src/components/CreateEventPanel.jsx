@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
-import { createUserEvent, isLoggedIn, onAuthChange } from '../data/api'
-import { AUDIENCES, EVENT_TYPES, categoryColor } from '../data/categories'
+import { createUserEvent } from '../data/api'
+import { AUDIENCES } from '../data/categories'
+import { SEARCH_TYPES, TYPES, typeColor, typeLabel } from '../data/types'
 import { CloseButton } from './CloseButton'
 import { Check, Globe, Lock, Photo, Pin, UserCheck, Users } from './Icons'
 import { LoginForm } from './LoginForm'
+import { VerifyBanner } from './Account'
+import { useLoggedIn, useMe } from '../data/me'
 import { DateField } from './Calendar'
 import { getLang, useLang } from '../i18n'
 
@@ -30,7 +33,15 @@ function toTimes(date, start, end) {
 }
 
 /** Street + number near the pin (OpenStreetMap Nominatim), shown under the place field. */
+const addrCache = new Map() // the pin is dragged in small steps; ~10 m cells avoid re-asking Nominatim
 async function reverseGeocode([lng, lat], signal) {
+  const key = `${lng.toFixed(4)},${lat.toFixed(4)},${getLang()}`
+  if (addrCache.has(key)) return addrCache.get(key)
+  const out = await reverseGeocodeNow([lng, lat], signal)
+  addrCache.set(key, out)
+  return out
+}
+async function reverseGeocodeNow([lng, lat], signal) {
   const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${lat}&lon=${lng}&accept-language=${getLang()}`
   const j = await (await fetch(url, { signal })).json()
   const a = j.address || {}
@@ -50,10 +61,10 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
   const [photo, setPhoto] = useState(null) // File
   const [address, setAddress] = useState(null)
   const [saving, setSaving] = useState(false)
+  const me = useMe() // creating needs a confirmed email: the banner says so up front
   const [error, setError] = useState(null)
-  const [loggedIn, setLoggedIn] = useState(isLoggedIn)
+  const loggedIn = useLoggedIn() // a session that expired mid-way (LoginRequired) flips it back to "Log in"
   const retry = useRef(false) // Done was pressed while logged out: create right after logging in
-  useEffect(() => onAuthChange(() => setLoggedIn(isLoggedIn())), [])
   const fileRef = useRef(null)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e?.target ? e.target.value : e }))
 
@@ -88,11 +99,11 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
       onCreated(feature, event)
     } catch (e) {
       setSaving(false)
-      if (e.loginRequired) { retry.current = true; setLoggedIn(false); return } // session expired: back to "Log in"
+      if (e.loginRequired) { retry.current = true; return } // session expired: back to "Log in"
       setError(e.status ? t(e.message) : t('Could not reach the server. Try again in a moment.'))
     }
   }
-  const afterLogin = () => { setLoggedIn(true); if (retry.current) { retry.current = false; submit() } }
+  const afterLogin = () => { if (retry.current) { retry.current = false; submit() } }
 
   return (
     <motion.aside className="create-panel surface" initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }} transition={spring}
@@ -106,6 +117,7 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
         <div className="sp-scroll ce-scroll"><LoginForm onDone={afterLogin} intro={t('Log in so people know who is hosting. Your event stays filled in.')} /></div>
       ) : (<>
       <div className="sp-scroll ce-scroll">
+        <VerifyBanner me={me} />
         <label className="ce-field">
           <span className="ce-label">{t('Event name')}</span>
           <input className="ce-input" value={form.title} onChange={set('title')} maxLength={200} placeholder={t('Sunday run along the Vistula')} autoFocus />
@@ -122,9 +134,10 @@ export function CreateEventPanel({ pin, onClose, onCreated }) {
         <div className="ce-field">
           <span className="ce-label">{t('Event type')}</span>
           <div className="ce-types">
-            {Object.entries(EVENT_TYPES).map(([slug, et]) => (
-              <button key={slug} type="button" className={`pill-cat ${form.type === slug ? 'on' : ''}`} style={{ '--c': categoryColor(et.category) }} onClick={() => set('type')(slug)} aria-pressed={form.type === slug}>
-                <i />{t(et.label)}
+            {/* any type at all (data/types.js): the invite's pin gets exactly this type */}
+            {SEARCH_TYPES.map((id) => (
+              <button key={id} type="button" className={`pill-cat ${form.type === id ? 'on' : ''}`} style={{ '--c': typeColor(id) }} onClick={() => set('type')(id)} aria-pressed={form.type === id}>
+                <span aria-hidden="true">{TYPES[id].emoji}</span>{typeLabel(id)}
               </button>
             ))}
           </div>

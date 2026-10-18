@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import { categoryColor, categoryLabel } from '../data/categories'
+import { typeColor, typeLabel, typeOf } from '../data/types'
 import { useLang } from '../i18n'
 import { pickSelects, secureImage } from '../landing/selects'
 import { useSocial } from '../data/social'
@@ -33,12 +34,15 @@ export function SelectsRail({ features, onPick, onClose, inSheet = false, single
           const wide = single || headliner
           const p = f.properties
           const cat = p.categories?.[0]
-          const img = p.image_url ? { backgroundImage: `url(${secureImage(p.image_url)})` } : { background: categoryColor(cat) }
           return (
             <button key={p.event_id} className={`sr-item ${wide ? 'wide' : ''}`} onClick={() => onPick(f)}>
-              <span className="sr-img" style={img}>{wide && <span className="sel-cat" style={{ color: categoryColor(cat) }}>{categoryLabel(cat)}</span>}</span>
+              {/* an <img> rather than a background: posters are multi-megabyte city uploads, so off-screen ones wait */}
+              <span className="sr-img" style={p.image_url ? {} : { background: categoryColor(cat) }}>
+                {p.image_url && <img className="fade-img" src={secureImage(p.image_url)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add('in')} />}
+                {wide && <span className="sel-cat" style={{ color: typeColor(typeOf(p)) }}>{typeLabel(typeOf(p))}</span>}
+              </span>
               <span className="sr-text">
-                <span className="sr-when">{fmtWhen(p.starts_at)}{!wide && cat ? <> · <b style={{ color: categoryColor(cat) }}>{categoryLabel(cat)}</b></> : null}</span>
+                <span className="sr-when">{fmtWhen(p.starts_at)}{!wide ? <> · <b style={{ color: typeColor(typeOf(p)) }}>{typeLabel(typeOf(p))}</b></> : null}</span>
                 <span className="sr-title">{p.title}</span>
                 {(going || asked) && <span className="sr-you">{t(going ? "You're going" : 'Asked to join')}</span>}
                 {p.venue_name && <span className="sr-where">{p.venue_name}</span>}

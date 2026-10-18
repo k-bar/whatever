@@ -4,6 +4,7 @@ import { useSpring } from '../config/store'
 import { categoryColor } from '../data/categories'
 import { locale, useLang } from '../i18n'
 import { geocodeWarsaw, whenPresets, whereSuggestions } from '../landing/search'
+import { loadAreas } from '../search/areas'
 import { Calendar, fmtDay, usePopover } from './Calendar'
 import { Calendar as CalendarIcon, MapIcon, Pin, Search, Sparkle, X } from './Icons'
 
@@ -58,7 +59,9 @@ export function WherePart({ value, onChange, features }) {
   const { open, setOpen, ref } = usePopover()
   const [text, setText] = useState(value?.label || '')
   const [places, setPlaces] = useState([])
-  const local = useMemo(() => whereSuggestions(text, features), [text, features])
+  const [areas, setAreas] = useState([])
+  useEffect(() => { loadAreas().then(setAreas) }, [])
+  const local = useMemo(() => whereSuggestions(text, features, 7, areas), [text, features, areas])
 
   useEffect(() => {
     setPlaces([])

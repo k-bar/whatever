@@ -7,13 +7,14 @@ from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app import usernames
-from app.auth import get_current_user, get_optional_user
+from app.auth import get_current_user, get_optional_user, get_verified_user
 from app.db import get_db
+from app.friends import friend_ids, pair
 from app.models import Attendance, Event, Friendship, Occurrence, User
 from app.schemas import (
     FriendDecisionIn,
@@ -26,18 +27,9 @@ from app.schemas import (
     UsernameCheck,
 )
 from app.userevents.models import UserEvent
-from app.userevents.router import photo_url
+from app.userevents.service import can_see, photo_url
 
 router = APIRouter(tags=["profiles"])
-
-
-def pair(db: Session, a: int, b: int) -> Friendship | None:
-    return db.scalar(
-        select(Friendship).where(
-            func.least(Friendship.requester_id, Friendship.addressee_id) == min(a, b),
-            func.greatest(Friendship.requester_id, Friendship.addressee_id) == max(a, b),
-        )
-    )
 
 
 def relation(db: Session, viewer: User | None, user: User) -> str:
@@ -53,17 +45,10 @@ def relation(db: Session, viewer: User | None, user: User) -> str:
     return "request_sent" if f.requester_id == viewer.id else "request_received"
 
 
-def friend_ids(db: Session, user_id: int) -> list[int]:
-    rows = db.execute(
-        select(Friendship.requester_id, Friendship.addressee_id).where(
-            Friendship.status == "accepted",
-            or_(Friendship.requester_id == user_id, Friendship.addressee_id == user_id),
-        )
-    ).all()
-    return [b if a == user_id else a for a, b in rows]
-
-
 ENDED = func.coalesce(Occurrence.ends_at, Occurrence.starts_at)
+# a user event its host called off: gone from "going", "been to" and the counts. (Not Event.is_active: the
+# city's sources stop listing events once they're over, which marks real past events inactive too.)
+CANCELLED = exists().where(UserEvent.event_id == Occurrence.event_id, UserEvent.status == "cancelled")
 
 
 def stats(db: Session, user_id: int) -> ProfileStats:
@@ -72,7 +57,7 @@ def stats(db: Session, user_id: int) -> ProfileStats:
         select(func.count())
         .select_from(Attendance)
         .join(Occurrence, Occurrence.id == Attendance.occurrence_id)
-        .where(Attendance.user_id == user_id, ENDED < now)
+        .where(Attendance.user_id == user_id, ENDED < now, ~CANCELLED)
     )
     hosted = db.scalar(
         select(func.count())
@@ -88,7 +73,7 @@ def profile_out(db: Session, viewer: User | None, user: User) -> ProfileOut:
         **PublicUser.model_validate(user).model_dump(),
         stats=stats(db, user.id),
         relation=rel,
-        can_see_events=rel in ("self", "friends"),
+        can_see_events=rel in ("self", "friends") or user.is_mock,  # demo people are open books
     )
 
 
@@ -161,7 +146,7 @@ def profile_events(
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(404, "User not found")
-    if relation(db, viewer, user) not in ("self", "friends"):
+    if relation(db, viewer, user) not in ("self", "friends") and not user.is_mock:
         raise HTTPException(403, "Only friends can see this")
     now = datetime.now(UTC)
 
@@ -176,6 +161,7 @@ def profile_events(
             .order_by(UserEvent.starts_at)
             .limit(100)
         ).all()
+        rows = [ue for ue in rows if can_see(db, viewer, ue)]  # invite-only stays with the invited
         return [
             ProfileEvent(
                 event_id=ue.event_id,
@@ -198,7 +184,8 @@ def profile_events(
         select(Event, Occurrence)
         .join(Occurrence, Occurrence.event_id == Event.id)
         .join(Attendance, and_(Attendance.occurrence_id == Occurrence.id, Attendance.user_id == user_id))
-        .where(ENDED >= now if upcoming else ENDED < now)
+        .where(ENDED >= now if upcoming else ENDED < now, ~CANCELLED)
+        .where(Event.is_active if upcoming else True)  # dropped / cancelled by its source
         # events you host are listed under "hosting", not again under "going" (they still count as been to)
         .where(or_(Event.host_user_id.is_(None), Event.host_user_id != user_id) if upcoming else True)
         .order_by(Occurrence.starts_at if upcoming else Occurrence.starts_at.desc())
@@ -239,7 +226,7 @@ def request_out(f: Friendship, me: User) -> FriendRequestOut:
 
 @router.post("/friends/requests", response_model=FriendRequestOut, status_code=201)
 def send_friend_request(
-    body: FriendRequestIn, me: User = Depends(get_current_user), db: Session = Depends(get_db)
+    body: FriendRequestIn, me: User = Depends(get_verified_user), db: Session = Depends(get_db)
 ):
     """Ask @username to be friends. If they already asked you, this accepts it."""
     other = db.scalar(select(User).where(User.username == usernames.normalize(body.username)))
@@ -283,7 +270,7 @@ def my_friend_requests(
 def answer_friend_request(
     request_id: int,
     body: FriendDecisionIn,
-    me: User = Depends(get_current_user),
+    me: User = Depends(get_verified_user),
     db: Session = Depends(get_db),
 ):
     f = db.get(Friendship, request_id)
@@ -306,7 +293,7 @@ def list_friends(
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(404, "User not found")
-    if relation(db, viewer, user) not in ("self", "friends"):
+    if relation(db, viewer, user) not in ("self", "friends") and not user.is_mock:
         raise HTTPException(403, "Only friends can see this")
     ids = friend_ids(db, user_id)
     return db.scalars(select(User).where(User.id.in_(ids)).order_by(User.display_name)).all() if ids else []

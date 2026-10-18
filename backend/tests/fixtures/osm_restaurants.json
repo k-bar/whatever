@@ -1,0 +1,161 @@
+[
+  {
+    "type": "node",
+    "id": 247461210,
+    "lat": 52.2312362,
+    "lon": 21.0121087,
+    "tags": {
+      "addr:city": "Warszawa",
+      "addr:city:simc": "0918123",
+      "addr:housenumber": "26",
+      "addr:postcode": "00-023",
+      "addr:street": "Widok",
+      "air_conditioning": "yes",
+      "amenity": "restaurant",
+      "brand": "Pizza Hut",
+      "brand:wikidata": "Q191615",
+      "brand:wikipedia": "en:Pizza Hut",
+      "check_date": "2026-06-26",
+      "check_date:smoking": "2026-02-18",
+      "cuisine": "pizza",
+      "diet:vegetarian": "yes",
+      "indoor_seating": "yes",
+      "name": "Pizza Hut",
+      "opening_hours": "Mo-Th 12:00-23:00; Fr-Sa 12:00-24:00; Su 12:00-22:00",
+      "operator": "AmRest",
+      "outdoor_seating": "pedestrian_zone",
+      "smoking": "no",
+      "takeaway": "yes",
+      "wheelchair": "yes"
+    }
+  },
+  {
+    "type": "node",
+    "id": 248197975,
+    "lat": 52.2344797,
+    "lon": 21.0125356,
+    "tags": {
+      "addr:city": "Warszawa",
+      "addr:housenumber": "4",
+      "addr:street": "Henryka Sienkiewicza",
+      "amenity": "bar",
+      "check_date": "2026-08-04",
+      "description": "Multitap bar",
+      "facebook": "thetapswarsaw",
+      "indoor_seating": "yes",
+      "name": "The Taps",
+      "opening_hours": "Mo-We, Su 15:00-00:00; Th 15:00-01:00; Fr, Sa 15:00-03:00",
+      "outdoor_seating": "sidewalk",
+      "phone": "+48601707407",
+      "toilets:wheelchair": "yes",
+      "wheelchair": "limited"
+    }
+  },
+  {
+    "type": "node",
+    "id": 306550336,
+    "lat": 52.2328789,
+    "lon": 21.0182611,
+    "tags": {
+      "addr:housenumber": "5",
+      "addr:street": "Chmielna",
+      "amenity": "bar",
+      "check_date": "2026-03-10",
+      "level": "-1",
+      "name": "Zakątek",
+      "outdoor_seating": "yes",
+      "wheelchair": "no"
+    }
+  },
+  {
+    "type": "node",
+    "id": 311852403,
+    "lat": 52.2326273,
+    "lon": 21.0149666,
+    "tags": {
+      "addr:city": "Warszawa",
+      "addr:housenumber": "1",
+      "addr:postcode": "00-020",
+      "addr:street": "Szpitalna",
+      "air_conditioning": "no",
+      "amenity": "restaurant",
+      "check_date": "2026-04-30",
+      "facebook": "prostytematwarszawa",
+      "indoor_seating": "yes",
+      "name": "Prosty Temat",
+      "opening_hours": "Mo-Th 12:00-24:00; Fr 12:00-01:00; Sa 09:00-01:00; Su 09:00-24:00",
+      "outdoor_seating": "pedestrian_zone",
+      "smoking": "no",
+      "wheelchair": "yes"
+    }
+  },
+  {
+    "type": "node",
+    "id": 312054609,
+    "lat": 52.2316834,
+    "lon": 21.0121247,
+    "tags": {
+      "addr:city": "Warszawa",
+      "addr:city:en": "Warsaw",
+      "addr:housenumber": "35",
+      "addr:postcode": "00-021",
+      "addr:street": "Chmielna",
+      "amenity": "bar",
+      "check_date": "2026-06-24",
+      "facebook": "sultanclubwarszawa",
+      "indoor_seating": "yes",
+      "name": "Sultan Club",
+      "opening_hours": "24/7",
+      "outdoor_seating": "no",
+      "toilets:wheelchair": "no",
+      "wheelchair": "no"
+    }
+  },
+  {
+    "type": "node",
+    "id": 312892888,
+    "lat": 52.2286271,
+    "lon": 21.0131087,
+    "tags": {
+      "addr:housenumber": "84/92",
+      "addr:street": "Marszałkowska",
+      "air_conditioning": "yes",
+      "amenity": "cafe",
+      "bar": "yes",
+      "brand": "Green Caffè Nero",
+      "brand:wikidata": "Q675808",
+      "check_date": "2026-02-27",
+      "cuisine": "coffee_shop",
+      "indoor_seating": "yes",
+      "internet_access": "wlan",
+      "internet_access:fee": "yes",
+      "level": "0",
+      "name": "Green Caffè Nero",
+      "opening_hours": "Mo-Su 07:00-23:00",
+      "outdoor_seating": "yes",
+      "takeaway": "yes",
+      "toilets": "yes",
+      "toilets:access": "customers",
+      "toilets:wheelchair": "yes",
+      "website": "https://www.greencaffenero.pl",
+      "wheelchair": "yes"
+    }
+  },
+  {
+    "type": "node",
+    "id": 316892296,
+    "lat": 52.2327109,
+    "lon": 21.0136281,
+    "tags": {
+      "addr:city": "Warszawa",
+      "addr:housenumber": "5",
+      "addr:street": "Zgoda",
+      "amenity": "pub",
+      "check_date": "2026-05-18",
+      "indoor_seating": "yes",
+      "name": "Shamrock",
+      "outdoor_seating": "yes",
+      "wheelchair": "no"
+    }
+  }
+]

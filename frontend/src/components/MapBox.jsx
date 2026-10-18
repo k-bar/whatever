@@ -1,13 +1,42 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import { CloseButton } from './CloseButton'
-import { Bike, FACT_ICON, Plus, Star, Ticket, Walk } from './Icons'
+import { Bike, FACT_ICON, Message, Plus, Star, Ticket, Walk } from './Icons'
 import { categoryColor } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 import { useLang } from '../i18n'
+import { EventDetails } from './EventDetails'
 import { askToJoin, toggleGoing, useSocial } from '../data/social'
+import { chatTarget } from '../data/chat'
+import { dayLabel } from '../data/hours'
+import { TYPES, typeColor, typeLabel, typeOf, typesOf } from '../data/types'
+import { fetchAttendees } from '../data/api'
+import { Avatar } from './Avatar'
 
-const AV_COLORS = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
+
+/**
+ * Who's going (GET /occurrences/{id}/attendees): up to four faces and the first names. The API only
+ * lists them to logged-in users, so logged out this shows nothing and the count stays on its own.
+ */
+function Attendees({ occurrenceId, refresh }) {
+  const { t } = useLang()
+  const [people, setPeople] = useState([])
+  useEffect(() => {
+    let alive = true
+    fetchAttendees(occurrenceId).then((list) => { if (alive) setPeople(list || []) })
+    return () => { alive = false }
+  }, [occurrenceId, refresh])
+  if (!people.length) return null
+  const names = people.slice(0, 2).map((a) => a.user.display_name.split(' ')[0])
+  const more = people.length - names.length
+  return (
+    <div className="attendees">
+      <span className="att-faces">{people.slice(0, 4).map((a) => <Avatar key={a.user.id} user={a.user} size={24} />)}</span>
+      <span className="att-names">{names.join(', ')}{more > 0 ? ` ${t('+{n} more', { n: more })}` : ''}</span>
+    </div>
+  )
+}
 
 function Block({ b, feature }) {
   const { t } = useLang()
@@ -20,14 +49,16 @@ function Block({ b, feature }) {
         <div className="blk">
           <div className="blk-title"><Ticket size={12} style={{ verticalAlign: '-2px' }} /> {t('Upcoming here')}</div>
           <div className="poster-strip">
-            {b.items.map((t, i) => (
-              <a className="poster" key={i} href={t.url || '#'} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
-                <div className="pimg" style={t.image_url ? { backgroundImage: `url(${t.image_url})` } : {}}>
-                  {t.price != null && <span className="price">{t.price} {t.currency || 'zł'}</span>}
-                  {t.availability === 'SoldOut' && <span className="sold">{t('SOLD OUT')}</span>}
+            {/* item, not t: t is the translator (t('SOLD OUT') used to call a poster) */}
+            {b.items.map((item, i) => (
+              <a className="poster" key={i} href={item.url || '#'} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+                <div className="pimg">
+                  {item.image_url && <img className="fade-img" src={item.image_url} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add('in')} />}
+                  {item.price != null && <span className="price">{item.price} {item.currency || 'zł'}</span>}
+                  {item.availability === 'SoldOut' && <span className="sold">{t('SOLD OUT')}</span>}
                 </div>
-                <div className="pt">{t.title}</div>
-                <div className="pd">{fmtWhen(t.starts_at)}</div>
+                <div className="pt">{item.title}</div>
+                <div className="pd">{fmtWhen(item.starts_at)}</div>
               </a>
             ))}
           </div>
@@ -44,8 +75,8 @@ function Block({ b, feature }) {
       }
       return (
         <div className={`blk social ${going || asked ? 'on' : ''}`}>
-          {/* only real people: the host's initial; attendee avatars come once the API lists them */}
-          {b.host && <div className="avatars"><span className="av" style={{ background: AV_COLORS[0] }}>{b.host[0]}</span></div>}
+          {/* only real people: the host's initial; who else is going is listed under the button (Attendees) */}
+          {b.host && <div className="avatars"><Avatar user={b.hostUser || { display_name: b.host }} size={28} /></div>}
           <div className="txt">
             {b.host && <><b>{b.host}</b> {t('is hosting')} · </>}
             {n ? <><b>{n}</b> {t('going')}</> : <>{t('Be the first to go')}</>}
@@ -57,13 +88,24 @@ function Block({ b, feature }) {
           <button className={`btn small ${going || asked ? '' : 'primary'}`} onClick={act} disabled={asked}>
             {isInvite ? (asked ? t('Asked ✓') : b.cta) : going ? t('Going ✓') : b.cta}
           </button>
+          {n > 0 && <Attendees occurrenceId={feature.properties.occurrence_id} refresh={going} />}
         </div>
       )
     }
     case 'live':
-      return <div className={`blk live ${b.level}`}><span className="ldot" />{b.text}</div>
+      return <div className={`blk mb-live ${b.level}`}><span className="ldot" />{b.text}</div>
     case 'hours':
       return <div className="blk facts"><div className="fact">{FACT_ICON.clock({ size: 15 })}<span>{b.text}</span></div></div>
+    case 'week': // opening hours per day (data/hours.js): open now + today; tap for the whole week
+      return (
+        <details className="blk week-hours">
+          <summary className="fact">
+            {FACT_ICON.clock({ size: 15 })}
+            <span><b className={b.open ? 'is-open' : 'is-closed'}>{t(b.open ? 'Open now' : 'Closed now')}</b>{' · '}{b.today ? `${t('today')} ${b.today}` : t('closed today')}</span>
+          </summary>
+          <ul>{b.week.map((d) => <li key={d.day}><span>{t(dayLabel(d.day))}</span><span>{d.hours || t('closed')}</span></li>)}</ul>
+        </details>
+      )
     case 'pitch':
       return (
         <div className="blk">
@@ -86,7 +128,7 @@ function Block({ b, feature }) {
 /**
  * One map info box. `data` comes from curate(); `expanded` turns it into the right-side panel.
  */
-export function MapBox({ data, feature, expanded, journey, onClose, onExpand, starred, onStar, showImage = true, layoutId }) {
+export function MapBox({ data, feature, expanded, journey, onClose, onExpand, starred, onStar, onChat, showImage = true, layoutId }) {
   const spring = useSpring()
   const { t } = useLang()
   const c = categoryColor(feature.properties.categories?.[0])
@@ -100,6 +142,12 @@ export function MapBox({ data, feature, expanded, journey, onClose, onExpand, st
       <div className="mb-body">
         <div className="mb-head">
           <div style={{ flex: 1 }}>
+            {/* every pin has exactly one type (data/types.js), right at the top */}
+            <div className="mb-type" style={{ '--c': typeColor(typeOf(feature.properties)) }}>
+              <span aria-hidden="true">{TYPES[typeOf(feature.properties)].emoji}</span>{typeLabel(typeOf(feature.properties))}
+              {/* the other types it also counts as (data/types.js typesOf), quieter */}
+              {typesOf(feature.properties).slice(1, 4).map((id) => <span key={id} className="mb-type-also">· {typeLabel(id)}</span>)}
+            </div>
             <h2>{data.title}</h2>
             {data.subtitle && <div className="mb-sub">{data.subtitle}</div>}
             {feature.properties.translated && (
@@ -111,6 +159,9 @@ export function MapBox({ data, feature, expanded, journey, onClose, onExpand, st
         </div>
         <div className="mb-badges">
           {data.badges.map((b, i) => <span className={`badge ${i === 0 ? 'accent' : ''}`} key={i} style={i === 0 ? { background: `color-mix(in srgb, ${c} 15%, transparent)`, color: c } : {}}>{b}</span>)}
+          {onChat && chatTarget(feature) && (
+            <button className="badge mb-chat" onClick={() => onChat(chatTarget(feature))} title={t('Talk with people going')}><Message size={13} stroke={2.2} /> {t('Chat')}</button>
+          )}
         </div>
         {journey && (
           <div className={`blk journey ${journey.pending ? 'pending' : ''}`}>
@@ -120,18 +171,11 @@ export function MapBox({ data, feature, expanded, journey, onClose, onExpand, st
           </div>
         )}
         {data.blocks.slice(0, expanded ? 99 : 3).map((b, i) => <Block b={b} feature={feature} key={i} />)}
+        {expanded && feature.properties.kind !== 'walk' && <EventDetails feature={feature} />}
         {expanded && data.url && <a className="mb-link" href={data.url} target="_blank" rel="noreferrer">{t('Open source page ↗')}</a>}
-        {expanded && (
-          <div className="blk">
-            <div className="blk-title">{t('Everything we know')}</div>
-            <pre style={{ fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'pre-wrap', fontFamily: 'JetBrains Mono, monospace' }}>
-              {JSON.stringify({ ...feature.properties, upcoming: undefined }, null, 1).slice(0, 1600)}
-            </pre>
-          </div>
-        )}
         {!expanded && <div className="mb-foot" />}
       </div>
-      {onExpand && !expanded && <button className="btn icon small primary mb-plus" onClick={onExpand} aria-label={t('Expand')}><Plus size={16} /></button>}
+      {onExpand && !expanded && <button className="btn icon small primary mb-plus" onClick={onExpand} aria-label={t('Expand')}><Plus size={48} stroke={1.3} /></button>}
     </motion.article>
   )
 }
