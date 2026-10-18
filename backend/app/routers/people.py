@@ -3,7 +3,7 @@
 Someone who switches on "Share my area" shows up for everyone as a pulsing pin, roughly where they are
 (rounded to ~100 m, never the exact spot), meaning "I'm around, come and hang out". A shared area goes
 stale after AREA_TTL without an update (the app re-sends it while it's open), except for the demo people
-from app/mocksocial.py (dev only), who are always out. Only logged-in people can
+from app/mocksocial.py (settings.demo_people), who are always out. Only logged-in people can
 see who is sharing: an approximate location is still personal data.
 
     GET /people/sharing   everyone sharing their area, with the event they're hosting next (login)

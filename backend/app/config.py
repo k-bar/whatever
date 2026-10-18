@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     # PostGIS types stay in public, so the search_path is "<schema>, public".
     db_schema: str | None = None
     app_env: str = "local"  # local / dev / prod
+    # the 30 demo people (app/mocksocial.py) on the map, dev and prod (pitch, 2026-10-18); DEMO_PEOPLE=false stops refreshing them
+    demo_people: bool = True
     git_sha: str = "unknown"  # set by deploy/deploy.sh
 
     # Mail (app/mail.py): Amazon SES on the boxes (their instance role may send as syrenka.me);

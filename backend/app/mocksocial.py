@@ -12,7 +12,7 @@ Each of them
   - has "Share my area" on, somewhere in Warsaw (app/routers/people.py)
 
 They are marked users.is_mock (their profiles are public) and can't log in (random password).
-Not run on prod (app_env "prod").
+Runs on dev and prod while settings.demo_people is on (DEMO_PEOPLE=false turns it off).
 """
 
 import random
@@ -395,8 +395,8 @@ def run(db: Session) -> dict:
 def main() -> int:
     from app.config import settings
 
-    if settings.app_env == "prod":
-        print("mocksocial: skipped on prod")
+    if not settings.demo_people:
+        print("mocksocial: skipped (DEMO_PEOPLE off)")
         return 0
     with SessionLocal() as db:
         print("mocksocial:", run(db))

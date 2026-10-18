@@ -175,7 +175,7 @@ def refresh_demo_people() -> int:
     from app import mocksocial
     from app.config import settings
 
-    if settings.app_env == "prod":
+    if not settings.demo_people:
         return 0
     try:
         with SessionLocal() as db:
