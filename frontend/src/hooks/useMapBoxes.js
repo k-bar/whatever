@@ -4,6 +4,13 @@ import { useLang } from '../i18n'
 import { curate } from '../mapboxes/curate'
 import { useScrollFade } from './useScrollFade'
 
+/** The device's position if it gives one within 5 s, else `fallback` ([lng, lat] or null). */
+const here = (fallback) => new Promise((resolve) => {
+  if (!navigator.geolocation) return resolve(fallback)
+  navigator.geolocation.getCurrentPosition((p) => resolve([p.coords.longitude, p.coords.latitude]), () => resolve(fallback),
+    { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 })
+})
+
 const MAX_OPEN_BOXES = 20 // older boxes stay open and scroll; only past this many does the oldest close
 
 /**
@@ -44,6 +51,20 @@ export function useMapBoxes({ mobile, mapRef, me, setSheet }) {
     }
   }, [mobile]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // "Directions": the walking route drawn on our map, from the device's position when it shares one,
+  // else from `me`. The box goes on top, since the line on the map is always the top box's journey.
+  const directions = useCallback(async (key, feature) => {
+    const from = await here(meRef.current)
+    if (!from) return null
+    setBoxes((b) => {
+      const x = b.find((y) => y.key === key)
+      return x ? [{ ...x, journey: { pending: true } }, ...b.filter((y) => y.key !== key)] : b
+    })
+    const j = await routeTo(from, feature.geometry.coordinates)
+    setBoxes((b) => b.map((x) => (x.key === key ? { ...x, journey: j } : x)))
+    return j
+  }, [])
+
   const closeBox = (key) => setBoxes((b) => b.filter((x) => x.key !== key))
   const closeTop = () => setBoxes((b) => b.slice(1))
   const closeAll = () => setBoxes([])
@@ -65,5 +86,5 @@ export function useMapBoxes({ mobile, mapRef, me, setSheet }) {
     setBoxes((b) => b.map((x) => ({ ...x, data: curate(x.feature) })))
   }, [lang])
 
-  return { boxes, route, selectedId: boxes[0]?.key, listRef, openBox, closeBox, closeTop, closeAll, expandBox, swapFeatures }
+  return { boxes, route, selectedId: boxes[0]?.key, listRef, openBox, directions, closeBox, closeTop, closeAll, expandBox, swapFeatures }
 }

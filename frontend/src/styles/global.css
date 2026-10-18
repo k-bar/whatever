@@ -1284,7 +1284,7 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .evd-dates { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; font-weight: 600; }
 .evd-more, .evd-muted { color: var(--fg-2); font-size: 12.5px; }
 .evd-strong { font-weight: 700; }
-.evd-link { display: inline-block; margin-top: 4px; color: var(--accent); font-weight: 600; text-decoration: none; word-break: break-word; }
+.evd-link { display: inline-block; margin-top: 4px; padding: 0; border: 0; background: none; font: inherit; cursor: pointer; color: var(--accent); font-weight: 600; text-decoration: none; word-break: break-word; }
 .evd-link:hover { text-decoration: underline; }
 .evd-hours { border-collapse: collapse; width: 100%; font-size: 13px; }
 .evd-hours th { text-align: left; font-weight: 500; color: var(--fg-2); padding: 2px 12px 2px 0; width: 45%; }

@@ -74,7 +74,7 @@ export default function App() {
   const firstPosition = useRef(true)
   const [draftPin, setDraftPin] = useState(null) // "+ Create event" is open: where the new event happens
   // the map boxes (and the walking line: the top box's journey) and the slide-over tray
-  const { boxes, route, selectedId, listRef: boxesRef, openBox, closeBox, closeTop, closeAll: closeBoxes, expandBox, swapFeatures } = useMapBoxes({ mobile, mapRef, me, setSheet })
+  const { boxes, route, selectedId, listRef: boxesRef, openBox, directions, closeBox, closeTop, closeAll: closeBoxes, expandBox, swapFeatures } = useMapBoxes({ mobile, mapRef, me, setSheet })
   const slide = useSlideOver({ mobile, setSheet, closeCreate: () => setDraftPin(null), onCreate: () => startCreate() })
   const { panel, panelFull, closePanel } = slide
   // "In the city" layers (toilets, AED, walking routes): fetched the first time each is switched on.
@@ -151,6 +151,8 @@ export default function App() {
     const b = coords.reduce((acc, [x, y]) => [Math.min(acc[0], x), Math.min(acc[1], y), Math.max(acc[2], x), Math.max(acc[3], y)], [999, 999, -999, -999])
     mapRef.current?.getMap()?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: phoneTop, bottom: window.innerHeight * 0.5, left: 30, right: 30 } : desktop, maxZoom, duration: 900 })
   }
+  // "Directions" in an event box: the route on our own map, never an outside maps app
+  const showDirections = (b) => directions(b.key, b.feature).then((j) => j && fitCoords(j.geometry.coordinates, { maxZoom: 16 }))
   const closeAll = () => { closeBoxes(); setResults(null); if (sheet) setSheet(null); say(t('Closed all map boxes')) }
   const pinCounts = useMemo(() => countPinGroups(featureList, values, fav.ids, slide.favOnly), [featureList, values, fav.ids, slide.favOnly])
 
@@ -317,7 +319,7 @@ export default function App() {
     if (sheet === 'results' && results) return <ResultsList results={results} onPick={pickResult} />
     if (sheet === 'box' && boxes[0]) {
       const b = boxes[0]
-      return <MapBox data={b.data} feature={b.feature} journey={b.journey} expanded starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} onChat={slide.openChat} showImage={values.boxImages} />
+      return <MapBox data={b.data} feature={b.feature} journey={b.journey} expanded onDirections={() => showDirections(b)} starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} onChat={slide.openChat} showImage={values.boxImages} />
     }
     return null
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -362,7 +364,7 @@ export default function App() {
           <div className="boxes scroll-fade" ref={boxesRef}>
             <AnimatePresence>
               {boxes.map((b) => (
-                <MapBox key={b.key} layoutId={`box-${b.key}`} data={b.data} feature={b.feature} expanded={b.expanded} journey={b.journey} onClose={() => closeBox(b.key)} onExpand={() => expandBox(b.key)}
+                <MapBox key={b.key} layoutId={`box-${b.key}`} data={b.data} feature={b.feature} expanded={b.expanded} journey={b.journey} onClose={() => closeBox(b.key)} onExpand={() => expandBox(b.key)} onDirections={() => showDirections(b)}
                   starred={fav.has(b.key)} onStar={() => fav.toggle(b.key)} onChat={slide.openChat} showImage={values.boxImages} />
               ))}
             </AnimatePresence>

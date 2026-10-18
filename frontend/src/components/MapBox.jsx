@@ -128,7 +128,7 @@ function Block({ b, feature }) {
 /**
  * One map info box. `data` comes from curate(); `expanded` turns it into the right-side panel.
  */
-export function MapBox({ data, feature, expanded, journey, onClose, onExpand, starred, onStar, onChat, showImage = true, layoutId }) {
+export function MapBox({ data, feature, expanded, journey, onClose, onExpand, onDirections, starred, onStar, onChat, showImage = true, layoutId }) {
   const spring = useSpring()
   const { t } = useLang()
   const c = categoryColor(feature.properties.categories?.[0])
@@ -171,7 +171,7 @@ export function MapBox({ data, feature, expanded, journey, onClose, onExpand, st
           </div>
         )}
         {data.blocks.slice(0, expanded ? 99 : 3).map((b, i) => <Block b={b} feature={feature} key={i} />)}
-        {expanded && feature.properties.kind !== 'walk' && <EventDetails feature={feature} />}
+        {expanded && feature.properties.kind !== 'walk' && <EventDetails feature={feature} onDirections={onDirections} />}
         {expanded && data.url && <a className="mb-link" href={data.url} target="_blank" rel="noreferrer">{t('Open source page ↗')}</a>}
         {!expanded && <div className="mb-foot" />}
       </div>

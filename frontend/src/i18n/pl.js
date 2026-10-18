@@ -497,7 +497,7 @@ export const PL = {
   'Ongoing': 'Trwa',
   'until {date}': 'do {date}',
   'and {n} more dates': 'i jeszcze {n} terminów',
-  'Directions ↗': 'Prowadź ↗',
+  'Directions': 'Prowadź',
   'Opening hours': 'Godziny otwarcia',
   'Closed': 'Zamknięte',
   'For whom': 'Dla kogo',
