@@ -245,6 +245,18 @@ export async function fetchBusyAreas() {
   }
 }
 
+/**
+ * Weather (16 city stations) and air quality (141 sensors), refreshed by the backend every 10 minutes:
+ * GET /conditions -> { weather: FeatureCollection, air: FeatureCollection }. Null when the API is down.
+ */
+export async function fetchConditions() {
+  try {
+    return await get('/conditions', { timeout: 8000 })
+  } catch {
+    return null
+  }
+}
+
 /* ---------- login + user events (backend/app/userevents) ---------- */
 
 const TOKEN_KEY = 'syrenka.token.v1'
@@ -382,6 +394,12 @@ async function fetchPrivateUserEvents() {
 /** PUT /occurrences/{id}/attendance — "I'm going"; wants_company puts you on the "come with me" list. */
 export async function setAttendance(occurrenceId, wantsCompany = true) {
   return authed(`/occurrences/${occurrenceId}/attendance`, { method: 'PUT', body: { wants_company: wantsCompany }, timeout: 8000 })
+}
+
+/** GET /occurrences/{id}/attendees — who's going (logged-in users only; [] otherwise). */
+export async function fetchAttendees(occurrenceId) {
+  if (!occurrenceId || !isLoggedIn()) return []
+  try { return await authed(`/occurrences/${occurrenceId}/attendees`, { timeout: 8000 }) } catch { return [] }
 }
 
 /** POST /occurrences/{id}/join-requests — ask the host (or someone who wants company) to join them. */

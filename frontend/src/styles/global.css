@@ -1238,3 +1238,57 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .evd-hours tr.today th, .evd-hours tr.today td { color: var(--accent); font-weight: 700; }
 .evd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .evd-source { display: flex; align-items: center; gap: 6px; color: var(--fg-3); font-size: 12px; }
+
+/* ---------- opening hours, weather + air, who's going (real API data) ---------- */
+/* map box: "Open now · today 12:00–23:00", tap for the week (data/hours.js) */
+.week-hours summary { cursor: pointer; list-style: none; }
+.week-hours summary::-webkit-details-marker { display: none; }
+.week-hours summary::after { content: '▾'; margin-left: auto; font-size: 11px; color: var(--fg-3); transition: transform .2s; }
+.week-hours[open] summary::after { transform: rotate(180deg); }
+.week-hours .is-open { color: #0a8a6a; }
+.week-hours .is-closed { color: var(--accent); }
+.week-hours ul { list-style: none; margin: 6px 0 0 23px; padding: 0; display: grid; gap: 2px; font-size: 12.5px; color: var(--fg-2); }
+.week-hours li { display: flex; justify-content: space-between; max-width: 190px; font-variant-numeric: tabular-nums; }
+.week-hours li:first-child { color: var(--fg); font-weight: 700; }
+/* map box social block: who's going, under the button */
+.social { flex-wrap: wrap; }
+.attendees { flex-basis: 100%; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--fg-2); }
+.att-faces { display: flex; }
+.att-faces .pp-av + .pp-av { margin-left: -7px; }
+/* weather + air quality pill beside the Syrenka button (ConditionsChip.jsx) */
+.cond { position: relative; }
+.cond-chip { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 999px; background: var(--surface-solid); box-shadow: var(--shadow, 0 4px 14px rgba(0,0,0,.12)); font-size: 13px; font-weight: 600; color: var(--fg-2); white-space: nowrap; }
+.cond-chip:hover, .cond-chip.open { color: var(--fg); }
+.cond-temp { font-size: 15px; font-weight: 800; color: var(--fg); }
+.cond-air { display: inline-flex; align-items: center; gap: 6px; }
+.cond-air i, .cond-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+.cond-dot { margin-right: 6px; }
+.cond-pop { position: absolute; left: 0; top: calc(100% + 8px); z-index: 40; width: 260px; padding: 12px 14px; border-radius: 16px; box-shadow: var(--shadow-lg); display: grid; gap: 10px; }
+.cond-h { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 4px; }
+.cond-h span { text-transform: none; letter-spacing: 0; font-weight: 600; }
+.cond-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; color: var(--fg-2); padding: 2px 0; }
+.cond-row b { color: var(--fg); font-variant-numeric: tabular-nums; }
+.cond-note { margin: 4px 0 0; font-size: 12px; line-height: 1.4; color: var(--fg-2); }
+.cond-src { font-size: 11px; color: var(--fg-3); }
+/* compact everywhere: the air quality shows as its colour dot; the words are in the pop-up */
+.cond-air { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.cond-chip::after { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--cond-air, transparent); }
+@media (max-width: 767px) {
+  .cond-chip { height: 36px; padding: 0 11px; }
+  .cond-pop { width: min(260px, calc(100vw - 24px)); }
+}
+
+/* ---------- start page "More": a CSS-only expand (Landing.jsx MoreTiles), no per-frame measuring ---------- */
+.tiles-block { width: min(920px, 100%); display: flex; flex-direction: column; align-items: stretch; }
+.tiles-block > .hero-tiles { width: 100%; }
+.more-tiles { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .42s cubic-bezier(.2, .8, .2, 1); }
+.more-tiles.open { grid-template-rows: 1fr; }
+.more-tiles-inner { min-height: 0; overflow: hidden; }
+.more-tiles .hero-tiles.all { margin-top: 0; padding: 10px 2px 4px; overflow: visible; }
+.more-tiles .hero-tile { opacity: 0; transform: translateY(10px) scale(.96); transition: opacity .22s ease, transform .3s cubic-bezier(.2, .8, .2, 1); }
+.more-tiles.open .hero-tile { opacity: 1; transform: none; transition-delay: calc(80ms + var(--i) * 16ms); }
+.more-tiles.open .hero-tile:hover { transform: translateY(-2px) scale(1.03); transition-delay: 0s; }
+.more-tiles.open .hero-tile:active { transform: scale(.96); transition-delay: 0s; }
+.hero-tile.more .tile-chev { transition: transform .3s cubic-bezier(.2, .8, .2, 1); }
+.hero-tile.more .tile-chev.open { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .more-tiles, .more-tiles .hero-tile, .hero-tile.more .tile-chev { transition: none; } }
