@@ -30,9 +30,16 @@ async function get(path, opts = {}) {
   }
 }
 
-/** Image paths the API serves itself (user event photos) come back as "/userevents/…": point them at the API. */
-export const assetUrl = (url) => (url?.startsWith('/') ? `${BASE}${url}` : url)
-const withAssets = (f) => (f.properties.image_url?.startsWith('/') ? { ...f, properties: { ...f.properties, image_url: assetUrl(f.properties.image_url) } } : f)
+/**
+ * Image links. Paths the API serves itself (user event photos) come back as "/userevents/…": point them
+ * at the API. Outside links are asked for over https: the city's posters come as http://um.warszawa.pl/…
+ * and the site is https, so they're "mixed content" — Chrome quietly upgrades those, Safari blocks them
+ * (posters showed in Chrome only). Their server answers on https.
+ */
+export const assetUrl = (url) => (url?.startsWith('/') ? `${BASE}${url}` : url?.replace(/^http:\/\//i, 'https://'))
+const withImage = (o) => (o?.image_url ? { ...o, image_url: assetUrl(o.image_url) } : o)
+// the pin's own picture, and the posters of a place's upcoming events (the box's "Upcoming here" strip)
+const withAssets = (f) => ({ ...f, properties: { ...withImage(f.properties), ...(Array.isArray(f.properties.upcoming) && { upcoming: f.properties.upcoming.map(withImage) }) } })
 
 export async function fetchFeatures() {
   try {
