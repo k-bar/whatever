@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     verify_token_hours: int = 48
     reset_token_minutes: int = 60
     mail_resend_seconds: int = 60  # one verification / reset mail per account per minute
+    # True: friends, creating events, join requests and chat need a confirmed email (get_verified_user).
+    # Off while SES is in sandbox (mail only reaches verified addresses): links are still mailed.
+    require_verified_email: bool = False
     login_max_failures: int = 10  # wrong passwords in a row before the account is locked for a while
     login_lock_minutes: int = 15
 

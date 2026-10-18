@@ -9,6 +9,7 @@ import pytest
 os.environ["DATABASE_URL"] = os.environ.get(
     "TEST_DATABASE_URL", "postgresql+psycopg://postgres@localhost:54329/warszawa_test"
 )
+os.environ["REQUIRE_VERIFIED_EMAIL"] = "true"  # the gate is tested on; test_auth checks it off too
 
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
