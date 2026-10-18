@@ -11,6 +11,9 @@ export const WARSAW_BBOX = [20.85, 52.1, 21.27, 52.37]
 // Our declared centre point: Rondo Romana Dmowskiego (Marszałkowska × Aleje Jerozolimskie).
 export const WARSAW_CENTER = [21.0114, 52.2306]
 
+/** Events mode shows only these: a real event (not a place or a regular class) with a date. */
+export const isDatedEvent = (p) => p.kind === 'event' && Boolean(p.starts_at)
+
 export const dataStatus = { source: 'loading' } // 'api' | 'offline' | 'loading'
 
 async function get(path, opts = {}) {
@@ -94,6 +97,7 @@ export async function runSearch(mode, q, features, opts = {}) {
 }
 
 function localSearch(mode, q, features, opts = {}) {
+  if (mode === 'events') features = features.filter((f) => isDatedEvent(f.properties)) // never places, even for a category tag
   if (opts.category) { // category pill: everything tagged with it, dated things first
     const list = features.filter((f) => (f.properties.categories || []).includes(opts.category))
     list.sort((a, b) => (a.properties.kind === 'event' ? 0 : 1) - (b.properties.kind === 'event' ? 0 : 1) || String(a.properties.starts_at || 'z').localeCompare(String(b.properties.starts_at || 'z')))

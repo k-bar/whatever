@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from './config/store'
 import { useLang } from './i18n'
-import { fetchBusyAreas, fetchCityLayer, fetchFeatures, locateByIp, routeTo, runSearch } from './data/api'
+import { fetchBusyAreas, fetchCityLayer, fetchFeatures, isDatedEvent, locateByIp, routeTo, runSearch } from './data/api'
 import { alongPaths, CITY_LAYERS, walkBoxFeature, walkPaths } from './components/cityLayers'
 import { useFavourites } from './hooks/useFavourites'
 import { useScrollFade } from './hooks/useScrollFade'
@@ -168,6 +168,7 @@ export default function App() {
     if (mode === 'events' && (opts?.when || opts?.where)) { // Events dropdown: tag · when · where
       if (opts.when) set('timeWindow', windowFor(opts.when))
       let list = landingSearch({ q: opts.category ? '' : q.split(' · ')[0], when: opts.when, where: opts.where }, featureList)
+        .filter((f) => isDatedEvent(f.properties)) // Events: only dated events, never places
       if (opts.category) list = list.filter((f) => (f.properties.categories || []).includes(opts.category))
       setResults({ mode, q, results: list })
       if (mobile) setSheet('results')
