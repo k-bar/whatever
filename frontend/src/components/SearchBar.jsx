@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useConfig, useSpring } from '../config/store'
 import { Burger, Calendar, Chevron, History, Plus, Search, Sparkle, X, Minus } from './Icons'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
+import { EVENT_TYPE_IDS, SEARCH_TYPES, TYPES, typeColor, typeLabel, typeOf } from '../data/types'
 import { fmtWhenFor } from '../mapboxes/curate'
 import { CloseButton } from './CloseButton'
 import { useLang } from '../i18n'
@@ -66,8 +67,8 @@ export function SearchBar({ onSearch, trayOpen = false, unread = 0, onBurger, re
 
   const submit = (term = q, m = mode, opts) => {
     if (m === 'events' && !opts) { // search button / Enter in Events: use the tag, when and where picked so far
-      opts = { category: evCat, when: evWhen, where: evWhere }
-      term = [evCat ? categoryLabel(evCat) : term.trim(), whenLabel(evWhen), evWhere?.label].filter(Boolean).join(' · ')
+      opts = { type: evCat, when: evWhen, where: evWhere } // evCat: the type picked (data/types.js)
+      term = [evCat ? typeLabel(evCat) : term.trim(), whenLabel(evWhen), evWhere?.label].filter(Boolean).join(' · ')
     }
     setPushed(true)
     setTimeout(() => setPushed(false), 260 / (values.animSpeed || 1))
@@ -77,7 +78,9 @@ export function SearchBar({ onSearch, trayOpen = false, unread = 0, onBurger, re
     onSearch(m, term, opts)
   }
   const clear = () => { setQ(''); onClear(); setFocused(false) }
-  const pickCategory = (slug) => { const off = evCat === slug; setEvCat(off ? null : slug); setQ(off ? '' : categoryLabel(slug)) }
+  const pickCategory = (id) => { const off = evCat === id; setEvCat(off ? null : id); setQ(off ? '' : typeLabel(id)) }
+  // Search mode: tap a type -> every pin of that type
+  const searchType = (id) => { setQ(typeLabel(id)); submit(typeLabel(id), 'search', { type: id }) }
   const evReady = !!(evCat && evWhen && evWhenDone && evWhere && evWhere.kind !== 'text') // typed-but-not-picked "where" waits
   // all three chosen → search; changing any of them afterwards searches again
   useEffect(() => { if (evReady) submit() }, [evReady, evCat, evWhen, evWhenDone, evWhere]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -144,14 +147,20 @@ export function SearchBar({ onSearch, trayOpen = false, unread = 0, onBurger, re
                 </>}
                 <div className="blk-title fp-title"><Sparkle size={12} /> {t('Suggested')}</div>
                 <div className="fp-list">{SUGGESTED.map((r) => <button key={r} className="fp-item" onClick={() => { setQ(r); submit(r, 'search') }}><Search size={15} />{r}</button>)}</div>
+                <div className="blk-title fp-title">{t('Browse by type')}</div>
+                <div className="pills">
+                  {SEARCH_TYPES.map((id) => (
+                    <button key={id} className="pill-cat" style={{ '--c': typeColor(id) }} onClick={() => searchType(id)}><span aria-hidden="true">{TYPES[id].emoji}</span>{typeLabel(id)}</button>
+                  ))}
+                </div>
               </div>
             )}
             {mode === 'events' && (<>
               <div className="fp-scroll">
-                <div className="blk-title fp-title"><Calendar size={12} /> {t('Pick a category')}</div>
+                <div className="blk-title fp-title"><Calendar size={12} /> {t('Pick a type')}</div>
                 <div className="pills">
-                  {Object.entries(CATEGORIES).map(([slug, c]) => (
-                    <button key={slug} className={`pill-cat ${evCat === slug ? 'on' : ''}`} style={{ '--c': c.color }} onClick={() => pickCategory(slug)}><i />{categoryLabel(slug)}</button>
+                  {EVENT_TYPE_IDS.map((id) => (
+                    <button key={id} className={`pill-cat ${evCat === id ? 'on' : ''}`} style={{ '--c': typeColor(id) }} onClick={() => pickCategory(id)}><span aria-hidden="true">{TYPES[id].emoji}</span>{typeLabel(id)}</button>
                   ))}
                 </div>
               </div>
@@ -216,7 +225,7 @@ export function ResultsList({ results, onPick, onClear }) {
         {results.exact === 0 && list.length > 0 && <div className="res-near first">{t('No exact matches. Closest:')}</div>}
         {list.map((f, i) => {
           const p = f.properties
-          const c = categoryColor(p.categories?.[0])
+          const type = typeOf(p), c = typeColor(type)
           return (
             <Fragment key={f.id}>
             {i > 0 && i === results.exact && <div className="res-near">{t('Close matches')}</div>}
@@ -227,9 +236,9 @@ export function ResultsList({ results, onPick, onClear }) {
               <span>
                 <div className="t">{p.title}</div>
                 <div className="s">
-                  {p.kind === 'event' ? fmtWhenFor(p) : (p.venue_type || t('venue')).replace('_', ' ')}
-                  {p.venue_name && p.kind === 'event' ? ` · ${p.venue_name}` : ''}
-                  {' · '}<span style={{ color: c, fontWeight: 600 }}>{categoryLabel(p.categories?.[0])}</span>
+                  <span style={{ color: c, fontWeight: 600 }}>{typeLabel(type)}</span>
+                  {p.kind === 'place' ? '' : ` · ${fmtWhenFor(p)}`}
+                  {p.venue_name && p.kind !== 'place' ? ` · ${p.venue_name}` : ''}
                 </div>
               </span>
             </button>

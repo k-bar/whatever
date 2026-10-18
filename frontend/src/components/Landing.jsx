@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useSpring } from '../config/store'
 import { CATEGORIES, categoryColor, categoryLabel } from '../data/categories'
+import { typeColor, typeLabel, typeOf } from '../data/types'
 import { useLang } from '../i18n'
 import { pickSelects, secureImage } from '../landing/selects'
 import { fmtWhen } from '../mapboxes/curate'
@@ -164,7 +165,7 @@ export function Landing({ features, onEnter, getMap }) {
                 initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ ...spring, delay: (i % 4) * 0.05 }}>
                 <div className="sel-img" style={p.image_url ? {} : { background: `linear-gradient(135deg, ${categoryColor(cat)}, color-mix(in srgb, ${categoryColor(cat)} 40%, #fff))` }}>
                   {p.image_url && <img className="sel-photo" src={secureImage(p.image_url)} alt="" loading="lazy" onError={() => setBroken((b) => new Set(b).add(p.event_id))} />}
-                  <span className="sel-cat" style={{ color: categoryColor(cat) }}>{categoryLabel(cat)}</span>
+                  <span className="sel-cat" style={{ color: typeColor(typeOf(p)) }}>{typeLabel(typeOf(p))}</span>
                   {userMade && <span className="sel-people"><Users size={13} /> {t('Made by people')}</span>}
                   {(going || asked) && <span className="sel-you">{t(going ? "You're going" : 'Asked to join')}</span>}
                 </div>

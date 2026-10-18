@@ -10,6 +10,7 @@ import { EventDetails } from './EventDetails'
 import { askToJoin, toggleGoing, useSocial } from '../data/social'
 import { chatTarget } from '../data/chat'
 import { dayLabel } from '../data/hours'
+import { TYPES, typeColor, typeLabel, typeOf } from '../data/types'
 import { fetchAttendees } from '../data/api'
 import { Avatar } from './ProfilePage'
 
@@ -140,6 +141,10 @@ export function MapBox({ data, feature, expanded, journey, onClose, onExpand, st
       <div className="mb-body">
         <div className="mb-head">
           <div style={{ flex: 1 }}>
+            {/* every pin has exactly one type (data/types.js), right at the top */}
+            <div className="mb-type" style={{ '--c': typeColor(typeOf(feature.properties)) }}>
+              <span aria-hidden="true">{TYPES[typeOf(feature.properties)].emoji}</span>{typeLabel(typeOf(feature.properties))}
+            </div>
             <h2>{data.title}</h2>
             {data.subtitle && <div className="mb-sub">{data.subtitle}</div>}
             {feature.properties.translated && (
