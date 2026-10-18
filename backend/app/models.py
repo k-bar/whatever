@@ -100,6 +100,7 @@ class Occurrence(Base):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (Index("ix_users_share_area", "share_area", postgresql_where=text("share_area")),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(320), unique=True)
@@ -120,6 +121,14 @@ class User(Base):
     links: Mapped[dict] = mapped_column(JSONB, default=dict)
     # IDs of favourited events/venues (events.id), saved with the account so stars follow you between devices
     favourite_ids: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=list, server_default="{}")
+    # "Share my area": others see a pulsing pin roughly where you are (rounded to ~100 m), to say
+    # "I'm around, come and hang out". Set from the app (PUT /me/area), see app/routers/people.py.
+    share_area: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
+    area_lat: Mapped[float | None] = mapped_column(Float)
+    area_lng: Mapped[float | None] = mapped_column(Float)
+    area_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # the demo people from app/mocksocial.py: their profiles and event lists are public
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

@@ -1306,3 +1306,30 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
   .search input { min-width: 60px; }
 }
 .app.slide-open .search-wrap { width: min(var(--searchWidth), calc(100vw - var(--slideW) - 320px)); }
+
+/* ---------- people sharing their area (PeopleLayer.jsx): a photo with rings radiating out; tap = profile ---------- */
+.person-marker { --pr-c: var(--accent); width: 36px; height: 36px; } /* no position: MapLibre makes it absolute */
+.person-marker.friend { --pr-c: #0fa37f; }
+.pr-ring { position: absolute; inset: 4px; border-radius: 50%; border: 2px solid var(--pr-c); background: color-mix(in srgb, var(--pr-c) 16%, transparent); opacity: 0; pointer-events: none;
+  animation: pr-pulse 3.6s cubic-bezier(.2, .6, .35, 1) infinite; animation-delay: var(--pulse-delay, 0s); }
+.pr-ring.r2 { animation-delay: calc(var(--pulse-delay, 0s) - 1.2s); }
+.pr-ring.r3 { animation-delay: calc(var(--pulse-delay, 0s) - 2.4s); }
+@keyframes pr-pulse { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(3.6); opacity: 0; } }
+.pr-av { position: absolute; inset: 2px; display: grid; place-items: center; padding: 0; overflow: hidden; border-radius: 50%; border: 2.5px solid #fff; background: #fff; color: var(--pr-c); font-weight: 800; font-size: 15px; cursor: pointer;
+  box-shadow: 0 0 0 2px var(--pr-c), 0 3px 8px rgba(0, 0, 0, .28); transition: transform .18s ease; }
+.pr-av:hover, .pr-av:focus-visible { transform: scale(1.12); }
+.pr-av img { width: 100%; height: 100%; object-fit: cover; }
+.person-marker.hosting::after { content: ''; position: absolute; right: -1px; top: -1px; width: 12px; height: 12px; border-radius: 50%; background: #f2a900; border: 2px solid #fff; pointer-events: none; } /* hosting an open invitation */
+.pr-name { position: absolute; top: 100%; left: 50%; transform: translate(-50%, 3px); padding: 1px 7px; border-radius: 999px; background: #fff; color: #1b1b1b; font-size: 11px; font-weight: 700; white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .2); opacity: 0; transition: opacity .15s; pointer-events: none; }
+.person-marker:hover .pr-name, .person-marker:focus-within .pr-name { opacity: 1; }
+.person-marker:hover { z-index: 2; } /* the hovered one on top of its neighbours */
+@media (prefers-reduced-motion: reduce) { .pr-ring { animation: none; } }
+
+/* the toolbar's People box (PeopleMenu.jsx): same look as the pin box */
+.people-menu { width: 272px; }
+.pm-count { margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--surface-2); color: var(--fg-2); font-size: 11px; font-weight: 700; }
+.people-hint { margin: 2px 8px 6px; font-size: 12px; line-height: 1.35; color: var(--fg-3); }
+.people-hint.err { color: #c62828; }
+.people-login { padding: 2px 6px 6px; }
+@media (max-width: 767px) { .people-menu { width: min(272px, calc(100vw - 24px)); } .person-marker { width: 30px; height: 30px; } .pr-av { border-width: 2px; } }

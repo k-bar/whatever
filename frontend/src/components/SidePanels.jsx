@@ -88,13 +88,15 @@ function Shell({ title, sub, children, footer }) {
   )
 }
 
-export function ProfilePanel({ features, onPick, onFavourites }) {
+export function ProfilePanel({ features, onPick, onFavourites, person }) {
   const { t } = useLang()
+  const [other, setOther] = useState(false) // looking at someone else's profile (a friend, a person on the map)
   const [requests, setRequests] = useState([])
   useEffect(() => { fetchJoinRequests().then(setRequests) }, [])
   return (
-    <Shell title={t('Your profile')} sub={t('What others see when you ask to join')}>
-      <ProfilePage features={features} onPick={onPick} />
+    <Shell title={t(other ? 'Profile' : 'Your profile')} sub={other ? null : t('What others see when you ask to join')}>
+      <ProfilePage features={features} onPick={onPick} person={person} onViewing={setOther} />
+      {!other && <>{/* my own things, not under someone else's profile */}
       {onFavourites && (
         <button className="sp-row so-link" onClick={onFavourites}>
           <span className="av" style={{ background: '#f2a900' }}><Star size={18} filled /></span>
@@ -113,6 +115,7 @@ export function ProfilePanel({ features, onPick, onFavourites }) {
       {!requests.length && <div className="res-empty">{t('No join requests yet.')}</div>}
       <div className="blk-title" style={{ padding: '0 10px', marginTop: 18 }}>{t('Set my location to')}</div>
       <StartPointPicker />
+      </>}
     </Shell>
   )
 }

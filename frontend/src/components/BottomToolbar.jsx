@@ -4,17 +4,18 @@ import { useConfig, useSpring } from '../config/store'
 import { useLang } from '../i18n'
 import { LangSwitch } from './LangSwitch'
 import { Home, Minus, Moon, Plus, Sun } from './Icons'
+import { PeopleMenu } from './PeopleMenu'
 import { PinMenu } from './PinMenu'
 
 const WINDOWS = [['today', 'Today'], ['weekend', 'Weekend'], ['week', 'Week'], ['month', 'Month']]
 
 /**
- * Centred: [pins] | [-] [home] [+] | [dark] [Today·Weekend·Week·Month] | [language]. Busy areas live in the pins box.
+ * Centred: [pins] [people] | [-] [home] [+] | [dark] [Today·Weekend·Week·Month] | [language]. Busy areas live in the pins box.
  * Always one row. When the space is narrower than the bar (a small phone, or the slide-over open), the whole bar
  * scales down to fit: --fit = available width / natural width, times the editor's "Toolbar scale".
  */
 const EDGE = 12 // px kept free on each side
-export function BottomToolbar({ onZoom, onHome }) {
+export function BottomToolbar({ onZoom, onHome, me }) {
   const { values, set } = useConfig()
   const spring = useSpring()
   const { t } = useLang()
@@ -39,6 +40,7 @@ export function BottomToolbar({ onZoom, onHome }) {
     <motion.div className="toolbar-wrap" initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ ...spring, delay: 0.2 }}>
       <div className="toolbar surface" ref={bar}>
         <PinMenu />
+        <PeopleMenu me={me} />
         <span className="sep" />
         <button className="tb" onClick={() => onZoom(-1)} title={t('Zoom out')}><Minus size={20} /><small>{t('Out')}</small></button>
         <button className="tb home" onClick={onHome} title={t('Whole city')}><Home size={22} /><small>{t('City')}</small></button>
