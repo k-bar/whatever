@@ -73,7 +73,7 @@ export const SECTIONS = [
         { value: 'default', label: 'Default' }, { value: 'azure', label: 'Azure' }, { value: 'ink', label: 'Ink' }, { value: 'mint', label: 'Mint' }] },
       { id: 'mapSaturation', label: 'Map saturation', type: 'range', min: 0, max: 1.6, step: 0.1, default: 1 },
       { id: 'cityBoundary', label: 'City boundary line', type: 'toggle', default: true },
-      { id: 'busyAreas', label: 'Busy areas (golden outlines)', type: 'toggle', default: true },
+      { id: 'busyAreas', label: 'Busy areas (golden outlines)', type: 'toggle', default: false },
       { id: 'showMe', label: 'My position (IP based)', type: 'toggle', default: true },
       { id: 'meStyle', label: 'My position marker', type: 'select', default: 'syrenka', options: [
         { value: 'person', label: 'Pin with a person' }, { value: 'tag', label: 'Pin + "You are here" tag' },
@@ -94,19 +94,20 @@ export const SECTIONS = [
       { id: 'colorBy', label: 'Colour markers by', type: 'select', default: 'category', options: [
         { value: 'category', label: 'Category' }, { value: 'kind', label: 'Event / place' }, { value: 'mono', label: 'Accent colour' }] },
       // the toolbar pin button's options (data/pinGroups.js): every pin belongs to exactly one
-      { id: 'pinFriends', label: 'Pins: New friends', type: 'toggle', default: true },
-      { id: 'pinClubs', label: 'Pins: Social Clubs', type: 'toggle', default: true },
+      // a calm first map: only Events is on; the rest is one tap away in the pin box
+      { id: 'pinFriends', label: 'Pins: New friends', type: 'toggle', default: false },
+      { id: 'pinClubs', label: 'Pins: Social Clubs', type: 'toggle', default: false },
       { id: 'pinEvents', label: 'Pins: Events', type: 'toggle', default: true },
-      { id: 'pinSights', label: 'Pins: Sights', type: 'toggle', default: true },
-      { id: 'pinMusic', label: 'Pins: Music', type: 'toggle', default: true },
-      { id: 'pinFood', label: 'Pins: Food & drink', type: 'toggle', default: true },
+      { id: 'pinSights', label: 'Pins: Sights', type: 'toggle', default: false },
+      { id: 'pinMusic', label: 'Pins: Music', type: 'toggle', default: false },
+      { id: 'pinFood', label: 'Pins: Food & drink', type: 'toggle', default: false },
       { id: 'openNow', label: 'Pins: places open now only', type: 'toggle', default: false },
       // "In the city" layers in the same pin box (components/cityLayers.js). Toilets and AEDs only ever
-      // show within 600 m of the route you're walking. Everything is on by default; switch off in the pin box
-      { id: 'showToilets', label: 'Map: toilets near your route', type: 'toggle', default: true },
-      { id: 'showAed', label: 'Map: defibrillators (AED) near your route', type: 'toggle', default: true },
-      { id: 'showWalks', label: 'Map: walking routes', type: 'toggle', default: true },
-      { id: 'showStations', label: 'Map: metro & bus stations', type: 'toggle', default: true },
+      // show within 600 m of the route you're walking. All off by default; switch on in the pin box
+      { id: 'showToilets', label: 'Map: toilets near your route', type: 'toggle', default: false },
+      { id: 'showAed', label: 'Map: defibrillators (AED) near your route', type: 'toggle', default: false },
+      { id: 'showWalks', label: 'Map: walking routes', type: 'toggle', default: false },
+      { id: 'showStations', label: 'Map: metro & bus stations', type: 'toggle', default: false },
       // toolbar "People": everyone sharing their area, as pulsing photos (components/PeopleLayer.jsx)
       { id: 'showPeople', label: 'Map: people sharing their area', type: 'toggle', default: true },
       { id: 'showEvents', label: 'Show events', type: 'toggle', default: true },

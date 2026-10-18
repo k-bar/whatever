@@ -35,6 +35,7 @@ import { isPast, upcoming } from './data/api'
 import { loadAreas } from './search/areas'
 import { getMapFilter, passesToggles, setAllTypes, setTypes, useFriendIds, useMapFilter } from './data/mapFilter'
 import { typeOf } from './data/types'
+import { PIN_GROUPS, pinGroup } from './data/pinGroups'
 import { demoHost } from './demo/host'
 
 /** Map controls arrive part by part after the start page, never all at once. */
@@ -231,6 +232,8 @@ export default function App() {
     setFeatures((fc) => ({ type: 'FeatureCollection', features: [...(fc?.features || []).filter((f) => f.properties.event_id !== feature.properties.event_id), feature] }))
     setDraftPin(null)
     if (!values.showInvites) set('showInvites', true)
+    const group = PIN_GROUPS.find((g) => g.id === pinGroup(feature.properties))
+    if (group && !values[group.param]) set(group.param, true) // its pin box switch may be off (only Events is on by default)
     say(t('Event created · {audience}', { audience: t(AUDIENCES[event.audience].label) }))
     openBox(feature)
   }
