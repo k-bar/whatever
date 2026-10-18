@@ -119,6 +119,28 @@ function termScore(terms, title, rest) {
   return s
 }
 
+/** A "Where" choice -> the engine's where ({ area } | { venue } | { lngLat } | { text }) and the outline to draw. */
+export function resolveWhere(w, areas, now = new Date()) {
+  if (!w) return { where: null, area: null }
+  const asArea = (a) => ({ name: a.name, kind: a.kind, district: a.district, bbox: a.bbox, feature: a.feature, ref: a })
+  if (w.kind === 'district' || w.kind === 'area') {
+    const a = areas.find((x) => fold(x.name) === fold(w.label))
+    return a ? { where: { area: a }, area: asArea(a) } : { where: { text: w.label }, area: null }
+  }
+  if (w.kind === 'venue') return { where: { venue: w.label }, area: null }
+  if (w.kind === 'place' && w.lngLat) return { where: { lngLat: w.lngLat }, area: null }
+  if (w.label) { // typed text: an area name if it is one ("Saska Kępa"), else a place-ish text match
+    const parsed = understand(w.label, areas, now)
+    return parsed.area ? { where: { area: parsed.area.ref }, area: parsed.area } : { where: { text: w.label }, area: null }
+  }
+  return { where: null, area: null }
+}
+
+/** For the map's live filter: does a pin pass When and Where (close matches included, like the results)? */
+export function passesWhenWhere(f, when, where, now = new Date()) {
+  return whenScore(f.properties, when, false, [], now) > 0 && whereScore(f, where) > 0
+}
+
 export function whenLabel(when) {
   if (!when) return null
   if (when.label) return when.label
@@ -145,25 +167,18 @@ export async function smartSearch(query, features, opts = {}) {
   let where = u.area ? { area: u.area.ref } : null
   const w = opts.where
   const type = opts.type || (w?.kind === 'type' && w.type) || null
-  if (w) {
-    if (w.kind === 'type' && w.category) { if (!u.categories.includes(w.category)) u.categories.push(w.category) }
-    else if (w.kind === 'district' || w.kind === 'area') {
-      const a = areas.find((x) => fold(x.name) === fold(w.label))
-      where = a ? { area: a } : { text: w.label }
-      if (a) u.area = { name: a.name, kind: a.kind, district: a.district, bbox: a.bbox, feature: a.feature, ref: a }
-    } else if (w.kind === 'venue') where = { venue: w.label }
-    else if (w.kind === 'place' && w.lngLat) where = { lngLat: w.lngLat }
-    else if (w.label) {
-      // typed text: an area name if it is one ("Saska Kępa"), else a place-ish text match
-      const parsed = understand(w.label, areas, now)
-      if (parsed.area) { where = { area: parsed.area.ref }; u.area = parsed.area } else where = { text: w.label }
-    }
+  if (w?.kind === 'type') { if (w.category && !u.categories.includes(w.category)) u.categories.push(w.category) }
+  else if (w) {
+    const r = resolveWhere(w, areas, now)
+    if (r.where) where = r.where
+    if (r.area) u.area = r.area
   }
   const structured = u.categories.length || u.when || u.evening || where || type
   const scored = []
   for (const f of features || []) {
     const p = f.properties
-    if (opts.mode === 'events' && !(p.kind === 'event' && p.starts_at)) continue // Events: only real events with a date, never places or classes
+    if (opts.allowed) { if (!opts.allowed(f)) continue } // the event search's toggles decide (types, user / friend events)
+    else if (opts.mode === 'events' && !(p.kind === 'event' && p.starts_at)) continue // Events: only real events with a date, never places or classes
     if (type && typeOf(p) !== type) continue // a type picked: only pins of that type
     const title = fold(p.title), rest = fold(`${p.venue_name || ''} ${p.lead || ''} ${p.address || ''} ${p.district || ''} ${(p.categories || []).map(categoryLabel).join(' ')} ${typeLabel(typeOf(p))}`)
     const a = whatScore(p, u.categories, title); if (!a) continue

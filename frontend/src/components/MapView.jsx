@@ -124,7 +124,7 @@ function homeView(m, features) {
 const EMPTY = { type: 'FeatureCollection', features: [] }
 const LAYERS = ['wl-glow', 'wl-dots', 'wl-icons', 'wl-starred', 'wl-selected']
 
-function timeRange(window) {
+export function timeRange(window) {
   const now = new Date()
   const iso = (d) => d.toISOString().slice(0, 16)
   const end = new Date(now)
@@ -145,7 +145,9 @@ function timeRange(window) {
 // Public invitations and everything users create themselves ("+ Create event" pins carry an `audience`)
 const IS_INVITE = ['any', ['to-boolean', ['get', 'is_public_invite']], ['has', 'audience']]
 
-function buildFilter(v, favourites, favOnly) {
+function buildFilter(v, favourites, favOnly, searchIds) {
+  // the event search is in charge of the map (data/mapFilter.js): exactly its pins, already filtered in App
+  if (searchIds) return ['all', ['in', ['get', 'event_id'], ['literal', searchIds]], ...(favOnly ? [['in', ['get', 'event_id'], ['literal', [...favourites]]]] : [])]
   const kinds = []
   const parts = ['any']
   if (v.showEvents) parts.push(['all', ['in', ['get', 'kind'], ['literal', ['event', 'class']]], ['!', IS_INVITE]]) // classes are dated too
@@ -185,7 +187,7 @@ function visiblePins(features, v, favourites, favOnly, { allGroups = false } = {
   })
 }
 
-export const MapView = forwardRef(function MapView({ features, busyAreas, route, searchArea, me, favourites, favOnly, selectedId, onPick, onReady, onMove, revealed = true, draftPin, onDraftPin, city = {}, onPickWalk }, ref) {
+export const MapView = forwardRef(function MapView({ features, busyAreas, route, searchArea, searchIds, me, favourites, favOnly, selectedId, onPick, onReady, onMove, revealed = true, draftPin, onDraftPin, city = {}, onPickWalk }, ref) {
   const { values } = useConfig()
   const { lang, t } = useLang()
   const el = useRef(null)
@@ -193,8 +195,8 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
   const vRef = useRef(values)
   vRef.current = values
   // latest props for handlers registered once (style.load fires again after every setStyle)
-  const dataRef = useRef({ features, favourites, favOnly, busyAreas, route, searchArea })
-  dataRef.current = { features, favourites, favOnly, busyAreas, route, searchArea }
+  const dataRef = useRef({ features, favourites, favOnly, busyAreas, route, searchArea, searchIds })
+  dataRef.current = { features, favourites, favOnly, busyAreas, route, searchArea, searchIds }
   const meMarker = useRef(null)
   const draftMarker = useRef(null)
   const draftRef = useRef({ draftPin, onDraftPin })
@@ -402,15 +404,15 @@ export const MapView = forwardRef(function MapView({ features, busyAreas, route,
 
   function refreshFilters(m) {
     if (!m?.getLayer('wl-dots')) return
-    const { favourites, favOnly } = dataRef.current
-    const f = buildFilter(vRef.current, favourites, favOnly)
+    const { favourites, favOnly, searchIds } = dataRef.current
+    const f = buildFilter(vRef.current, favourites, favOnly, searchIds)
     m.setFilter('wl-dots', f)
     m.setFilter('wl-glow', f)
     if (m.getLayer('wl-icons')) m.setFilter('wl-icons', f)
     m.setFilter('wl-starred', ['all', f, ['in', ['get', 'event_id'], ['literal', [...favourites]]]])
     m.setLayoutProperty('wl-starred', 'visibility', vRef.current.starredDefault || favOnly ? 'visible' : 'none')
   }
-  useEffect(() => { refreshFilters(map.current) }, [...PIN_PARAMS.map((k) => values[k]), values.showEvents, values.showPlaces, values.showPitches, values.showInvites, values.timeWindow, values.starredDefault, values.openNow, favourites, favOnly])
+  useEffect(() => { refreshFilters(map.current) }, [...PIN_PARAMS.map((k) => values[k]), values.showEvents, values.showPlaces, values.showPitches, values.showInvites, values.timeWindow, values.starredDefault, values.openNow, favourites, favOnly, searchIds])
 
   // ---------- selected pulse ----------
   useEffect(() => {

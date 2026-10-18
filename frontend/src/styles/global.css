@@ -878,15 +878,6 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 .hero-more { display: none; } /* Syrenka Selects is already in view; no scroll cue needed */
 .hero { padding-bottom: 18px; }
 
-/* ---------- Events dropdown: full-width when · where pill under the category tags ---------- */
-.ev-pill { display: flex; align-items: center; flex: none; height: 60px; margin: 0 10px 10px; padding: 0 6px 0 4px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-solid); box-shadow: 0 2px 12px rgba(0,0,0,.06); }
-.ev-pill .hs-field { height: 48px; }
-.ev-pill .hero-go { width: 44px; height: 44px; margin-left: 4px; }
-/* the calendar / place list open inside the dropdown, over the tags, instead of hanging off its edge */
-.ev-pill .hs-part { position: static; }
-.ev-pill .hs-clear { position: static; flex: none; margin: 0 8px 0 -30px; z-index: 1; }
-.ev-pill .hs-pop, .ev-pill .hs-where .hs-pop { top: 10px; left: 10px; right: 10px; bottom: 80px; width: auto; translate: none; overflow-y: auto; box-shadow: none; border: 1px solid var(--line); }
-.focus-panel.mode-events:has(.hs-pop) { height: min(600px, calc(100dvh - var(--searchHeight) - 40px)); max-height: none; }
 
 
 /* ---------- start page v4: breathe. Search sits mid-screen, map + people visible above ---------- */
@@ -1425,4 +1416,46 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
 /* every pin's type, right at the top of its map box (data/types.js) */
 .mb-type { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 5px; margin-bottom: 4px; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--c); }
 .pill-cat > span[aria-hidden] { font-size: 14px; line-height: 1; }
+
+/* ---------- the event search panel (EventFilterPanel.jsx): half the bar wide, down to just above the toolbar ---------- */
+.focus-panel.mode-events { width: max(50%, 320px); height: calc(100dvh - var(--searchHeight) - 26px - 96px); max-height: none; }
+.evf { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.evf-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 12px 8px; display: flex; flex-direction: column; gap: 12px; overscroll-behavior: contain; }
+.evf .txt { display: flex; flex-direction: column; min-width: 0; flex: 1; text-align: left; }
+.evf .txt b { font-size: 14px; }
+.evf .txt small { font-size: 12px; color: var(--fg-2); font-weight: 500; }
+.evf .emo { font-size: 18px; line-height: 1; flex: none; }
+/* the big all on / all off switch */
+.evf-master { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 14px 14px 16px; border-radius: 18px; background: var(--surface-2); color: var(--fg); transition: background .2s; }
+.evf-master.on { background: color-mix(in srgb, var(--accent) 12%, var(--surface-2)); }
+.evf-master .txt b { font-size: 15.5px; }
+.evf-master .ctl-toggle { flex: none; transform: scale(1.15); margin-right: 2px; }
+/* When, then Where on the line below (their pop-ups open over the panel, like before) */
+.evf-ww { display: flex; flex-direction: column; gap: 8px; }
+.evf-ww .hs-part { position: static; width: 100%; height: 54px; border: 1px solid var(--line); border-radius: 16px; padding: 0 4px; }
+.evf-ww .hs-field { height: 46px; }
+.evf-ww .hs-clear { position: static; flex: none; margin: 0 8px 0 -30px; z-index: 1; }
+.evf-ww .hs-pop, .evf-ww .hs-where .hs-pop { top: 10px; left: 10px; right: 10px; bottom: 76px; width: auto; translate: none; overflow-y: auto; z-index: 20; box-shadow: var(--shadow-lg); border: 1px solid var(--line); }
+/* User events / Friend events */
+.evf-people { display: flex; flex-direction: column; gap: 4px; }
+.evf-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: 14px; color: var(--fg); transition: background .15s; }
+.evf-row:hover { background: var(--surface-2); }
+.evf-row .ctl-toggle { flex: none; transform: scale(.85); }
+/* category toggles, grouped like the pin menu */
+.evf-group { display: flex; flex-direction: column; gap: 8px; }
+.evf-ghead { display: flex; align-items: center; gap: 8px; padding: 2px 4px; font-size: 13px; font-weight: 800; color: var(--fg); text-align: left; }
+.evf-ghead small { margin-left: auto; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3); font-weight: 700; }
+.evf-ghead.on small { color: var(--accent); }
+.evf-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.evf-chip { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px 0 9px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1px solid var(--line); background: var(--surface-solid); color: var(--fg-2); transition: background .15s, border-color .15s, color .15s, transform .15s; }
+.evf-chip .emo { font-size: 15px; filter: grayscale(1); opacity: .55; transition: filter .15s, opacity .15s; }
+.evf-chip:hover { transform: translateY(-1px); }
+.evf-chip.on { background: color-mix(in srgb, var(--c) 15%, transparent); border-color: color-mix(in srgb, var(--c) 55%, transparent); color: var(--fg); }
+.evf-chip.on .emo { filter: none; opacity: 1; }
+/* list what's on the map */
+.evf-go { flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 8px 12px 12px; height: 48px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-weight: 700; font-size: 14.5px; box-shadow: 0 10px 22px -10px var(--accent); }
+.evf-go:hover { filter: brightness(1.05); }
+@media (max-width: 767px) { /* phones: full screen under the search bar */
+  .focus-panel.mode-events { position: fixed; left: 0; right: 0; top: calc(12px + var(--searchHeight) + 10px); bottom: 0; width: auto; height: auto; border-radius: 22px 22px 0 0; }
+}
 .mb-type-also { color: var(--fg-3); font-weight: 700; }

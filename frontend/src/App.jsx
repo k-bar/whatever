@@ -16,7 +16,7 @@ import { InterfaceEditor } from './components/InterfaceEditor'
 import { DEV_TOOLS } from './config/env'
 import { Mermaid } from './components/Icons'
 import { MapBox } from './components/MapBox'
-import { countPinGroups, MapView } from './components/MapView'
+import { countPinGroups, MapView, timeRange } from './components/MapView'
 import { ResultsList, SearchBar } from './components/SearchBar'
 import { FavouritesPanel, MessagesPanel, ProfilePanel, SettingsPanel, SlideOver } from './components/SidePanels'
 import { AuthLinks } from './components/Account'
@@ -29,8 +29,11 @@ import { AccountButton } from './components/AccountButton'
 import { ConditionsChip } from './components/ConditionsChip'
 import { AUDIENCES } from './data/categories'
 import { landingSearch, windowFor } from './landing/search'
-import { smartSearch } from './search/engine'
-import { upcoming } from './data/api'
+import { passesWhenWhere, resolveWhere, smartSearch } from './search/engine'
+import { isPast, upcoming } from './data/api'
+import { loadAreas } from './search/areas'
+import { getMapFilter, passesToggles, setAllTypes, setTypes, useFriendIds, useMapFilter } from './data/mapFilter'
+import { typeOf } from './data/types'
 
 /** Map controls arrive part by part after the start page, never all at once. */
 const Stage = ({ delay = 0, children }) => (
@@ -173,11 +176,34 @@ export default function App() {
   const selectedId = boxes[0]?.key
   const pinCounts = useMemo(() => countPinGroups(featureList, values, fav.ids, favOnly), [featureList, values, fav.ids, favOnly])
 
+  // ---------- the event search's live filter (data/mapFilter.js): which pins the map draws ----------
+  const mapFilter = useMapFilter()
+  const friendIds = useFriendIds()
+  const [filterWhere, setFilterWhere] = useState({ where: null, area: null })
+  useEffect(() => { loadAreas().then((areas) => setFilterWhere(resolveWhere(mapFilter.where, areas))) }, [mapFilter.where])
+  const searchIds = useMemo(() => {
+    if (mapFilter.source !== 'search') return null
+    const range = mapFilter.when ? null : timeRange(values.timeWindow) // When replaces the toolbar's time toggle
+    return featureList.filter((f) => {
+      const p = f.properties
+      if (isPast(p) || !passesToggles(p, mapFilter, friendIds)) return false
+      if (range && p.starts_at && !(p.starts_at >= range[0] && p.starts_at <= range[1])) return false
+      return !(mapFilter.when || filterWhere.where) || passesWhenWhere(f, mapFilter.when, filterWhere.where)
+    }).map((f) => f.properties.event_id)
+  }, [featureList, mapFilter, friendIds, filterWhere, values.timeWindow])
+
   // ---------- search ----------
   const onSearch = async (mode, q, opts) => {
-    if (mode === 'events' && (opts?.when || opts?.where)) { // Events dropdown: tag · when · where
-      if (opts.when) set('timeWindow', windowFor(opts.when))
-      showSearch(await smartSearch(opts.category || opts.type ? '' : q.split(' · ')[0], upcoming(featureList), { mode: 'events', category: opts.category, type: opts.type, when: opts.when, where: opts.where }), mode, opts.where)
+    if (mode === 'events' && opts?.filter) { // the event search: within its toggles, When and Where
+      const mf = getMapFilter()
+      const anyOn = mf.types.length || mf.users || mf.friends
+      const r = await smartSearch(q, upcoming(featureList), {
+        mode: 'events', when: mf.when, where: mf.where,
+        allowed: anyOn ? (f) => passesToggles(f.properties, mf, friendIds) : () => true,
+      })
+      // nothing switched on: typed text searched everything, so switch on what it found; nothing typed either: all on
+      if (!anyOn) q.trim() ? setTypes(r.results.map((f) => typeOf(f.properties))) : setAllTypes(true)
+      showSearch(r, mode, mf.where)
       return
     }
     if (!q.trim() && mode !== 'assistant') { setResults(null); return }
@@ -330,7 +356,7 @@ export default function App() {
 
   return (
     <div className={`app ${view === 'map' && panel && !mobile ? (panelFull ? 'slide-full' : 'slide-open') : ''} ${view === 'map' && panel && mobile ? 'slide-phone' : ''} ${flying ? 'flying' : ''}`}>
-      <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} searchArea={results?.area} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
+      <MapView ref={mapRef} features={features} busyAreas={busyAreas} route={route} searchArea={results?.area || (mapFilter.source === 'search' ? filterWhere.area?.feature : null) || null} searchIds={searchIds} me={me} favourites={fav.ids} favOnly={favOnly} selectedId={selectedId}
         onPick={(f) => openBox(f, { fly: true })} onMove={setZoom} revealed={revealed} draftPin={draftPin} onDraftPin={setDraftPin}
         city={cityShown} onPickWalk={pickWalk} />
       <PeopleLayer getMap={getMap} show={view === 'map' && values.showPeople !== false} onOpen={openPerson} />
@@ -342,7 +368,7 @@ export default function App() {
       <AnimatePresence>{view === 'map' && [
 
       <div className="top-left" key="top-left">
-        <SearchBar onSearch={onSearch} trayOpen={!!panel} unread={myChats.total} onBurger={toggleTray} initialQuery={entryQuery} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} features={featureList} />
+        <SearchBar onSearch={onSearch} matchCount={searchIds?.length || 0} trayOpen={!!panel} unread={myChats.total} onBurger={toggleTray} initialQuery={entryQuery} results={results} onPick={pickResult} onClear={() => { setResults(null); if (sheet === 'results') setSheet(null) }} searching={searching} mobile={mobile} chat={chat} onChatClear={() => setChat([])} features={featureList} />
         <motion.div className="side-controls" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0, transition: { ...spring, delay: 0.35 } }}>
           {/* the Syrenka: back to the start page (a button, not a toggle) */}
           <motion.button className="btn icon mermaid-btn" onClick={goHome} aria-label={t('Back to the start page')} title={t('Back to the start page')}
