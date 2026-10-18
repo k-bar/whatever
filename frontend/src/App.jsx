@@ -56,10 +56,10 @@ export default function App() {
   const [favOnly, setFavOnly] = useState(false)
   const [panel, setPanel] = useState(null)
   const [panelFull, setPanelFull] = useState(false) // desktop mode 3: the slide-over fills the screen
+  const [person, setPerson] = useState(null) // { id } of someone tapped on the map: their profile in the slide-over
   const [eventChat, setEventChat] = useState(null) // the event chat open in Messages: { kind: 'event' | 'userevent', id }
   const myChats = useMyChats()
   useEffect(() => startChatSocket(), []) // live chat messages while logged in (data/chat.js)
-  const [person, setPerson] = useState(null) // { id } of someone tapped on the map: their profile in the slide-over
   const [view, setView] = useState('landing') // every visit starts on the start page ("Search")
   const [flying, setFlying] = useState(false) // the search pill is in flight between the start page and the map
   const [revealed, setRevealed] = useState(false) // pins and areas shown: only once the pill has landed on the map
@@ -177,7 +177,7 @@ export default function App() {
   const onSearch = async (mode, q, opts) => {
     if (mode === 'events' && (opts?.when || opts?.where)) { // Events dropdown: tag · when · where
       if (opts.when) set('timeWindow', windowFor(opts.when))
-      showSearch(await smartSearch(opts.category ? '' : q.split(' · ')[0], upcoming(featureList), { mode: 'events', category: opts.category, when: opts.when, where: opts.where }), mode, opts.where)
+      showSearch(await smartSearch(opts.category || opts.type ? '' : q.split(' · ')[0], upcoming(featureList), { mode: 'events', category: opts.category, type: opts.type, when: opts.when, where: opts.where }), mode, opts.where)
       return
     }
     if (!q.trim() && mode !== 'assistant') { setResults(null); return }
@@ -213,7 +213,7 @@ export default function App() {
   // ---------- the slide-over tray: the burger opens it on its menu ('menu'), items open inside it ----------
   // the map shows only favourite spots while that section is open
   const onMenu = (id) => { if (id === 'create') { startCreate(); return } setFavOnly(id === 'favourites'); setPanel(id) }
-  const closePanel = () => { setPanel(null); setPanelFull(false); setFavOnly(false); setEventChat(null); setPerson(null) }
+  const closePanel = () => { setPanel(null); setPanelFull(false); setFavOnly(false); setPerson(null); setEventChat(null) }
   const openChat = (target) => { setDraftPin(null); setEventChat(target); setPanel('messages') }
   // the event a chat belongs to, back on the map: public pins by id, private ones by user_event_id
   const openChatEvent = (info) => {

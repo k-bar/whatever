@@ -3,6 +3,7 @@
  * event type, or an address). Every part is optional; with nothing filled in it simply opens the map.
  */
 import { CATEGORIES, EVENT_TYPES, categoryLabel } from '../data/categories'
+import { SEARCH_TYPES, typeLabel } from '../data/types'
 import { upcoming } from '../data/api'
 import { smartSearch } from '../search/engine'
 import { translate } from '../i18n'
@@ -15,6 +16,8 @@ export function whereSuggestions(text, features, limit = 7, areas = []) {
   if (!needle) return []
   const out = new Map()
   const add = (kind, label, extra = {}) => { const key = `${kind}:${norm(label)}`; if (!out.has(key)) out.set(key, { kind, label, ...extra }) }
+  // types first (data/types.js): "kino" -> Cinema, "muzeum" -> Museum; picking one shows only that type
+  for (const id of SEARCH_TYPES) if (norm(typeLabel(id)).includes(needle)) add('type', typeLabel(id), { type: id })
   for (const [slug, et] of Object.entries(EVENT_TYPES)) if (norm(translate(et.label)).includes(needle) || norm(et.label).includes(needle)) add('type', translate(et.label), { category: et.category })
   for (const slug of Object.keys(CATEGORIES)) if (norm(categoryLabel(slug)).includes(needle)) add('type', categoryLabel(slug), { category: slug })
   for (const a of areas) if (norm(a.name).includes(needle)) add('district', a.name, a.kind === 'area' && a.district ? { sub: a.district } : {})

@@ -1,4 +1,5 @@
 import { isOpenNow } from './hours'
+import { typeGroup, typeOf } from './types'
 import { pinType } from './pinTypes'
 
 /**
@@ -16,25 +17,13 @@ export const PIN_GROUPS = [
   { id: 'food', param: 'pinFood', label: 'Food & drink', emoji: '🍴' }, // restaurants, cafes, bars, pubs, beer gardens, food markets
 ]
 
-const MUSIC = ['music', 'nightlife', 'festivals']
-const FOOD = ['food', 'markets']
-const CLUBS = ['meetups', 'running', 'yoga', 'study_buddies', 'grzybki', 'sports', 'health']
-const FOOD_PLACES = ['restaurant', 'cafe', 'bar', 'pub', 'fast_food', 'food_court', 'ice_cream', 'biergarten']
-
-/** Which option a pin belongs to. */
+/**
+ * Which pin box switch a pin belongs to: its type's group (data/types.js), except that anything a person
+ * on Syrenka posted is "New friends", whatever its type. The switch overrides every type in it.
+ */
 export function pinGroup(p) {
-  const cats = p.categories || []
-  const has = (list) => cats.some((c) => list.includes(c))
   if (p.source === 'syrenka-users' || p.is_public_invite) return 'friends'
-  // Kamil's OpenStreetMap restaurants, cafes, bars and pubs: food & drink (bars come tagged "nightlife",
-  // which would otherwise put them with the music clubs)
-  if (p.source === 'osm_restaurants' || has(FOOD) || FOOD_PLACES.includes(p.venue_type)) return 'food'
-  // pitches and classes before music: some pitches come tagged "nightlife" too
-  if (p.kind === 'class' || p.venue_type === 'pitch' || p.source === 'warsaw_pitches') return 'clubs'
-  if (has(MUSIC)) return 'music'
-  if (has(CLUBS)) return 'clubs'
-  if (p.kind === 'place') return 'sights'
-  return 'events'
+  return typeGroup(typeOf(p)) || 'events'
 }
 
 /**
