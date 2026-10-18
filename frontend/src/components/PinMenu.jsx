@@ -18,7 +18,7 @@ const PIN_OPTION_IDS = new Set([...PIN_GROUPS.map((g) => g.id), OPEN_NOW.id])
 
 /**
  * First toolbar button: tap -> a compact box slides up (like the language picker) with a toggle per kind
- * of thing on the map. Everything is on by default; tap a row to switch it off. Tap outside the box or
+ * of thing on the map. Only Events is on by default; tap a row to switch the others on. Tap outside the box or
  * the pin button again to close it. How many of each there are lives in Settings -> Data sources.
  */
 export function PinMenu() {
