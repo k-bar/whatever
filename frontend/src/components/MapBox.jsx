@@ -5,6 +5,7 @@ import { Bike, FACT_ICON, Plus, Star, Ticket, Walk } from './Icons'
 import { categoryColor } from '../data/categories'
 import { fmtWhen } from '../mapboxes/curate'
 import { useLang } from '../i18n'
+import { EventDetails } from './EventDetails'
 import { askToJoin, toggleGoing, useSocial } from '../data/social'
 
 const AV_COLORS = ['#e7392b', '#2b6be7', '#0fa37f', '#f2a900', '#7c4dff']
@@ -120,15 +121,8 @@ export function MapBox({ data, feature, expanded, journey, onClose, onExpand, st
           </div>
         )}
         {data.blocks.slice(0, expanded ? 99 : 3).map((b, i) => <Block b={b} feature={feature} key={i} />)}
+        {expanded && feature.properties.kind !== 'walk' && <EventDetails feature={feature} />}
         {expanded && data.url && <a className="mb-link" href={data.url} target="_blank" rel="noreferrer">{t('Open source page ↗')}</a>}
-        {expanded && (
-          <div className="blk">
-            <div className="blk-title">{t('Everything we know')}</div>
-            <pre style={{ fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'pre-wrap', fontFamily: 'JetBrains Mono, monospace' }}>
-              {JSON.stringify({ ...feature.properties, upcoming: undefined }, null, 1).slice(0, 1600)}
-            </pre>
-          </div>
-        )}
         {!expanded && <div className="mb-foot" />}
       </div>
       {onExpand && !expanded && <button className="btn icon small primary mb-plus" onClick={onExpand} aria-label={t('Expand')}><Plus size={16} /></button>}

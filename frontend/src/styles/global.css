@@ -1216,3 +1216,28 @@ textarea.ce-input { resize: vertical; min-height: 92px; line-height: 1.45; }
   .maplibregl-ctrl-bottom-right { bottom: calc(112px + var(--safe-b)); }
   .toast { bottom: calc(124px + var(--safe-b)); }
 }
+
+/* ---------- phone bottom sheet: (x) top right, travels with the sheet; formatted event details ---------- */
+.sheet { position: fixed; top: 0; bottom: auto; z-index: 96; height: calc(100dvh - 70px); } /* pinned to the top so its slide (translateY) is measured from the top: full = 70 px down */ /* above the editor toggle so its (x) is never covered; full height stops under the top row */
+.top-right:has(.ed-tray) { z-index: 98; } /* an open editor still overlays everything */
+.sheet .sheet-x { position: absolute; top: 10px; right: 12px; z-index: 3; }
+.sheet .grip { margin-top: 10px; }
+.sheet .sheet-body .mapbox .mb-head { padding-right: 44px; } /* the title never runs under the (x) */
+.ev-details .blk-title { margin-bottom: 4px; }
+.evd-sec { padding: 10px 0; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.5; color: var(--fg); }
+.evd-sec:first-of-type { border-top: 0; padding-top: 2px; }
+.evd-sec h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--fg-3); }
+.evd-sec h4 svg { color: var(--fg-3); }
+.evd-sec p { margin: 0 0 8px; white-space: pre-line; }
+.evd-sec p:last-child { margin-bottom: 0; }
+.evd-dates { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; font-weight: 600; }
+.evd-more, .evd-muted { color: var(--fg-2); font-size: 12.5px; }
+.evd-strong { font-weight: 700; }
+.evd-link { display: inline-block; margin-top: 4px; color: var(--accent); font-weight: 600; text-decoration: none; word-break: break-word; }
+.evd-link:hover { text-decoration: underline; }
+.evd-hours { border-collapse: collapse; width: 100%; font-size: 13px; }
+.evd-hours th { text-align: left; font-weight: 500; color: var(--fg-2); padding: 2px 12px 2px 0; width: 45%; }
+.evd-hours td { padding: 2px 0; font-weight: 600; }
+.evd-hours tr.today th, .evd-hours tr.today td { color: var(--accent); font-weight: 700; }
+.evd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.evd-source { display: flex; align-items: center; gap: 6px; color: var(--fg-3); font-size: 12px; }

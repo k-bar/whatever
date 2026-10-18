@@ -119,7 +119,7 @@ export default function App() {
     const data = curate(feature)
     setBoxes((b) => {
       const rest = b.filter((x) => x.key !== key).map((x) => ({ ...x, expanded: false }))
-      return [{ key, feature, data, expanded: false }, ...rest].slice(0, MAX_OPEN_BOXES)
+      return [{ key, feature, data, expanded: false }, ...rest].slice(0, mobile ? 1 : MAX_OPEN_BOXES) // phones: one event at a time
     })
     boxesRef.current?.scrollTo({ top: 0, behavior: 'smooth' }) // the newest box goes on top: bring it into view
     if (mobile) setSheet('box')
@@ -327,7 +327,7 @@ export default function App() {
 
       /* under "Log in" / the account pill: close every open map box and the results list */
       // only there while something is open (map boxes, results, the phone's sheet); fades in and out
-      (boxes.length > 0 || results || sheet) && <motion.button key="close-all" className="close-all" onClick={closeAll}
+      !mobile && (boxes.length > 0 || results || sheet) && <motion.button key="close-all" className="close-all" onClick={closeAll}
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25, ease: 'easeOut' }}>{t('Close all')}</motion.button>,
 
 
